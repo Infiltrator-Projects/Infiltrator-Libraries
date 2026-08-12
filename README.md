@@ -4,24 +4,26 @@
 
 Canonical shared C code for Shannon Smith's Infiltrator software projects.
 
-The current release contains **Infiltratr Common 1.1.1**, the reusable C11
+The current release contains **Infiltratr Common 1.2.0**, the reusable C11
 foundation shared by Calendar Plus and Linux System Monitor. Application code,
 calendar rules, hardware collectors and user-interface code remain in their
 own repositories.
 
 ## Current library
 
-The public API provides 27 reusable operations covering:
+The public API provides 36 reusable operations covering:
 
 - project identity and machine-readable build metadata;
 - bounded strings and deterministic string comparisons;
 - strict unsigned-integer and locale-independent ASCII-decimal parsing;
 - saturating arithmetic, percentages and counter rates;
 - base-2 byte and byte-rate formatting;
+- shared memory, disk, network, percentage, frequency, temperature and power formatting;
 - path handling, small text and numeric file reads; and
 - monotonic timing through the POSIX provider.
 
 `src/core.c` is independent of GLib, GTK and operating-system APIs.
+`src/format.c` contains dependency-free presentation formatting shared by applications.
 `src/posix.c` is the Linux/POSIX platform provider. Future Windows and UI
 providers belong in this repository only when real shared implementations
 exist.
@@ -32,6 +34,7 @@ exist.
 | --- | --- |
 | `include/infiltratr/` | Public C headers |
 | `src/core.c` | Portable implementation |
+| `src/format.c` | Portable shared formatting implementation |
 | `src/posix.c` | POSIX platform implementation |
 | `tests/core_smoke.c` | Standalone regression coverage |
 | `Makefile` | Static/shared-library build and tests |
@@ -44,7 +47,7 @@ make shared
 ```
 
 The default build creates `build/libinfiltratr-common.a`. The shared target
-creates `build/libinfiltratr-common.so.1.1.1` with SONAME
+creates `build/libinfiltratr-common.so.1.2.0` with SONAME
 `libinfiltratr-common.so.1`.
 
 ## Source of truth

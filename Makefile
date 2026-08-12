@@ -7,9 +7,9 @@ CPPFLAGS += -Iinclude
 CFLAGS ?= -O2 -g
 override CFLAGS += -std=c11 -fPIC -Wall -Wextra -Wpedantic -Werror \
 	-Wshadow -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes
-OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/posix.o
+OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/format.o $(BUILD_DIR)/posix.o
 ARCHIVE := $(BUILD_DIR)/libinfiltratr-common.a
-SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.1.1
+SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.2.0
 
 .PHONY: all check clean shared
 
@@ -20,6 +20,9 @@ $(BUILD_DIR):
 
 $(BUILD_DIR)/core.o: src/core.c include/infiltratr/core.h \
 	include/infiltratr/compiler.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/format.o: src/format.c include/infiltratr/format.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/posix.o: src/posix.c include/infiltratr/core.h \
@@ -38,8 +41,12 @@ $(SHARED): $(OBJECTS)
 $(BUILD_DIR)/core-smoke: tests/core_smoke.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
 
-check: $(BUILD_DIR)/core-smoke
+$(BUILD_DIR)/format-smoke: tests/format_smoke.c $(ARCHIVE)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
+
+check: $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke
 	./$(BUILD_DIR)/core-smoke
+	./$(BUILD_DIR)/format-smoke
 
 clean:
 	rm -rf "$(BUILD_DIR)"
