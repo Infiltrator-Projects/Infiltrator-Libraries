@@ -101,6 +101,7 @@ char *infiltratr_format_network_pair(long double send_bytes,
 
     options.minimum_unit = unit;
     options.maximum_unit = unit;
+    options.zero_below_minimum_unit = false;
     long double scaled_send = 0.0L;
     long double scaled_receive = 0.0L;
     size_t selected_unit = unit;
