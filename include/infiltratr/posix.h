@@ -18,6 +18,21 @@
 extern "C" {
 #endif
 
+/** Detailed result for shared file-reading operations. */
+typedef enum {
+    INFILTRATR_IO_OK = 0,
+    INFILTRATR_IO_INVALID_ARGUMENT,
+    INFILTRATR_IO_NOT_FOUND,
+    INFILTRATR_IO_PERMISSION_DENIED,
+    INFILTRATR_IO_EMPTY,
+    INFILTRATR_IO_TRUNCATED,
+    INFILTRATR_IO_INVALID_VALUE,
+    INFILTRATR_IO_ERROR
+} InfiltratrIoResult;
+
+/** Return a stable machine-readable name for an I/O result. */
+const char *infiltratr_io_result_name(InfiltratrIoResult result);
+
 /** Resolve an existing path into caller-owned bounded storage. */
 bool infiltratr_realpath_copy(const char *path, char *destination, size_t size);
 /** Concatenate two path fragments without inserting a separator. */
@@ -26,6 +41,21 @@ bool infiltratr_path_concat(char *destination, size_t size,
 /** Join two path fragments with exactly one separator at their boundary. */
 bool infiltratr_path_join(char *destination, size_t size,
                           const char *left, const char *right);
+
+/**
+ * Read one bounded text value with explicit failure and truncation reporting.
+ * `length` may be NULL; when supplied it receives the post-line-ending length.
+ */
+InfiltratrIoResult infiltratr_read_text_file_ex(const char *path,
+                                                char *buffer, size_t size,
+                                                size_t *length);
+/** Parse a complete unsigned decimal file value with explicit result status. */
+InfiltratrIoResult infiltratr_read_u64_file_ex(const char *path,
+                                               uint64_t *value);
+/** Parse a complete finite decimal file value with explicit result status. */
+InfiltratrIoResult infiltratr_read_double_file_ex(const char *path,
+                                                  double *value);
+
 /** Read one bounded pseudo-file value and remove its line ending. */
 bool infiltratr_read_text_file(const char *path, char *buffer, size_t size);
 /** Parse a complete unsigned decimal value from a small text file. */
@@ -40,6 +70,9 @@ double infiltratr_read_double_or_nan(const char *path);
 bool infiltratr_read_first_u64(const char *base,
                                const char *const *suffixes,
                                size_t suffix_count, uint64_t *value);
+
+/** Return CLOCK_MONOTONIC as exact integer nanoseconds when representable. */
+bool infiltratr_monotonic_nanoseconds(uint64_t *nanoseconds);
 /** Return CLOCK_MONOTONIC in fractional seconds, or zero on failure. */
 double infiltratr_monotonic_seconds(void);
 
