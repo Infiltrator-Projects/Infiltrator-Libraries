@@ -1,0 +1,103 @@
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+
+# Infiltratr Common usage ledger
+
+This ledger records why each public Common operation exists and who currently consumes it. It is intended to keep the shared library focused on real reuse rather than speculative utility code.
+
+Status meanings:
+
+- **ACTIVE** — used by production code in at least one consumer.
+- **FOUNDATION** — not necessarily called by an application directly, but is the canonical implementation underneath an ACTIVE shared operation.
+- **READY** — a tested completion of an already-active capability family, but not currently required by production consumer code. Do not expand READY APIs further until a real consumer needs the extra behaviour.
+
+Consumer notation:
+
+- **System Monitor facade** means the operation is wired through the production `lsm_*` compatibility surface. Existing callers can keep the stable application API while Common owns the implementation.
+- **Calendar Plus direct** means Calendar production source calls the Common API directly.
+- **Common internal** means another public Common operation uses it.
+- Tests are not counted as production consumers.
+
+Audit baseline: Infiltratr Common 1.4.0, Linux System Monitor 1.13.5 and Calendar Plus 3.9.4, 13 August 2026.
+
+## Core
+
+| Public operation | System Monitor | Calendar Plus | Common internal | Status | Reason |
+| --- | --- | --- | --- | --- | --- |
+| `infiltratr_project_info_is_valid` | project-info validation/tests | — | `project_info_print` | FOUNDATION | Validates the shared project-identity model. |
+| `infiltratr_project_info_print` | metadata/test tooling | direct (`--print-metadata`) | — | ACTIVE | One canonical machine-readable project metadata writer. |
+| `infiltratr_copy_string` | facade | — | — | ACTIVE | Bounded copy replaces private fixed-buffer helpers. |
+| `infiltratr_trim` | facade | — | — | ACTIVE | Shared in-place whitespace cleanup. |
+| `infiltratr_trim_line_end` | facade | — | POSIX text reader | ACTIVE | Shared CR/LF cleanup and file-reader foundation. |
+| `infiltratr_string_equal` | facade | direct | — | ACTIVE | Null-safe deterministic string equality used by both consumers. |
+| `infiltratr_string_starts_with` | facade | direct | — | ACTIVE | Shared prefix matching used by both consumers. |
+| `infiltratr_string_ends_with` | facade | — | — | ACTIVE | Shared suffix matching used by System Monitor. |
+| `infiltratr_parse_u64` | facade | — | POSIX numeric readers | ACTIVE | Canonical strict unsigned parser. |
+| `infiltratr_parse_i64` | — | — | — | READY | Completes the active integer parser family and is regression-tested. |
+| `infiltratr_parse_u64_range` | — | — | — | READY | Tested range validation for the active unsigned parser family. |
+| `infiltratr_parse_i64_range` | — | — | — | READY | Tested range validation for the signed parser family. |
+| `infiltratr_parse_double` | facade | direct | POSIX numeric readers | ACTIVE | Locale-independent machine-value parser used by both consumers. |
+| `infiltratr_parse_double_range` | — | — | — | READY | Tested bounded form of the active decimal parser. |
+| `infiltratr_clamp_double` | facade | direct | — | ACTIVE | Shared numeric clamping used by both consumers. |
+| `infiltratr_u64_add_saturating` | facade | — | — | ACTIVE | Prevents monitoring-counter overflow. |
+| `infiltratr_u64_multiply_saturating` | facade | — | — | ACTIVE | Prevents monitoring-counter overflow. |
+| `infiltratr_percent_u64` | facade | — | — | ACTIVE | Canonical bounded percentage calculation. |
+| `infiltratr_u64_counter_rate` | facade | — | — | ACTIVE | Canonical rollback-safe rate calculation. |
+| `infiltratr_scale_quantity` | — | — | shared quantity/network formatters | FOUNDATION | One unit-selection algorithm for all scaled formatters. |
+| `infiltratr_format_scaled_quantity` | — | — | byte/rate and metric wrappers | FOUNDATION | Canonical configurable scaled-quantity renderer. |
+| `infiltratr_format_bytes` | facade | — | disk-capacity wrapper | ACTIVE | Shared binary byte presentation. |
+| `infiltratr_format_rate` | facade | — | — | ACTIVE | Shared binary byte-rate presentation. |
+
+## Formatting
+
+| Public operation | System Monitor | Calendar Plus | Common internal | Status | Reason |
+| --- | --- | --- | --- | --- | --- |
+| `infiltratr_format_scalar` | used through shared metric policy/adoption | — | percent/MHz/Celsius/watts wrappers | FOUNDATION | One configurable scalar renderer replaces separate formatting algorithms. |
+| `infiltratr_format_memory_gb` | metric facade | — | — | ACTIVE | System Monitor memory presentation. |
+| `infiltratr_format_disk_capacity` | metric facade | — | `format_bytes` | ACTIVE | System Monitor compact capacity presentation. |
+| `infiltratr_format_network` | metric facade | — | scaling engine | ACTIVE | System Monitor network quantity/rate presentation. |
+| `infiltratr_format_network_pair` | metric facade | — | scaling engine | ACTIVE | System Monitor shared-unit send/receive presentation. The hard-coded `S:`/`R:` policy should not be generalized further until another consumer needs different labels. |
+| `infiltratr_format_link_speed_mbps` | metric facade | — | scaling engine | ACTIVE | System Monitor negotiated-link presentation. |
+| `infiltratr_format_percent` | metric facade | — | scalar engine | ACTIVE | System Monitor optional percentage presentation. |
+| `infiltratr_format_mhz` | metric facade | — | scalar engine | ACTIVE | System Monitor optional frequency presentation. |
+| `infiltratr_format_celsius` | metric facade | — | scalar engine | ACTIVE | System Monitor optional temperature presentation. |
+| `infiltratr_format_watts` | metric facade | — | scalar engine | ACTIVE | System Monitor optional power presentation. |
+
+## POSIX provider
+
+| Public operation | System Monitor | Calendar Plus | Common internal | Status | Reason |
+| --- | --- | --- | --- | --- | --- |
+| `infiltratr_io_result_name` | — | — | — | READY | Human/machine-readable status naming for the active rich I/O family. |
+| `infiltratr_realpath_copy` | facade | — | — | ACTIVE | Shared bounded `realpath` adapter. |
+| `infiltratr_path_concat` | facade | — | `read_first_u64` | ACTIVE | Shared path construction for Linux collectors. |
+| `infiltratr_path_join` | — | — | — | READY | Tested separator-aware form of the active path-helper family. |
+| `infiltratr_read_text_file_ex` | — | — | rich typed readers | FOUNDATION | Preserves missing/denied/empty/truncated/error distinctions. |
+| `infiltratr_read_u64_file_ex` | — | — | — | READY | Rich form of the active unsigned file reader. |
+| `infiltratr_read_double_file_ex` | — | — | — | READY | Rich form of the active floating file reader. |
+| `infiltratr_read_text_file` | facade | — | simple typed readers | ACTIVE | Fast small procfs/sysfs text reader. |
+| `infiltratr_read_u64_file` | facade | — | `read_first_u64` | ACTIVE | Shared typed sysfs/procfs reader. |
+| `infiltratr_read_u64_or_zero` | facade | — | — | ACTIVE | Convenience wrapper where zero and unavailable are intentionally equivalent. |
+| `infiltratr_read_double_file` | facade | — | — | ACTIVE | Shared typed floating sysfs/procfs reader. |
+| `infiltratr_read_double_or_nan` | facade | — | — | ACTIVE | Convenience wrapper preserving missing state as NaN. |
+| `infiltratr_read_first_u64` | facade | — | path/file helpers | ACTIVE | Shared ordered fallback for alternate Linux attributes. |
+| `infiltratr_monotonic_nanoseconds` | — | — | — | READY | Tested exact form of the active monotonic-clock capability. |
+| `infiltratr_monotonic_seconds` | facade | — | — | ACTIVE | System Monitor sampling clock. |
+
+## Compiler annotations
+
+`INFILTRATR_LIKELY`, `INFILTRATR_UNLIKELY`, `INFILTRATR_COLD` and `INFILTRATR_PRINTF_FORMAT` are ACTIVE through Linux System Monitor's `src/compiler.h` compatibility facade. Calendar Plus does not currently need them.
+
+## Consumer build footprint
+
+- Linux System Monitor requires the portable core/formatting code and the POSIX provider.
+- Calendar Plus currently consumes the portable core/project-identity functionality and does not require Common POSIX services. Its build should therefore compile the portable Common sources only unless a real POSIX Common call is introduced later.
+
+## Rule for adding public API
+
+Before a new public Common operation is added, it must satisfy at least one of these conditions:
+
+1. two consumers already contain substantially the same capability;
+2. a consumer needs a capability another consumer already has;
+3. the operation is necessary to make an ACTIVE shared implementation robust or complete; or
+4. application-private code can be replaced immediately by the new shared implementation.
+
+Every public API change must update this ledger. A READY operation may remain because it completes an active capability family, but READY APIs should not accumulate additional speculative features until a production consumer needs them.

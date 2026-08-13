@@ -18,6 +18,12 @@ provide the reusable capability and let each application select the behaviour
 it needs. Convenience wrappers may expose simple common cases, but they should
 sit on top of the canonical implementation rather than create parallel logic.
 
+Common is not a holding area for hypothetical helpers. New public API should
+come from real consumer duplication, a real consumer requirement, or work
+needed to make an already-shared capability robust and complete. The
+consumer/status map in [USAGE.md](USAGE.md) records why every public operation
+exists and must be updated when the public API or consumer usage changes.
+
 ## Current library
 
 The public API provides 48 reusable operations covering:
@@ -51,6 +57,7 @@ collapse every failure into a zero, `NAN`, or a generic false result.
 | `src/core.c` | Portable implementation and canonical quantity scaling |
 | `src/format.c` | Portable shared formatting implementation |
 | `src/posix.c` | POSIX platform implementation |
+| `USAGE.md` | Public API consumer/status ledger and anti-speculation rule |
 | `tests/core_smoke.c` | Standalone core, status and scaling regression coverage |
 | `tests/format_smoke.c` | Shared formatting regression coverage |
 | `Makefile` | Static/shared-library build and tests |
