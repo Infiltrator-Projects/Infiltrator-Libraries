@@ -23,8 +23,9 @@
 extern "C" {
 #endif
 
-#define INFILTRATR_COMMON_VERSION "1.2.0"
+#define INFILTRATR_COMMON_VERSION "1.3.0"
 #define INFILTRATR_PROJECT_INFO_ABI 1U
+#define INFILTRATR_SCALE_OPTIONS_ABI 1U
 #define INFILTRATR_ARRAY_LENGTH(array) (sizeof(array) / sizeof((array)[0]))
 
 /** Stable, toolkit-neutral identity consumed by application adapters. */
@@ -49,6 +50,38 @@ typedef struct {
 #define INFILTRATR_PROJECT_INFO_INIT \
     { .struct_size = sizeof(InfiltratrProjectInfo), \
       .abi_version = INFILTRATR_PROJECT_INFO_ABI }
+
+/**
+ * Scaling policy used by the canonical shared quantity formatter.
+ *
+ * `minimum_unit` and `maximum_unit` are inclusive indices into the unit table
+ * supplied by the caller. `SIZE_MAX` for `maximum_unit` means the last unit.
+ * The formatter can therefore auto-scale, force one unit, or constrain a
+ * display to any useful range without duplicating the scaling algorithm.
+ */
+typedef struct {
+    size_t struct_size;
+    uint32_t abi_version;
+    long double divisor;
+    size_t minimum_unit;
+    size_t maximum_unit;
+    unsigned int decimal_places;
+    long double integer_threshold;
+    bool integer_at_minimum_unit;
+    bool zero_below_minimum_unit;
+} InfiltratrScaleOptions;
+
+/** Default binary auto-scaling policy with one fractional digit. */
+#define INFILTRATR_SCALE_OPTIONS_INIT \
+    { .struct_size = sizeof(InfiltratrScaleOptions), \
+      .abi_version = INFILTRATR_SCALE_OPTIONS_ABI, \
+      .divisor = 1024.0L, \
+      .minimum_unit = 0U, \
+      .maximum_unit = SIZE_MAX, \
+      .decimal_places = 1U, \
+      .integer_threshold = 100.0L, \
+      .integer_at_minimum_unit = true, \
+      .zero_below_minimum_unit = false }
 
 /** Validate the ABI header and every required identity string. */
 bool infiltratr_project_info_is_valid(const InfiltratrProjectInfo *info);
@@ -89,6 +122,30 @@ double infiltratr_percent_u64(uint64_t part, uint64_t whole);
 bool infiltratr_u64_counter_rate(uint64_t current, uint64_t previous,
                                  long double units_per_count,
                                  double elapsed_seconds, double *rate);
+
+/**
+ * Scale one finite quantity according to a caller-selected unit policy.
+ *
+ * This is the common implementation used by byte, capacity, network and
+ * related formatters. It preserves the sign of the input and returns both the
+ * scaled value and selected unit index, allowing compound displays to share a
+ * unit without reimplementing unit-selection logic.
+ */
+bool infiltratr_scale_quantity(long double value,
+                               const InfiltratrScaleOptions *options,
+                               size_t unit_count, long double *scaled_value,
+                               size_t *unit_index);
+/**
+ * Format one finite scaled quantity using the supplied unit strings and suffix.
+ * The caller owns all strings and output storage. Invalid arguments or
+ * non-finite values return false and leave a bounded empty string when possible.
+ */
+bool infiltratr_format_scaled_quantity(long double value,
+                                        const char *const *units,
+                                        size_t unit_count,
+                                        const char *suffix,
+                                        const InfiltratrScaleOptions *options,
+                                        char *buffer, size_t buffer_size);
 
 /** Format bytes with 1024-based traditional B/KB/MB/GB/TB labels. */
 char *infiltratr_format_bytes(uint64_t bytes, char *buffer,
