@@ -25,6 +25,38 @@
 extern "C" {
 #endif
 
+#define INFILTRATR_SCALAR_FORMAT_OPTIONS_ABI 1U
+
+/** Policy for formatting one optional scalar value without application-specific code. */
+typedef struct {
+    size_t struct_size;
+    uint32_t abi_version;
+    unsigned int decimal_places;
+    bool clamp;
+    long double minimum;
+    long double maximum;
+    const char *prefix;
+    const char *suffix;
+    const char *unavailable_text;
+} InfiltratrScalarFormatOptions;
+
+/** Default scalar policy: one decimal place, no clamping, and `N/A` if unavailable. */
+#define INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT \
+    { .struct_size = sizeof(InfiltratrScalarFormatOptions), \
+      .abi_version = INFILTRATR_SCALAR_FORMAT_OPTIONS_ABI, \
+      .decimal_places = 1U, \
+      .clamp = false, \
+      .minimum = 0.0L, \
+      .maximum = 0.0L, \
+      .prefix = "", \
+      .suffix = "", \
+      .unavailable_text = "N/A" }
+
+/** Format an optional finite scalar with caller-selected precision, affixes and bounds. */
+bool infiltratr_format_scalar(bool available, long double value,
+                              const InfiltratrScalarFormatOptions *options,
+                              char *buffer, size_t size);
+
 /** Format bytes as a fixed one-decimal binary GB quantity. */
 char *infiltratr_format_memory_gb(uint64_t bytes, char *buffer, size_t size);
 /** Format a compact binary capacity using B/KB/MB/GB/TB labels. */

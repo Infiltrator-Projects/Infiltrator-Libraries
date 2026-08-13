@@ -138,6 +138,51 @@ bool infiltratr_parse_u64(const char *text, unsigned int base,
     return true;
 }
 
+
+bool infiltratr_parse_i64(const char *text, unsigned int base, int64_t *value)
+{
+    if (!text || !value || base == 1U || base > 36U) return false;
+    while (*text && isspace((unsigned char)*text)) text++;
+    if (*text == '\0') return false;
+
+    errno = 0;
+    char *end = NULL;
+    const long long parsed = strtoll(text, &end, (int)base);
+    if (errno != 0 || end == text ||
+        parsed < (long long)INT64_MIN || parsed > (long long)INT64_MAX)
+        return false;
+    while (*end && isspace((unsigned char)*end)) end++;
+    if (*end != '\0') return false;
+    *value = (int64_t)parsed;
+    return true;
+}
+
+bool infiltratr_parse_u64_range(const char *text, unsigned int base,
+                                uint64_t minimum, uint64_t maximum,
+                                uint64_t *value)
+{
+    if (!value || minimum > maximum) return false;
+    uint64_t parsed = 0U;
+    if (!infiltratr_parse_u64(text, base, &parsed) ||
+        parsed < minimum || parsed > maximum)
+        return false;
+    *value = parsed;
+    return true;
+}
+
+bool infiltratr_parse_i64_range(const char *text, unsigned int base,
+                                int64_t minimum, int64_t maximum,
+                                int64_t *value)
+{
+    if (!value || minimum > maximum) return false;
+    int64_t parsed = 0;
+    if (!infiltratr_parse_i64(text, base, &parsed) ||
+        parsed < minimum || parsed > maximum)
+        return false;
+    *value = parsed;
+    return true;
+}
+
 static bool ascii_space(char character)
 {
     return character == ' ' || character == '\t' || character == '\n' ||
@@ -281,6 +326,20 @@ bool infiltratr_parse_double(const char *text, double *value)
     if (!isfinite(converted) || (converted == 0.0 && parsed != 0.0L))
         return false;
     *value = converted;
+    return true;
+}
+
+
+bool infiltratr_parse_double_range(const char *text, double minimum,
+                                   double maximum, double *value)
+{
+    if (!value || isnan(minimum) || isnan(maximum) || minimum > maximum)
+        return false;
+    double parsed = 0.0;
+    if (!infiltratr_parse_double(text, &parsed) ||
+        parsed < minimum || parsed > maximum)
+        return false;
+    *value = parsed;
     return true;
 }
 

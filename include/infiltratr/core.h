@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#define INFILTRATR_COMMON_VERSION "1.3.0"
+#define INFILTRATR_COMMON_VERSION "1.4.0"
 #define INFILTRATR_PROJECT_INFO_ABI 1U
 #define INFILTRATR_SCALE_OPTIONS_ABI 1U
 #define INFILTRATR_ARRAY_LENGTH(array) (sizeof(array) / sizeof((array)[0]))
@@ -107,8 +107,22 @@ bool infiltratr_string_ends_with(const char *text, const char *suffix);
 /** Parse a complete unsigned integer using base 0 or a base from 2 through 36. */
 bool infiltratr_parse_u64(const char *text, unsigned int base,
                           uint64_t *value);
+/** Parse a complete signed integer using base 0 or a base from 2 through 36. */
+bool infiltratr_parse_i64(const char *text, unsigned int base,
+                          int64_t *value);
+/** Parse an unsigned integer and require an inclusive caller-selected range. */
+bool infiltratr_parse_u64_range(const char *text, unsigned int base,
+                                uint64_t minimum, uint64_t maximum,
+                                uint64_t *value);
+/** Parse a signed integer and require an inclusive caller-selected range. */
+bool infiltratr_parse_i64_range(const char *text, unsigned int base,
+                                int64_t minimum, int64_t maximum,
+                                int64_t *value);
 /** Parse a complete finite ASCII decimal value, independent of LC_NUMERIC. */
 bool infiltratr_parse_double(const char *text, double *value);
+/** Parse a finite decimal and require an inclusive caller-selected range. */
+bool infiltratr_parse_double_range(const char *text, double minimum,
+                                   double maximum, double *value);
 /** Clamp a value to inclusive bounds; invalid bounds leave the value unchanged. */
 double infiltratr_clamp_double(double value, double lower, double upper);
 

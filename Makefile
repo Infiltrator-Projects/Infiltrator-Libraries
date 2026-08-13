@@ -7,11 +7,13 @@ CPPFLAGS += -Iinclude
 CFLAGS ?= -O2 -g
 override CFLAGS += -std=c11 -fPIC -Wall -Wextra -Wpedantic -Werror \
 	-Wshadow -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes
-OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/format.o $(BUILD_DIR)/posix.o
+PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/format.o
+OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/posix.o
+PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
 ARCHIVE := $(BUILD_DIR)/libinfiltratr-common.a
-SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.3.0
+SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.4.0
 
-.PHONY: all check clean shared
+.PHONY: all check clean portable portable-check shared
 
 all: $(ARCHIVE)
 
@@ -30,6 +32,11 @@ $(BUILD_DIR)/posix.o: src/posix.c include/infiltratr/core.h \
 	include/infiltratr/posix.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
+$(PORTABLE_ARCHIVE): $(PORTABLE_OBJECTS)
+	$(AR) rcsD $@ $(PORTABLE_OBJECTS)
+
+portable: $(PORTABLE_ARCHIVE)
+
 $(ARCHIVE): $(OBJECTS)
 	$(AR) rcsD $@ $(OBJECTS)
 
@@ -45,9 +52,16 @@ $(BUILD_DIR)/core-smoke: tests/core_smoke.c $(ARCHIVE)
 $(BUILD_DIR)/format-smoke: tests/format_smoke.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
 
-check: $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke
+$(BUILD_DIR)/portable-smoke: tests/portable_smoke.c $(PORTABLE_ARCHIVE)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
+
+portable-check: $(BUILD_DIR)/portable-smoke
+	./$(BUILD_DIR)/portable-smoke
+
+check: $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke $(BUILD_DIR)/portable-smoke
 	./$(BUILD_DIR)/core-smoke
 	./$(BUILD_DIR)/format-smoke
+	./$(BUILD_DIR)/portable-smoke
 
 clean:
 	rm -rf "$(BUILD_DIR)"

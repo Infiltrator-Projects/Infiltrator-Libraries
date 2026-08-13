@@ -19,6 +19,40 @@ static char *unavailable(char *buffer, size_t size)
     return buffer;
 }
 
+
+bool infiltratr_format_scalar(bool available, long double value,
+                              const InfiltratrScalarFormatOptions *options,
+                              char *buffer, size_t size)
+{
+    if (buffer && size > 0U) buffer[0] = '\0';
+    if (!options || options->struct_size < sizeof(*options) ||
+        options->abi_version != INFILTRATR_SCALAR_FORMAT_OPTIONS_ABI ||
+        !buffer || size == 0U || options->decimal_places > 9U)
+        return false;
+
+    const char *prefix = options->prefix ? options->prefix : "";
+    const char *suffix = options->suffix ? options->suffix : "";
+    const char *missing = options->unavailable_text
+        ? options->unavailable_text : "N/A";
+
+    if (!available || !isfinite(value)) {
+        const int written = snprintf(buffer, size, "%s", missing);
+        return written >= 0 && (size_t)written < size;
+    }
+
+    if (options->clamp) {
+        if (isnan(options->minimum) || isnan(options->maximum) ||
+            options->minimum > options->maximum)
+            return false;
+        if (value < options->minimum) value = options->minimum;
+        if (value > options->maximum) value = options->maximum;
+    }
+
+    const int written = snprintf(buffer, size, "%s%.*Lf%s", prefix,
+                                 (int)options->decimal_places, value, suffix);
+    return written >= 0 && (size_t)written < size;
+}
+
 static InfiltratrScaleOptions fixed_scale(size_t unit, unsigned int decimals)
 {
     InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
@@ -143,32 +177,45 @@ char *infiltratr_format_link_speed_mbps(double megabits_per_second,
 char *infiltratr_format_percent(bool available, double value,
                                 char *buffer, size_t size)
 {
-    if (!available || !isfinite(value)) return unavailable(buffer, size);
-    value = fmin(100.0, fmax(0.0, value));
-    (void)snprintf(buffer, size, "%.0f%%", value);
+    InfiltratrScalarFormatOptions options = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
+    options.decimal_places = 0U;
+    options.clamp = true;
+    options.minimum = 0.0L;
+    options.maximum = 100.0L;
+    options.suffix = "%";
+    (void)infiltratr_format_scalar(available, (long double)value, &options,
+                                   buffer, size);
     return buffer;
 }
 
 char *infiltratr_format_mhz(bool available, double value,
                             char *buffer, size_t size)
 {
-    if (!available || !isfinite(value)) return unavailable(buffer, size);
-    (void)snprintf(buffer, size, "%.0f MHz", value);
+    InfiltratrScalarFormatOptions options = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
+    options.decimal_places = 0U;
+    options.suffix = " MHz";
+    (void)infiltratr_format_scalar(available, (long double)value, &options,
+                                   buffer, size);
     return buffer;
 }
 
 char *infiltratr_format_celsius(bool available, double value,
                                 char *buffer, size_t size)
 {
-    if (!available || !isfinite(value)) return unavailable(buffer, size);
-    (void)snprintf(buffer, size, "%.0f °C", value);
+    InfiltratrScalarFormatOptions options = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
+    options.decimal_places = 0U;
+    options.suffix = " °C";
+    (void)infiltratr_format_scalar(available, (long double)value, &options,
+                                   buffer, size);
     return buffer;
 }
 
 char *infiltratr_format_watts(bool available, double value,
                               char *buffer, size_t size)
 {
-    if (!available || !isfinite(value)) return unavailable(buffer, size);
-    (void)snprintf(buffer, size, "%.1f W", value);
+    InfiltratrScalarFormatOptions options = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
+    options.suffix = " W";
+    (void)infiltratr_format_scalar(available, (long double)value, &options,
+                                   buffer, size);
     return buffer;
 }
