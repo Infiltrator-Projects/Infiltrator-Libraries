@@ -332,28 +332,108 @@ bool infiltratr_u64_counter_rate(uint64_t current, uint64_t previous,
     return true;
 }
 
-static char *format_binary(long double value, const char *suffix,
-                           char *buffer, size_t buffer_size)
+static bool scale_options_valid(const InfiltratrScaleOptions *options,
+                                size_t unit_count, size_t *maximum_unit)
 {
-    static const char *const units[] = {"B", "KB", "MB", "GB", "TB"};
-    if (!buffer || buffer_size == 0U) return buffer;
+    if (!options || options->struct_size < sizeof(*options) ||
+        options->abi_version != INFILTRATR_SCALE_OPTIONS_ABI ||
+        !isfinite(options->divisor) || options->divisor <= 1.0L ||
+        unit_count == 0U || options->minimum_unit >= unit_count ||
+        options->decimal_places > 9U ||
+        !isfinite(options->integer_threshold) ||
+        options->integer_threshold < 0.0L)
+        return false;
 
-    size_t unit = 0U;
-    while (value >= 1024.0L && unit + 1U < INFILTRATR_ARRAY_LENGTH(units)) {
-        value /= 1024.0L;
+    const size_t maximum = options->maximum_unit == SIZE_MAX
+        ? unit_count - 1U : options->maximum_unit;
+    if (maximum >= unit_count || maximum < options->minimum_unit)
+        return false;
+    if (maximum_unit) *maximum_unit = maximum;
+    return true;
+}
+
+bool infiltratr_scale_quantity(long double value,
+                               const InfiltratrScaleOptions *options,
+                               size_t unit_count, long double *scaled_value,
+                               size_t *unit_index)
+{
+    size_t maximum_unit = 0U;
+    if (!scaled_value || !unit_index || !isfinite(value) ||
+        !scale_options_valid(options, unit_count, &maximum_unit))
+        return false;
+
+    const long double magnitude = fabsl(value);
+    long double minimum_boundary = 1.0L;
+    for (size_t index = 0U; index < options->minimum_unit; index++) {
+        if (minimum_boundary > LDBL_MAX / options->divisor) {
+            minimum_boundary = LDBL_MAX;
+            break;
+        }
+        minimum_boundary *= options->divisor;
+    }
+
+    size_t unit = options->minimum_unit;
+    if (options->zero_below_minimum_unit && magnitude < minimum_boundary) {
+        *scaled_value = 0.0L;
+        *unit_index = unit;
+        return true;
+    }
+
+    long double scaled = value;
+    for (size_t index = 0U; index < unit; index++)
+        scaled /= options->divisor;
+
+    while (unit < maximum_unit && fabsl(scaled) >= options->divisor) {
+        scaled /= options->divisor;
         unit++;
     }
-    (void)snprintf(buffer, buffer_size,
-                   value >= 100.0L || unit == 0U ? "%.0Lf %s%s" :
-                                                   "%.1Lf %s%s",
-                   value, units[unit], suffix);
-    return buffer;
+
+    *scaled_value = scaled;
+    *unit_index = unit;
+    return true;
+}
+
+bool infiltratr_format_scaled_quantity(long double value,
+                                        const char *const *units,
+                                        size_t unit_count,
+                                        const char *suffix,
+                                        const InfiltratrScaleOptions *options,
+                                        char *buffer, size_t buffer_size)
+{
+    if (buffer && buffer_size > 0U) buffer[0] = '\0';
+    if (!units || !buffer || buffer_size == 0U) return false;
+
+    long double scaled = 0.0L;
+    size_t unit = 0U;
+    if (!infiltratr_scale_quantity(value, options, unit_count,
+                                   &scaled, &unit) || !units[unit])
+        return false;
+
+    unsigned int decimal_places = options->decimal_places;
+    if ((options->integer_at_minimum_unit &&
+         unit == options->minimum_unit) ||
+        (options->integer_threshold > 0.0L &&
+         fabsl(scaled) >= options->integer_threshold))
+        decimal_places = 0U;
+
+    const char *actual_suffix = suffix ? suffix : "";
+    const int written = snprintf(buffer, buffer_size, "%.*Lf %s%s",
+                                 (int)decimal_places, scaled, units[unit],
+                                 actual_suffix);
+    return written >= 0 && (size_t)written < buffer_size;
 }
 
 char *infiltratr_format_bytes(uint64_t bytes, char *buffer,
                               size_t buffer_size)
 {
-    return format_binary((long double)bytes, "", buffer, buffer_size);
+    static const char *const units[] = {"B", "KB", "MB", "GB", "TB"};
+    const InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
+    (void)infiltratr_format_scaled_quantity((long double)bytes,
+                                             units,
+                                             INFILTRATR_ARRAY_LENGTH(units),
+                                             "", &options, buffer,
+                                             buffer_size);
+    return buffer;
 }
 
 char *infiltratr_format_rate(double bytes_per_second, char *buffer,
@@ -361,6 +441,12 @@ char *infiltratr_format_rate(double bytes_per_second, char *buffer,
 {
     if (!isfinite(bytes_per_second) || bytes_per_second < 0.0)
         bytes_per_second = 0.0;
-    return format_binary((long double)bytes_per_second, "/s", buffer,
-                         buffer_size);
+    static const char *const units[] = {"B", "KB", "MB", "GB", "TB"};
+    const InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
+    (void)infiltratr_format_scaled_quantity((long double)bytes_per_second,
+                                             units,
+                                             INFILTRATR_ARRAY_LENGTH(units),
+                                             "/s", &options, buffer,
+                                             buffer_size);
+    return buffer;
 }
