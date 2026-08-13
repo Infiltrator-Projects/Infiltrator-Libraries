@@ -3,8 +3,10 @@
  * @file format.h
  * @brief Dependency-free formatting helpers shared by Infiltrator programs.
  *
- * These helpers centralise small presentation-safe conversions that are useful
- * across applications without depending on GLib, GTK or a platform API.
+ * These helpers centralise presentation-safe conversions that are useful
+ * across applications without depending on GLib, GTK or a platform API. The
+ * configurable scaling engine is declared by core.h and is available here so
+ * callers can use either the rich policy API or the convenience wrappers.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
@@ -12,6 +14,8 @@
  */
 #ifndef INFILTRATR_COMMON_FORMAT_H
 #define INFILTRATR_COMMON_FORMAT_H
+
+#include "infiltratr/core.h"
 
 #include <stdbool.h>
 #include <stddef.h>
