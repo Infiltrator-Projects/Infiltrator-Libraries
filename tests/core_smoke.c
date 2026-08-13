@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file core_smoke.c
- * @brief Standalone regression coverage for Infiltratr Common 1.2.
+ * @brief Standalone regression coverage for Infiltratr Common 1.3.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
@@ -78,7 +78,29 @@ int main(void)
     assert(close(descriptor) == 0);
     assert(infiltratr_read_u64_file(temporary, &parsed));
     assert(parsed == UINT64_MAX);
+    assert(infiltratr_read_u64_file_ex(temporary, &parsed) == INFILTRATR_IO_OK);
+    assert(parsed == UINT64_MAX);
     assert(unlink(temporary) == 0);
+    assert(infiltratr_read_u64_file_ex(temporary, &parsed) ==
+           INFILTRATR_IO_NOT_FOUND);
+    assert(strcmp(infiltratr_io_result_name(INFILTRATR_IO_NOT_FOUND),
+                  "not-found") == 0);
+
+    char long_temporary[] = "infiltratr-common-long-XXXXXX";
+    const int long_descriptor = mkstemp(long_temporary);
+    assert(long_descriptor >= 0);
+    static const char long_text[] = "abcdefghijklmnopqrstuvwxyz\n";
+    assert(write(long_descriptor, long_text, sizeof(long_text) - 1U) ==
+           (ssize_t)(sizeof(long_text) - 1U));
+    assert(close(long_descriptor) == 0);
+    char short_buffer[8];
+    size_t short_length = 0U;
+    assert(infiltratr_read_text_file_ex(long_temporary, short_buffer,
+                                        sizeof(short_buffer), &short_length) ==
+           INFILTRATR_IO_TRUNCATED);
+    assert(short_length == sizeof(short_buffer) - 1U);
+    assert(strcmp(short_buffer, "abcdefg") == 0);
+    assert(unlink(long_temporary) == 0);
 
     assert(infiltratr_u64_add_saturating(UINT64_MAX, 1U) == UINT64_MAX);
     assert(infiltratr_u64_multiply_saturating(UINT64_MAX, 2U) == UINT64_MAX);
@@ -95,6 +117,31 @@ int main(void)
                   "1.5 KB") == 0);
     assert(strcmp(infiltratr_format_rate(NAN, quantity, sizeof(quantity)),
                   "0 B/s") == 0);
+
+    static const char *const decimal_units[] = {"B", "kB", "MB", "GB"};
+    InfiltratrScaleOptions scale = INFILTRATR_SCALE_OPTIONS_INIT;
+    scale.divisor = 1000.0L;
+    scale.decimal_places = 2U;
+    scale.integer_threshold = 0.0L;
+    scale.integer_at_minimum_unit = false;
+    assert(infiltratr_format_scaled_quantity(1500.0L, decimal_units,
+                                             INFILTRATR_ARRAY_LENGTH(decimal_units),
+                                             "/s", &scale, quantity,
+                                             sizeof(quantity)));
+    assert(strcmp(quantity, "1.50 kB/s") == 0);
+    scale.minimum_unit = 2U;
+    scale.maximum_unit = 2U;
+    long double scaled = 0.0L;
+    size_t unit = 0U;
+    assert(infiltratr_scale_quantity(2500000.0L, &scale,
+                                     INFILTRATR_ARRAY_LENGTH(decimal_units),
+                                     &scaled, &unit));
+    assert(unit == 2U);
+    assert(fabsl(scaled - 2.5L) < 1e-15L);
+
+    uint64_t nanoseconds = 0U;
+    assert(infiltratr_monotonic_nanoseconds(&nanoseconds));
+    assert(nanoseconds > 0U);
     assert(infiltratr_monotonic_seconds() > 0.0);
 
     const InfiltratrProjectInfo info = {
@@ -123,7 +170,7 @@ int main(void)
         fread(metadata_text, 1U, sizeof(metadata_text) - 1U, metadata);
     metadata_text[metadata_size] = '\0';
     assert(strstr(metadata_text,
-                  "common-library=infiltratr-common-1.2.0\n") != NULL);
+                  "common-library=infiltratr-common-1.3.0\n") != NULL);
     assert(fclose(metadata) == 0);
 
     puts("Infiltratr Common core smoke test passed.");
