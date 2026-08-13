@@ -18,7 +18,7 @@ Consumer notation:
 - **Common internal** means another public Common operation uses it.
 - Tests are not counted as production consumers.
 
-Audit baseline: Infiltratr Common 1.4.0, Linux System Monitor 1.13.6, Calendar Plus 3.9.5 and Linux Defragger 1.8.0-96, 13 August 2026.
+Audit baseline: Infiltratr Common 1.4.0, Linux System Monitor 1.13.7, Calendar Plus 3.9.5 and Linux Defragger 1.8.0-99, 13 August 2026.
 
 ## Core
 
@@ -32,15 +32,15 @@ Audit baseline: Infiltratr Common 1.4.0, Linux System Monitor 1.13.6, Calendar P
 | `infiltratr_string_equal` | facade | direct | — | — | ACTIVE | Null-safe deterministic string equality used by consumers. |
 | `infiltratr_string_starts_with` | facade | direct | native device core | — | ACTIVE | Shared prefix matching used across consumers. |
 | `infiltratr_string_ends_with` | facade | — | — | — | ACTIVE | Shared suffix matching used by System Monitor. |
-| `infiltratr_parse_u64` | facade | — | EXT/NTFS/exFAT/XFS journal workers | POSIX numeric readers | ACTIVE | Canonical strict unsigned parser. |
+| `infiltratr_parse_u64` | facade | — | FAT/EXT/NTFS/exFAT/XFS journal workers | POSIX numeric readers | ACTIVE | Canonical strict unsigned parser. |
 | `infiltratr_parse_i64` | — | — | — | — | READY | Completes the active integer parser family and is regression-tested. |
-| `infiltratr_parse_u64_range` | — | — | FAT/exFAT/AFFS/HFS+ native workers | — | ACTIVE | Canonical checked range validation now used for filesystem-worker inputs and journal fields. |
+| `infiltratr_parse_u64_range` | — | — | FAT journals/workers, exFAT/AFFS/HFS+ native workers | — | ACTIVE | Canonical checked range validation used for filesystem-worker inputs and journal fields. |
 | `infiltratr_parse_i64_range` | — | — | — | — | READY | Tested range validation for the signed parser family. |
-| `infiltratr_parse_double` | facade | direct | — | POSIX numeric readers | ACTIVE | Locale-independent machine-value parser used by consumers. |
+| `infiltratr_parse_double` | — | direct | — | POSIX numeric readers | ACTIVE | Locale-independent machine-value parser used by Calendar Plus and Common's typed POSIX readers. |
 | `infiltratr_parse_double_range` | — | — | — | — | READY | Tested bounded form of the active decimal parser. |
 | `infiltratr_clamp_double` | facade | direct | — | — | ACTIVE | Shared numeric clamping used by both GUI consumers. |
 | `infiltratr_u64_add_saturating` | facade | — | — | — | ACTIVE | Prevents monitoring-counter overflow. |
-| `infiltratr_u64_multiply_saturating` | facade | — | native memory accounting | — | ACTIVE | Shared saturating multiplication where saturation is the required contract. |
+| `infiltratr_u64_multiply_saturating` | facade | — | — | — | ACTIVE | Shared saturating multiplication where saturation is the required contract. |
 | `infiltratr_percent_u64` | facade | — | — | — | ACTIVE | Canonical bounded percentage calculation. |
 | `infiltratr_u64_counter_rate` | facade | — | — | — | ACTIVE | Canonical rollback-safe rate calculation. |
 | `infiltratr_scale_quantity` | — | — | — | shared quantity/network formatters | FOUNDATION | One unit-selection algorithm for all scaled formatters. |
@@ -79,7 +79,7 @@ Audit baseline: Infiltratr Common 1.4.0, Linux System Monitor 1.13.6, Calendar P
 | `infiltratr_read_u64_or_zero` | facade | — | — | — | ACTIVE | Convenience wrapper where zero and unavailable are intentionally equivalent. |
 | `infiltratr_read_double_file` | facade | — | — | — | ACTIVE | Shared typed floating sysfs/procfs reader. |
 | `infiltratr_read_double_or_nan` | facade | — | — | — | ACTIVE | Convenience wrapper preserving missing state as NaN. |
-| `infiltratr_read_first_u64` | facade | — | — | path/file helpers | ACTIVE | Shared ordered fallback for alternate Linux attributes. |
+| `infiltratr_read_first_u64` | — | — | — | — | READY | Tested ordered fallback for alternate Linux attributes; retained as a completed POSIX capability until a production consumer needs it again. |
 | `infiltratr_monotonic_nanoseconds` | — | — | — | — | READY | Tested exact form of the active monotonic-clock capability. |
 | `infiltratr_monotonic_seconds` | facade | — | — | — | ACTIVE | System Monitor sampling clock. |
 
@@ -92,7 +92,7 @@ Audit baseline: Infiltratr Common 1.4.0, Linux System Monitor 1.13.6, Calendar P
 - Linux System Monitor requires the portable core/formatting code and the POSIX provider.
 - Calendar Plus currently consumes the portable core/project-identity functionality and does not require Common POSIX services. Its build should therefore compile the portable Common sources only unless a real POSIX Common call is introduced later.
 - Linux Defragger pins Common 1.4.0 at exact release commit `e4547c49400875da3e1a5638366903a01374b350` and compiles Common `core.c` plus `posix.c`. It does not compile `format.c` because no production Defragger C caller currently needs shared presentation formatting.
-- Linux Defragger deliberately retains its checked `uint64_t` add/multiply helpers and interruption-safe positional raw `pread`/`pwrite` loops. Common 1.4.0 provides saturating arithmetic and small text-file readers, which have different contracts and must not be substituted merely for the sake of reuse.
+- Linux Defragger deliberately retains its checked `uint64_t` addition helper and interruption-safe positional raw `pread`/`pwrite` loops. Common 1.4.0 provides saturating arithmetic and small text-file readers, which have different contracts and must not be substituted merely for the sake of reuse.
 
 ## Rule for adding public API
 
