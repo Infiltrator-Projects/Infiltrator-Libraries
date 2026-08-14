@@ -351,6 +351,14 @@ double infiltratr_clamp_double(double value, double lower, double upper)
     return value > upper ? upper : value;
 }
 
+bool infiltratr_u64_add_checked(uint64_t left, uint64_t right,
+                                uint64_t *result)
+{
+    if (!result || right > UINT64_MAX - left) return false;
+    *result = left + right;
+    return true;
+}
+
 uint64_t infiltratr_u64_add_saturating(uint64_t left, uint64_t right)
 {
     return right > UINT64_MAX - left ? UINT64_MAX : left + right;

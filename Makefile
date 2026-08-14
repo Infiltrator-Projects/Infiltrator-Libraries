@@ -11,7 +11,7 @@ PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/format.o
 OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/posix.o
 PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
 ARCHIVE := $(BUILD_DIR)/libinfiltratr-common.a
-SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.4.0
+SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.5.0
 
 .PHONY: all check clean portable portable-check shared
 

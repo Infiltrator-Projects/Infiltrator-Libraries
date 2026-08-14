@@ -18,7 +18,7 @@ Consumer notation:
 - **Common internal** means another public Common operation uses it.
 - Tests are not counted as production consumers.
 
-Audit baseline: Infiltratr Common 1.4.0, Linux System Monitor 1.13.7, Calendar Plus 3.9.5 and Linux Defragger 1.8.0-99, 13 August 2026.
+Audit baseline: Infiltratr Common 1.5.0, Linux System Monitor 1.13.7, Calendar Plus 3.9.5 and Linux Defragger 1.8.0-99, 14 August 2026.
 
 ## Core
 
@@ -39,6 +39,7 @@ Audit baseline: Infiltratr Common 1.4.0, Linux System Monitor 1.13.7, Calendar P
 | `infiltratr_parse_double` | — | direct | — | POSIX numeric readers | ACTIVE | Locale-independent machine-value parser used by Calendar Plus and Common's typed POSIX readers. |
 | `infiltratr_parse_double_range` | — | — | — | — | READY | Tested bounded form of the active decimal parser. |
 | `infiltratr_clamp_double` | facade | direct | — | — | ACTIVE | Shared numeric clamping used by both GUI consumers. |
+| `infiltratr_u64_add_checked` | — | — | — | — | READY | Added for immediate Linux Defragger adoption where filesystem offset arithmetic must reject overflow instead of saturating. |
 | `infiltratr_u64_add_saturating` | facade | — | — | — | ACTIVE | Prevents monitoring-counter overflow. |
 | `infiltratr_u64_multiply_saturating` | facade | — | — | — | ACTIVE | Shared saturating multiplication where saturation is the required contract. |
 | `infiltratr_percent_u64` | facade | — | — | — | ACTIVE | Canonical bounded percentage calculation. |

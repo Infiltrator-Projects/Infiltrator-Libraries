@@ -4,8 +4,8 @@
 
 Canonical shared C code for Shannon Smith's Infiltrator software projects.
 
-The current release contains **Infiltratr Common 1.4.0**, the reusable C11
-foundation shared by Calendar Plus and Linux System Monitor. Application code,
+The current release contains **Infiltratr Common 1.5.0**, the reusable C11
+foundation shared by Linux System Monitor, Calendar Plus and Linux Defragger. Application code,
 calendar rules, hardware collectors and user-interface code remain in their
 own repositories.
 
@@ -26,12 +26,12 @@ exists and must be updated when the public API or consumer usage changes.
 
 ## Current library
 
-The public API provides 48 reusable operations covering:
+The public API provides 49 reusable operations covering:
 
 - project identity and machine-readable build metadata;
 - bounded strings and deterministic string comparisons;
 - strict signed/unsigned integer, range-checked and locale-independent ASCII-decimal parsing;
-- saturating arithmetic, percentages and counter rates;
+- checked and saturating arithmetic, percentages and counter rates;
 - configurable quantity scaling with selectable divisor, unit range and precision;
 - base-2 byte and byte-rate formatting;
 - configurable scalar formatting plus shared memory, disk, network, percentage, frequency, temperature and power formatting;
@@ -71,7 +71,7 @@ make shared
 ```
 
 The default build creates `build/libinfiltratr-common.a`. `make portable` creates the POSIX-free `build/libinfiltratr-portable.a`. The shared target
-creates `build/libinfiltratr-common.so.1.4.0` with SONAME
+creates `build/libinfiltratr-common.so.1.5.0` with SONAME
 `libinfiltratr-common.so.1`.
 
 ## Source of truth

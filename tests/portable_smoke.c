@@ -40,6 +40,13 @@ int main(void)
     assert(decimal_value == 12.5);
     assert(!infiltratr_parse_double_range("20.5", 0.0, 20.0, &decimal_value));
 
+    uint64_t checked_sum = 17U;
+    assert(infiltratr_u64_add_checked(20U, 22U, &checked_sum));
+    assert(checked_sum == 42U);
+    checked_sum = 17U;
+    assert(!infiltratr_u64_add_checked(UINT64_MAX, 1U, &checked_sum));
+    assert(checked_sum == 17U);
+
     char text[64];
     InfiltratrScalarFormatOptions options = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
     options.decimal_places = 2U;

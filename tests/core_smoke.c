@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file core_smoke.c
- * @brief Standalone regression coverage for Infiltratr Common 1.3.
+ * @brief Standalone regression coverage for Infiltratr Common 1.5.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
@@ -102,6 +102,13 @@ int main(void)
     assert(strcmp(short_buffer, "abcdefg") == 0);
     assert(unlink(long_temporary) == 0);
 
+    uint64_t checked_sum = 99U;
+    assert(infiltratr_u64_add_checked(40U, 2U, &checked_sum));
+    assert(checked_sum == 42U);
+    checked_sum = 99U;
+    assert(!infiltratr_u64_add_checked(UINT64_MAX, 1U, &checked_sum));
+    assert(checked_sum == 99U);
+    assert(!infiltratr_u64_add_checked(1U, 2U, NULL));
     assert(infiltratr_u64_add_saturating(UINT64_MAX, 1U) == UINT64_MAX);
     assert(infiltratr_u64_multiply_saturating(UINT64_MAX, 2U) == UINT64_MAX);
     assert(infiltratr_percent_u64(1U, 8U) == 12.5);
@@ -170,7 +177,7 @@ int main(void)
         fread(metadata_text, 1U, sizeof(metadata_text) - 1U, metadata);
     metadata_text[metadata_size] = '\0';
     assert(strstr(metadata_text,
-                  "common-library=infiltratr-common-1.4.0\n") != NULL);
+                  "common-library=infiltratr-common-1.5.0\n") != NULL);
     assert(fclose(metadata) == 0);
 
     puts("Infiltratr Common core smoke test passed.");

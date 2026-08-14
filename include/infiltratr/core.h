@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#define INFILTRATR_COMMON_VERSION "1.4.0"
+#define INFILTRATR_COMMON_VERSION "1.5.0"
 #define INFILTRATR_PROJECT_INFO_ABI 1U
 #define INFILTRATR_SCALE_OPTIONS_ABI 1U
 #define INFILTRATR_ARRAY_LENGTH(array) (sizeof(array) / sizeof((array)[0]))
@@ -126,6 +126,9 @@ bool infiltratr_parse_double_range(const char *text, double minimum,
 /** Clamp a value to inclusive bounds; invalid bounds leave the value unchanged. */
 double infiltratr_clamp_double(double value, double lower, double upper);
 
+/** Add unsigned values, returning false on overflow or invalid output. */
+bool infiltratr_u64_add_checked(uint64_t left, uint64_t right,
+                                uint64_t *result);
 /** Add unsigned values, returning UINT64_MAX instead of wrapping. */
 uint64_t infiltratr_u64_add_saturating(uint64_t left, uint64_t right);
 /** Multiply unsigned values, returning UINT64_MAX instead of wrapping. */
