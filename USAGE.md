@@ -18,7 +18,7 @@ Consumer notation:
 - **Common internal** means another public Common operation uses it.
 - Tests are not counted as production consumers.
 
-Audit baseline: Infiltratr Common 1.5.0, Linux System Monitor 1.13.7, Calendar Plus 3.9.5 and Linux Defragger 1.8.0-99, 14 August 2026.
+Audit baseline: Infiltratr Common 1.5.0, Linux System Monitor 1.13.8, Calendar Plus 3.9.6 and Linux Defragger 1.8.0-100, 14 August 2026.
 
 ## Core
 
@@ -39,9 +39,9 @@ Audit baseline: Infiltratr Common 1.5.0, Linux System Monitor 1.13.7, Calendar P
 | `infiltratr_parse_double` | — | direct | — | POSIX numeric readers | ACTIVE | Locale-independent machine-value parser used by Calendar Plus and Common's typed POSIX readers. |
 | `infiltratr_parse_double_range` | — | — | — | — | READY | Tested bounded form of the active decimal parser. |
 | `infiltratr_clamp_double` | facade | direct | — | — | ACTIVE | Shared numeric clamping used by both GUI consumers. |
-| `infiltratr_u64_add_checked` | — | — | — | — | READY | Added for immediate Linux Defragger adoption where filesystem offset arithmetic must reject overflow instead of saturating. |
-| `infiltratr_u64_add_saturating` | facade | — | — | — | ACTIVE | Prevents monitoring-counter overflow. |
-| `infiltratr_u64_multiply_saturating` | facade | — | — | — | ACTIVE | Shared saturating multiplication where saturation is the required contract. |
+| `infiltratr_u64_add_checked` | — | — | NTFS/XFS native arithmetic | — | ACTIVE | Canonical overflow-rejecting addition for filesystem range and committed-byte arithmetic. |
+| `infiltratr_u64_add_saturating` | facade | — | EXT/NTFS/XFS staging estimates | — | ACTIVE | Canonical addition where capacity estimates intentionally saturate instead of wrapping. |
+| `infiltratr_u64_multiply_saturating` | facade | — | EXT/NTFS/XFS staging/commit estimates | — | ACTIVE | Canonical multiplication where size estimates intentionally saturate instead of wrapping. |
 | `infiltratr_percent_u64` | facade | — | — | — | ACTIVE | Canonical bounded percentage calculation. |
 | `infiltratr_u64_counter_rate` | facade | — | — | — | ACTIVE | Canonical rollback-safe rate calculation. |
 | `infiltratr_scale_quantity` | — | — | — | shared quantity/network formatters | FOUNDATION | One unit-selection algorithm for all scaled formatters. |
@@ -90,10 +90,10 @@ Audit baseline: Infiltratr Common 1.5.0, Linux System Monitor 1.13.7, Calendar P
 
 ## Consumer build footprint
 
-- Linux System Monitor requires the portable core/formatting code and the POSIX provider.
-- Calendar Plus currently consumes the portable core/project-identity functionality and does not require Common POSIX services. Its build should therefore compile the portable Common sources only unless a real POSIX Common call is introduced later.
-- Linux Defragger pins Common 1.4.0 at exact release commit `e4547c49400875da3e1a5638366903a01374b350` and compiles Common `core.c` plus `posix.c`. It does not compile `format.c` because no production Defragger C caller currently needs shared presentation formatting.
-- Linux Defragger deliberately retains its checked `uint64_t` addition helper and interruption-safe positional raw `pread`/`pwrite` loops. Common 1.4.0 provides saturating arithmetic and small text-file readers, which have different contracts and must not be substituted merely for the sake of reuse.
+- Linux System Monitor 1.13.8 pins Infiltratr Common 1.5.0 and requires the portable core/formatting code plus the POSIX provider.
+- Calendar Plus 3.9.6 pins Infiltratr Common 1.5.0 and consumes only the portable core/formatting code. It does not compile the Common POSIX provider because no production Calendar caller requires it.
+- Linux Defragger 1.8.0-100 pins Common 1.5.0 at exact release commit `a0e75ffbe4e038c74c8f1e3d589f2dae87b2b7bb` and compiles Common `core.c` plus `posix.c`. It does not compile `format.c` because no production Defragger C caller currently needs shared presentation formatting.
+- Linux Defragger now uses Common checked and saturating `uint64_t` arithmetic where those contracts match production filesystem work. It deliberately retains interruption-safe positional raw `pread`/`pwrite` loops, device safety, Stop handling and filesystem transaction semantics because those have different application-specific contracts.
 
 ## Rule for adding public API
 
