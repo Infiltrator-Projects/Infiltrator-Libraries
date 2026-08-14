@@ -18,7 +18,7 @@ Consumer notation:
 - **Common internal** means another public Common operation uses it.
 - Tests are not counted as production consumers.
 
-Audit baseline: Infiltratr Common 1.5.0, Linux System Monitor 1.13.8, Calendar Plus 3.9.6 and Linux Defragger 1.8.0-100, 14 August 2026.
+Audit baseline: Infiltratr Common 1.5.0, Linux System Monitor 1.13.9, Calendar Plus 3.9.7 and Linux Defragger 1.8.0-100, 14 August 2026.
 
 ## Core
 
@@ -90,8 +90,8 @@ Audit baseline: Infiltratr Common 1.5.0, Linux System Monitor 1.13.8, Calendar P
 
 ## Consumer build footprint
 
-- Linux System Monitor 1.13.8 pins Infiltratr Common 1.5.0 and requires the portable core/formatting code plus the POSIX provider.
-- Calendar Plus 3.9.6 pins Infiltratr Common 1.5.0 and consumes only the portable core/formatting code. It does not compile the Common POSIX provider because no production Calendar caller requires it.
+- Linux System Monitor 1.13.9 pins Infiltratr Common 1.5.0 and requires the portable core/formatting code plus the POSIX provider.
+- Calendar Plus 3.9.7 pins Infiltratr Common 1.5.0 and consumes only the portable core/formatting code. It does not compile the Common POSIX provider because no production Calendar caller requires it.
 - Linux Defragger 1.8.0-100 pins Common 1.5.0 at exact release commit `a0e75ffbe4e038c74c8f1e3d589f2dae87b2b7bb` and compiles Common `core.c` plus `posix.c`. It does not compile `format.c` because no production Defragger C caller currently needs shared presentation formatting.
 - Linux Defragger now uses Common checked and saturating `uint64_t` arithmetic where those contracts match production filesystem work. It deliberately retains interruption-safe positional raw `pread`/`pwrite` loops, device safety, Stop handling and filesystem transaction semantics because those have different application-specific contracts.
 
