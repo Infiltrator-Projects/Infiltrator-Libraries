@@ -64,8 +64,10 @@ collapse every failure into a zero, `NAN`, or a generic false result.
 | `USAGE.md` | Public API consumer/status ledger and anti-speculation rule |
 | `tests/core_smoke.c` | Standalone core, status and scaling regression coverage |
 | `tests/format_smoke.c` | Shared formatting regression coverage |
-| `tests/portable_smoke.c` | POSIX-free regression coverage |
-| `tests/api_contract.c` | Boundary, failure-state and public-contract regression coverage |
+| `tests/portable_smoke.c` | POSIX-free smoke coverage |
+| `tests/portable_contract.c` | POSIX-free boundary and failure-contract coverage |
+| `tests/posix_contract.c` | POSIX path, I/O and monotonic-clock contract coverage |
+| `.github/workflows/ci.yml` | GCC/Clang strict builds plus ASan/UBSan verification |
 | `Makefile` | Static/shared-library build and tests |
 
 ## Build and test
@@ -76,11 +78,18 @@ make portable-check
 make shared
 ```
 
-`make check` runs the smoke suites and the API-contract boundary suite. The
-default build creates `build/libinfiltratr-common.a`. `make portable` creates
-the POSIX-free `build/libinfiltratr-portable.a`. The shared target creates
+`make check` runs all smoke and contract suites. `make portable-check` builds
+only `core.c` and `format.c` and runs both the portable smoke suite and the full
+portable contract suite, ensuring the dependency-free library can be verified
+without the POSIX provider. The default build creates
+`build/libinfiltratr-common.a`; `make portable` creates the POSIX-free
+`build/libinfiltratr-portable.a`. The shared target creates
 `build/libinfiltratr-common.so.1.5.0` with SONAME
 `libinfiltratr-common.so.1`.
+
+GitHub Actions independently runs the strict test matrix with GCC and Clang,
+verifies the portable-only target and shared-library link, and runs the complete
+test suite under Clang AddressSanitizer and UndefinedBehaviorSanitizer.
 
 ## Source of truth
 
