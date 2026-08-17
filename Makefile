@@ -55,13 +55,18 @@ $(BUILD_DIR)/format-smoke: tests/format_smoke.c $(ARCHIVE)
 $(BUILD_DIR)/portable-smoke: tests/portable_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
 
+$(BUILD_DIR)/api-contract: tests/api_contract.c $(ARCHIVE)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
+
 portable-check: $(BUILD_DIR)/portable-smoke
 	./$(BUILD_DIR)/portable-smoke
 
-check: $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke $(BUILD_DIR)/portable-smoke
+check: $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
+	$(BUILD_DIR)/portable-smoke $(BUILD_DIR)/api-contract
 	./$(BUILD_DIR)/core-smoke
 	./$(BUILD_DIR)/format-smoke
 	./$(BUILD_DIR)/portable-smoke
+	./$(BUILD_DIR)/api-contract
 
 clean:
 	rm -rf "$(BUILD_DIR)"
