@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: Common CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: common-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  strict-build:
+    name: ${{ matrix.compiler }} strict build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install compiler toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc clang make binutils
+
+      - name: Run full contract and smoke tests
+        run: |
+          make clean
+          make CC=${{ matrix.compiler }} check
+
+      - name: Verify POSIX-free portable target independently
+        run: |
+          make clean
+          make CC=${{ matrix.compiler }} portable-check
+
+      - name: Verify shared-library link
+        run: |
+          make clean
+          make CC=${{ matrix.compiler }} shared
+
+  sanitizers:
+    name: Clang ASan + UBSan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang make binutils
+
+      - name: Run address and undefined-behaviour sanitizers
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          make clean
+          make CC=clang \
+            CFLAGS="-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer" \
+            check
