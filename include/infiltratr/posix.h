@@ -3,6 +3,11 @@
  * @file posix.h
  * @brief POSIX file, path and monotonic-clock adapters for the shared C core.
  *
+ * The rich `*_ex` file readers preserve meaningful failure categories and are
+ * preferred when a caller needs to distinguish missing data, permission
+ * failures, truncation and invalid values. The older boolean/value helpers are
+ * intentionally simpler compatibility APIs and collapse those distinctions.
+ *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
  * @license GPL-3.0-or-later
@@ -30,50 +35,140 @@ typedef enum {
     INFILTRATR_IO_ERROR
 } InfiltratrIoResult;
 
-/** Return a stable machine-readable name for an I/O result. */
+/**
+ * Return a stable machine-readable name for an I/O result.
+ *
+ * Every declared enum value has a fixed lowercase hyphenated name. Values
+ * outside the enumeration return the literal string `unknown`; the returned
+ * pointer refers to static storage and must not be freed or modified.
+ */
 const char *infiltratr_io_result_name(InfiltratrIoResult result);
 
-/** Resolve an existing path into caller-owned bounded storage. */
+/**
+ * Resolve an existing path with `realpath` into caller-owned bounded storage.
+ *
+ * A valid destination buffer is cleared before resolution. Resolution failure
+ * or insufficient output capacity returns false and leaves an empty string.
+ * No allocation escapes the function.
+ */
 bool infiltratr_realpath_copy(const char *path, char *destination, size_t size);
-/** Concatenate two path fragments without inserting a separator. */
+
+/**
+ * Concatenate two path fragments without inserting a separator.
+ *
+ * On capacity failure, a valid destination is cleared. Invalid arguments are
+ * rejected without a general guarantee that pre-existing destination contents
+ * are modified. Source and destination storage must not overlap.
+ */
 bool infiltratr_path_concat(char *destination, size_t size,
                             const char *base, const char *suffix);
-/** Join two path fragments with exactly one separator at their boundary. */
+
+/**
+ * Join two path fragments with exactly one separator at their boundary.
+ *
+ * When `left` is non-empty, a trailing slash on `left` is reused and leading
+ * slashes on `right` are removed; otherwise one slash is inserted. With an
+ * empty `left`, `right` is copied unchanged. Capacity failure clears a valid
+ * destination. Source and destination storage must not overlap.
+ */
 bool infiltratr_path_join(char *destination, size_t size,
                           const char *left, const char *right);
 
 /**
- * Read one bounded text value with explicit failure and truncation reporting.
- * `length` may be NULL; when supplied it receives the post-line-ending length.
+ * Read one complete bounded text file with explicit failure reporting.
+ *
+ * `size` must be at least two bytes. With otherwise-valid arguments, `buffer`
+ * is cleared before opening the path. Reads retry after `EINTR`, reserve one
+ * byte for NUL termination and perform an additional one-byte probe when the
+ * buffer fills so exact-fit input can be distinguished from truncation.
+ * Trailing CR/LF bytes in the retained text are removed.
+ *
+ * `length`, when non-NULL, is set to zero before argument validation and then
+ * receives the retained post-line-ending length. A zero-byte file returns
+ * `INFILTRATR_IO_EMPTY`. `INFILTRATR_IO_TRUNCATED` preserves the bounded prefix
+ * in `buffer` rather than discarding it.
  */
 InfiltratrIoResult infiltratr_read_text_file_ex(const char *path,
                                                 char *buffer, size_t size,
                                                 size_t *length);
-/** Parse a complete unsigned decimal file value with explicit result status. */
+
+/**
+ * Read and parse one complete unsigned decimal file value.
+ *
+ * File status is propagated unchanged. Text that is successfully read but is
+ * not a complete unsigned base-10 value returns
+ * `INFILTRATR_IO_INVALID_VALUE`. `*value` changes only on successful parsing.
+ */
 InfiltratrIoResult infiltratr_read_u64_file_ex(const char *path,
                                                uint64_t *value);
-/** Parse a complete finite decimal file value with explicit result status. */
+
+/**
+ * Read and parse one complete finite ASCII-decimal file value.
+ *
+ * Parsing uses the locale-independent core decimal grammar. File status is
+ * propagated unchanged and invalid numeric text returns
+ * `INFILTRATR_IO_INVALID_VALUE`. `*value` changes only on success.
+ */
 InfiltratrIoResult infiltratr_read_double_file_ex(const char *path,
                                                   double *value);
 
-/** Read one bounded pseudo-file value and remove its line ending. */
+/**
+ * Read one bounded pseudo-file value and remove trailing CR/LF bytes.
+ *
+ * This compatibility helper returns only success/failure and does not probe
+ * for data beyond `size - 1`; therefore an oversized file may be silently
+ * truncated. Use `infiltratr_read_text_file_ex` when truncation must be known.
+ */
 bool infiltratr_read_text_file(const char *path, char *buffer, size_t size);
-/** Parse a complete unsigned decimal value from a small text file. */
+
+/** Parse a complete unsigned decimal value using the simple text-file reader. */
 bool infiltratr_read_u64_file(const char *path, uint64_t *value);
-/** Read an unsigned value, mapping unavailable or invalid input to zero. */
+
+/**
+ * Read an unsigned value, mapping every unavailable or invalid state to zero.
+ *
+ * Use the boolean or rich reader when a genuine stored zero must remain
+ * distinguishable from failure.
+ */
 uint64_t infiltratr_read_u64_or_zero(const char *path);
-/** Parse a complete finite floating-point value from a small text file. */
+
+/** Parse a complete finite floating-point value using the simple text-file reader. */
 bool infiltratr_read_double_file(const char *path, double *value);
-/** Read a finite floating-point value, mapping failure to NAN. */
+
+/**
+ * Read a finite floating-point value, mapping every failure to `NAN`.
+ *
+ * The function is intended for callers where NaN is already the established
+ * unavailable-value representation.
+ */
 double infiltratr_read_double_or_nan(const char *path);
-/** Read the first available unsigned attribute below a shared base path. */
+
+/**
+ * Read the first successfully parsed unsigned attribute from ordered suffixes.
+ *
+ * Each suffix is concatenated directly to `base` in a fixed 512-byte temporary
+ * path buffer. Overlong candidates and unreadable/invalid candidates are
+ * skipped. The first successful value is returned; false means none succeeded.
+ */
 bool infiltratr_read_first_u64(const char *base,
                                const char *const *suffixes,
                                size_t suffix_count, uint64_t *value);
 
-/** Return CLOCK_MONOTONIC as exact integer nanoseconds when representable. */
+/**
+ * Return `CLOCK_MONOTONIC` as exact integer nanoseconds when representable.
+ *
+ * NULL output, clock failure, invalid `timespec` fields or uint64 overflow
+ * return false. A valid output is initialised to zero before the clock call and
+ * receives the timestamp only on success.
+ */
 bool infiltratr_monotonic_nanoseconds(uint64_t *nanoseconds);
-/** Return CLOCK_MONOTONIC in fractional seconds, or zero on failure. */
+
+/**
+ * Return `CLOCK_MONOTONIC` in fractional seconds.
+ *
+ * Clock failure maps to 0.0. Callers that require explicit failure reporting or
+ * exact integer time should use `infiltratr_monotonic_nanoseconds`.
+ */
 double infiltratr_monotonic_seconds(void);
 
 #ifdef __cplusplus
