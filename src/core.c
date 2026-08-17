@@ -138,7 +138,6 @@ bool infiltratr_parse_u64(const char *text, unsigned int base,
     return true;
 }
 
-
 bool infiltratr_parse_i64(const char *text, unsigned int base, int64_t *value)
 {
     if (!text || !value || base == 1U || base > 36U) return false;
@@ -192,6 +191,45 @@ static bool ascii_space(char character)
 static bool ascii_digit(char character)
 {
     return character >= '0' && character <= '9';
+}
+
+/*
+ * Apply a base-10 exponent without constructing one huge or tiny intermediate
+ * power of ten. On implementations where long double has the same exponent
+ * range as double, powl(10, -N) can underflow to zero before multiplication by
+ * a large significand would bring the final value back into the subnormal
+ * range. Bounded 10^18 steps keep every intermediate monotonic with the final
+ * magnitude, so a zero here means the represented non-zero value truly cannot
+ * survive in long double rather than being an artefact of the scaling method.
+ */
+static bool apply_decimal_exponent(long double *value, int64_t exponent)
+{
+    if (!value || !isfinite(*value) || *value == 0.0L) return false;
+
+    static const long double chunk = 1000000000000000000.0L;
+    while (exponent >= 18) {
+        if (*value > LDBL_MAX / chunk) return false;
+        *value *= chunk;
+        exponent -= 18;
+    }
+    while (exponent <= -18) {
+        *value /= chunk;
+        if (*value == 0.0L) return false;
+        exponent += 18;
+    }
+
+    long double factor = 1.0L;
+    if (exponent > 0) {
+        for (int64_t index = 0; index < exponent; index++) factor *= 10.0L;
+        if (*value > LDBL_MAX / factor) return false;
+        *value *= factor;
+    } else if (exponent < 0) {
+        for (int64_t index = 0; index > exponent; index--) factor *= 10.0L;
+        *value /= factor;
+        if (*value == 0.0L) return false;
+    }
+
+    return isfinite(*value);
 }
 
 /*
@@ -317,8 +355,9 @@ bool infiltratr_parse_double(const char *text, double *value)
     if (decimal_exponent > 400 || decimal_exponent < -400) return false;
 
     long double parsed = (long double)significand;
-    if (decimal_exponent != 0)
-        parsed *= powl(10.0L, (long double)decimal_exponent);
+    if (decimal_exponent != 0 &&
+        !apply_decimal_exponent(&parsed, decimal_exponent))
+        return false;
     if (negative) parsed = -parsed;
     if (!isfinite(parsed)) return false;
 
@@ -328,7 +367,6 @@ bool infiltratr_parse_double(const char *text, double *value)
     *value = converted;
     return true;
 }
-
 
 bool infiltratr_parse_double_range(const char *text, double minimum,
                                    double maximum, double *value)
