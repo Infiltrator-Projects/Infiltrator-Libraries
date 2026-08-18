@@ -2,112 +2,79 @@
 
 # Infiltratr Common usage ledger
 
-This ledger records why each public Common operation exists and who currently consumes it. It is intended to keep the shared library focused on real reuse rather than speculative utility code.
+This ledger records why public Common operations exist and which production
+consumers justify them. Tests alone do not justify new public API.
 
-Status meanings:
+Status meanings: **ACTIVE** is used by production code, **FOUNDATION** is the
+canonical implementation beneath active API, and **READY** is a tested
+completion of an already-active capability family.
 
-- **ACTIVE** — used by production code in at least one consumer.
-- **FOUNDATION** — not necessarily called by an application directly, but is the canonical implementation underneath an ACTIVE shared operation.
-- **READY** — a tested completion of an already-active capability family, but not currently required by production consumer code. Do not expand READY APIs further until a real consumer needs the extra behaviour.
+Audit baseline: Infiltratr Common 1.6.0, Calendar Plus 3.9.8 migration,
+Linux System Monitor 1.13.11, Linux Defragger 1.8.0-120 and MBLINK 0.2.0,
+18 August 2026.
 
-Consumer notation:
+## Portable core
 
-- **System Monitor facade** means the operation is wired through the production `lsm_*` compatibility surface. Existing callers can keep the stable application API while Common owns the implementation.
-- **Calendar Plus direct** means Calendar production source calls the Common API directly.
-- **Linux Defragger native** means the filesystem-neutral C core or package-local native filesystem workers call the Common API directly.
-- **MBLINK direct** means the portable vehicle-diagnostics C core calls the Common API directly; ELM327/OBD-specific behaviour remains owned by MBLINK.
-- **Common internal** means another public Common operation uses it.
-- Tests are not counted as production consumers.
+| Capability | Production consumers | Status |
+| --- | --- | --- |
+| Project identity validation and metadata output | System Monitor, Calendar Plus, MBLINK | ACTIVE |
+| Bounded copy, trimming and deterministic string comparisons | System Monitor, Calendar Plus, Linux Defragger, MBLINK | ACTIVE |
+| Strict integer parsing and bounded unsigned parsing | System Monitor, Linux Defragger, MBLINK | ACTIVE |
+| Locale-independent finite decimal parsing | Calendar Plus, POSIX typed readers | ACTIVE |
+| Numeric clamping | System Monitor, Calendar Plus | ACTIVE |
+| Checked/saturating unsigned arithmetic | System Monitor, Linux Defragger, MBLINK | ACTIVE |
+| `infiltratr_i64_floor_divmod` | Calendar Plus date/time arithmetic | ACTIVE |
+| `infiltratr_i64_subtract_saturating` | Calendar Plus event timing | ACTIVE |
+| Percentages and rollback-safe counter rates | System Monitor | ACTIVE |
+| Quantity scaling and scaled rendering | Shared formatting implementation | FOUNDATION |
 
-Audit baseline: Infiltratr Common 1.5.0, Linux System Monitor 1.13.11, Calendar Plus 3.9.7, Linux Defragger 1.8.0-120 and MBLINK 0.2.0, 17 August 2026.
+Signed floor division is shared because Calendar previously maintained the same
+negative-safe quotient/remainder algorithm in its Julian-day, astronomical-time
+and time-format modules. Saturating signed subtraction replaces Calendar's
+private event-timing overflow helper. Calendar-specific chronology, calendar
+providers and event semantics remain in Calendar Plus.
 
-## Core
-
-| Public operation | System Monitor | Calendar Plus | Linux Defragger | MBLINK | Common internal | Status | Reason |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `infiltratr_project_info_is_valid` | project-info validation/tests | — | — | direct self-check | `project_info_print` | ACTIVE | Validates the shared project-identity model and MBLINK's portable project metadata. |
-| `infiltratr_project_info_print` | metadata/test tooling | direct (`--print-metadata`) | — | — | — | ACTIVE | One canonical machine-readable project metadata writer. |
-| `infiltratr_copy_string` | facade | — | native journal workers | ELM327 parser/probe | — | ACTIVE | Bounded copy replaces private fixed-buffer helpers across consumers. |
-| `infiltratr_trim` | facade | — | — | ELM327 command/response parser | — | ACTIVE | Shared in-place whitespace cleanup. |
-| `infiltratr_trim_line_end` | facade | — | native journal workers | — | POSIX text reader | ACTIVE | Shared CR/LF cleanup and file-reader foundation. |
-| `infiltratr_string_equal` | facade | direct | — | ELM327 response classifier | — | ACTIVE | Null-safe deterministic string equality used by multiple consumers. |
-| `infiltratr_string_starts_with` | facade | direct | native device core | ELM327 response classifier | — | ACTIVE | Shared prefix matching used across consumers. |
-| `infiltratr_string_ends_with` | facade | — | — | — | — | ACTIVE | Shared suffix matching used by System Monitor. |
-| `infiltratr_parse_u64` | facade | — | FAT/EXT/NTFS/exFAT/XFS journal workers | — | POSIX numeric readers | ACTIVE | Canonical strict unsigned parser. |
-| `infiltratr_parse_i64` | — | — | — | — | — | READY | Completes the active integer parser family and is regression-tested. |
-| `infiltratr_parse_u64_range` | — | — | FAT journals/workers, exFAT/AFFS/HFS+ native workers | ELM327 protocol-number probe | — | ACTIVE | Canonical checked range validation used for bounded machine/protocol inputs. |
-| `infiltratr_parse_i64_range` | — | — | — | — | — | READY | Tested range validation for the signed parser family. |
-| `infiltratr_parse_double` | — | direct | — | — | POSIX numeric readers | ACTIVE | Locale-independent machine-value parser used by Calendar Plus and Common's typed POSIX readers. |
-| `infiltratr_parse_double_range` | — | — | — | — | — | READY | Tested bounded form of the active decimal parser. |
-| `infiltratr_clamp_double` | facade | direct | — | — | — | ACTIVE | Shared numeric clamping used by both GUI consumers. |
-| `infiltratr_u64_add_checked` | — | — | NTFS/XFS native arithmetic | ELM327 session deadlines | — | ACTIVE | Canonical overflow-rejecting addition for filesystem arithmetic and monotonic timeout deadlines. |
-| `infiltratr_u64_add_saturating` | facade | — | EXT/NTFS/XFS staging estimates | — | — | ACTIVE | Canonical addition where capacity estimates intentionally saturate instead of wrapping. |
-| `infiltratr_u64_multiply_saturating` | facade | — | EXT/NTFS/XFS staging/commit estimates | — | — | ACTIVE | Canonical multiplication where size estimates intentionally saturate instead of wrapping. |
-| `infiltratr_percent_u64` | facade | — | — | — | — | ACTIVE | Canonical bounded percentage calculation. |
-| `infiltratr_u64_counter_rate` | facade | — | — | — | — | ACTIVE | Canonical rollback-safe rate calculation. |
-| `infiltratr_scale_quantity` | — | — | — | — | shared quantity/network formatters | FOUNDATION | One unit-selection algorithm for all scaled formatters. |
-| `infiltratr_format_scaled_quantity` | — | — | — | — | byte/rate and metric wrappers | FOUNDATION | Canonical configurable scaled-quantity renderer. |
-| `infiltratr_format_bytes` | facade | — | — | — | disk-capacity wrapper | ACTIVE | Shared binary byte presentation. |
-| `infiltratr_format_rate` | facade | — | — | — | — | ACTIVE | Shared binary byte-rate presentation. |
+The signed parser/range variants not yet called directly by an application are
+retained as READY members of the already-active strict parser family.
 
 ## Formatting
 
-| Public operation | System Monitor | Calendar Plus | Linux Defragger | MBLINK | Common internal | Status | Reason |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `infiltratr_format_scalar` | used through shared metric policy/adoption | — | — | — | percent/MHz/Celsius/watts wrappers | FOUNDATION | One configurable scalar renderer replaces separate formatting algorithms. |
-| `infiltratr_format_memory_gb` | metric facade | — | — | — | — | ACTIVE | System Monitor memory presentation. |
-| `infiltratr_format_disk_capacity` | metric facade | — | — | — | `format_bytes` | ACTIVE | System Monitor compact capacity presentation. |
-| `infiltratr_format_network` | metric facade | — | — | — | scaling engine | ACTIVE | System Monitor network quantity/rate presentation. |
-| `infiltratr_format_network_pair` | metric facade | — | — | — | scaling engine | ACTIVE | System Monitor shared-unit send/receive presentation. The hard-coded `S:`/`R:` policy should not be generalized further until another consumer needs different labels. |
-| `infiltratr_format_link_speed_mbps` | metric facade | — | — | — | scaling engine | ACTIVE | System Monitor negotiated-link presentation. |
-| `infiltratr_format_percent` | metric facade | — | — | — | scalar engine | ACTIVE | System Monitor optional percentage presentation. |
-| `infiltratr_format_mhz` | metric facade | — | — | — | scalar engine | ACTIVE | System Monitor optional frequency presentation. |
-| `infiltratr_format_celsius` | metric facade | — | — | — | scalar engine | ACTIVE | System Monitor optional temperature presentation. |
-| `infiltratr_format_watts` | metric facade | — | — | — | scalar engine | ACTIVE | System Monitor optional power presentation. |
-
-MBLINK 0.2.0 currently compiles `format.c` as part of its portable Common footprint but does not yet call a formatting API from production code. Formatting therefore remains uncredited to MBLINK in this ledger until a real diagnostic/display consumer uses it.
+Common owns the generic scalar and quantity-formatting engines plus the memory,
+disk, network, percentage, frequency, temperature and power convenience
+formatters currently used by Linux System Monitor. Calendar Plus does not use
+shared presentation formatting after the 3.9.8 migration and therefore does
+not compile `format.c` in its application-local Common footprint.
 
 ## POSIX provider
 
-| Public operation | System Monitor | Calendar Plus | Linux Defragger | MBLINK | Common internal | Status | Reason |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `infiltratr_io_result_name` | — | — | — | — | — | READY | Human/machine-readable status naming for the active rich I/O family. |
-| `infiltratr_realpath_copy` | facade | — | native device core | — | — | ACTIVE | Shared bounded `realpath` adapter. |
-| `infiltratr_path_concat` | facade | — | — | — | `read_first_u64` | ACTIVE | Shared path construction for Linux collectors. |
-| `infiltratr_path_join` | — | — | — | — | — | READY | Tested separator-aware form of the active path-helper family. |
-| `infiltratr_read_text_file_ex` | — | — | — | — | rich typed readers | FOUNDATION | Preserves missing/denied/empty/truncated/error distinctions. |
-| `infiltratr_read_u64_file_ex` | — | — | — | — | — | READY | Rich form of the active unsigned file reader. |
-| `infiltratr_read_double_file_ex` | — | — | — | — | — | READY | Rich form of the active floating file reader. |
-| `infiltratr_read_text_file` | facade | — | — | — | simple typed readers | ACTIVE | Fast small procfs/sysfs text reader. |
-| `infiltratr_read_u64_file` | facade | — | native device core | — | `read_first_u64` | ACTIVE | Shared typed sysfs/procfs reader. |
-| `infiltratr_read_u64_or_zero` | facade | — | — | — | — | ACTIVE | Convenience wrapper where zero and unavailable are intentionally equivalent. |
-| `infiltratr_read_double_file` | facade | — | — | — | — | ACTIVE | Shared typed floating sysfs/procfs reader. |
-| `infiltratr_read_double_or_nan` | facade | — | — | — | — | ACTIVE | Convenience wrapper preserving missing state as NaN. |
-| `infiltratr_read_first_u64` | — | — | — | — | — | READY | Tested ordered fallback for alternate Linux attributes; retained as a completed POSIX capability until a production consumer needs it again. |
-| `infiltratr_monotonic_nanoseconds` | — | — | — | — | — | READY | Tested exact form of the active monotonic-clock capability. |
-| `infiltratr_monotonic_seconds` | facade | — | — | — | — | ACTIVE | System Monitor sampling clock. |
+System Monitor and Linux Defragger use the POSIX path, file-reading and
+monotonic-clock adapters. Calendar Plus and MBLINK do not compile the POSIX
+provider in their portable-core builds.
 
-Calendar Plus and MBLINK deliberately do not compile the Common POSIX provider in their portable core builds.
+Rich `*_ex` readers preserve missing, denied, empty, truncated, invalid-value
+and generic I/O states. Simpler compatibility readers remain for consumers
+whose existing contracts intentionally collapse those states.
 
 ## Compiler annotations
 
-`INFILTRATR_LIKELY`, `INFILTRATR_UNLIKELY`, `INFILTRATR_COLD` and `INFILTRATR_PRINTF_FORMAT` are ACTIVE through Linux System Monitor's `src/compiler.h` compatibility facade. Calendar Plus, Linux Defragger and MBLINK do not currently need them.
+`INFILTRATR_LIKELY`, `INFILTRATR_UNLIKELY`, `INFILTRATR_COLD` and
+`INFILTRATR_PRINTF_FORMAT` are active through Linux System Monitor's
+compatibility facade.
 
-## Consumer build footprint
+## Consumer boundaries
 
-- Linux System Monitor 1.13.11 pins Infiltratr Common 1.5.0 at exact release commit `a0e75ffbe4e038c74c8f1e3d589f2dae87b2b7bb` and requires the portable core/formatting code plus the POSIX provider.
-- Calendar Plus 3.9.7 pins Infiltratr Common 1.5.0 at exact release commit `a0e75ffbe4e038c74c8f1e3d589f2dae87b2b7bb` and consumes only the portable core/formatting code. It does not compile the Common POSIX provider because no production Calendar caller requires it.
-- Linux Defragger 1.8.0-120 pins Common 1.5.0 at exact release commit `a0e75ffbe4e038c74c8f1e3d589f2dae87b2b7bb` and compiles Common `core.c` plus `posix.c`. It does not compile `format.c` because no production Defragger C caller currently needs shared presentation formatting.
-- Linux Defragger uses Common checked and saturating `uint64_t` arithmetic where those contracts match production filesystem work. It deliberately retains interruption-safe positional raw `pread`/`pwrite` loops, device safety, Stop handling and filesystem transaction semantics because those have different application-specific contracts.
-- MBLINK 0.2.0 pins Common 1.5.0 at exact release commit `a0e75ffbe4e038c74c8f1e3d589f2dae87b2b7bb` and compiles the portable `core.c` and `format.c` sources. Its current production Common calls are in the core layer: project metadata validation, bounded string handling, deterministic comparison/prefix handling, checked deadline arithmetic and bounded protocol-number parsing. ELM327 command framing, response canonicalisation, transport/session state and vehicle-diagnostics semantics remain application-owned.
+- Linux System Monitor uses Common for general C primitives, formatting and the POSIX provider while hardware/UI policy stays application-owned.
+- Calendar Plus uses `core.c` plus `arithmetic.c`; calendar systems, astronomy, event indexing, timer adapters, ICU/GVariant integration and Cinnamon UI remain application-owned.
+- Linux Defragger uses Common where generic parsing/arithmetic/POSIX contracts match, while raw I/O, filesystem safety and transaction semantics remain application-owned.
+- MBLINK uses Common portable primitives while ELM327 framing, OBD/ISO-TP semantics, request scheduling and vehicle diagnostics remain application-owned.
 
 ## Rule for adding public API
 
-Before a new public Common operation is added, it must satisfy at least one of these conditions:
+A new public operation must satisfy at least one of these conditions:
 
 1. two consumers already contain substantially the same capability;
 2. a consumer needs a capability another consumer already has;
-3. the operation is necessary to make an ACTIVE shared implementation robust or complete; or
-4. application-private code can be replaced immediately by the new shared implementation.
+3. it completes an already-active shared capability robustly; or
+4. application-private production code can be replaced immediately.
 
-Every public API change must update this ledger. A READY operation may remain because it completes an active capability family, but READY APIs should not accumulate additional speculative features until a production consumer needs them.
+Every public API change updates this ledger. Speculative utility code stays out.

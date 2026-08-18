@@ -1,34 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
- * @file api_contract.c
- * @brief Boundary and failure-state regression coverage for the public API.
+ * @file portable_contract.c
+ * @brief Boundary and failure-state coverage for the portable public API.
  *
- * This suite concentrates on behaviour that consumers must be able to rely on:
- * exact buffer boundaries, unchanged outputs after rejected parses/arithmetic,
- * explicit I/O result distinctions, ABI validation and invalid-argument paths.
- * It complements the shorter smoke tests rather than duplicating their normal
- * success-path examples.
+ * This suite is deliberately POSIX-free so every consumer of core.c and
+ * format.c receives the same contract checks, including parser underflow,
+ * exact buffer boundaries, ABI validation and arithmetic failure semantics.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
  * @license GPL-3.0-or-later
  */
-#define _POSIX_C_SOURCE 200809L
-
 #include "infiltratr/core.h"
 #include "infiltratr/format.h"
-#include "infiltratr/posix.h"
 
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
 #include <assert.h>
+#include <float.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 static InfiltratrProjectInfo valid_project_info(void)
 {
@@ -44,7 +38,7 @@ static InfiltratrProjectInfo valid_project_info(void)
         .author = "Shannon Smith",
         .website = "https://github.com/The-First-Infiltrator/Infiltrator-Libraries",
         .license_id = "GPL-3.0-or-later",
-        .comments = "Public API contract regression suite",
+        .comments = "Portable public API contract regression suite",
         .icon_name = "contract-test",
         .copyright_text = "Copyright (c) 2026 Shannon Smith"
     };
@@ -161,12 +155,20 @@ static void test_parsers(void)
     assert(decimal == 123.0);
     assert(!infiltratr_parse_double("inf", &decimal));
     assert(decimal == 123.0);
-    assert(!infiltratr_parse_double("1e-500", &decimal));
+    assert(!infiltratr_parse_double("1e-400", &decimal));
     assert(decimal == 123.0);
     assert(!infiltratr_parse_double("1e500", &decimal));
     assert(decimal == 123.0);
     assert(!infiltratr_parse_double("1.0 trailing", &decimal));
     assert(decimal == 123.0);
+
+    char smallest_text[64];
+    const int smallest_written = snprintf(smallest_text, sizeof(smallest_text),
+                                           "%.17e", DBL_TRUE_MIN);
+    assert(smallest_written > 0 && (size_t)smallest_written < sizeof(smallest_text));
+    decimal = 0.0;
+    assert(infiltratr_parse_double(smallest_text, &decimal));
+    assert(decimal == DBL_TRUE_MIN);
 
     decimal = 99.0;
     assert(!infiltratr_parse_double_range("5", NAN, 10.0, &decimal));
@@ -269,95 +271,6 @@ static void test_scaling_and_formatting(void)
     assert(strcmp(buffer, "") == 0);
 }
 
-static void test_paths_and_io(void)
-{
-    char path[16];
-    assert(infiltratr_path_concat(path, sizeof(path), "/sys/", "dev"));
-    assert(strcmp(path, "/sys/dev") == 0);
-
-    char too_small[5] = "xxxx";
-    assert(!infiltratr_path_concat(too_small, sizeof(too_small),
-                                   "/sys", "/device"));
-    assert(strcmp(too_small, "") == 0);
-
-    assert(infiltratr_path_join(path, sizeof(path), "/sys/", "/dev"));
-    assert(strcmp(path, "/sys/dev") == 0);
-    assert(infiltratr_path_join(path, sizeof(path), "", "/dev"));
-    assert(strcmp(path, "/dev") == 0);
-
-    char resolved[1] = {'x'};
-    assert(!infiltratr_realpath_copy(".", resolved, sizeof(resolved)));
-    assert(resolved[0] == '\0');
-
-    char empty_name[] = "infiltratr-contract-empty-XXXXXX";
-    const int empty_fd = mkstemp(empty_name);
-    assert(empty_fd >= 0);
-    assert(close(empty_fd) == 0);
-
-    char read_buffer[8] = "old";
-    size_t length = 99U;
-    assert(infiltratr_read_text_file_ex(empty_name, read_buffer,
-                                        sizeof(read_buffer), &length) ==
-           INFILTRATR_IO_EMPTY);
-    assert(strcmp(read_buffer, "") == 0);
-    assert(length == 0U);
-    assert(!infiltratr_read_text_file(empty_name, read_buffer,
-                                      sizeof(read_buffer)));
-    assert(unlink(empty_name) == 0);
-
-    char exact_name[] = "infiltratr-contract-exact-XXXXXX";
-    const int exact_fd = mkstemp(exact_name);
-    assert(exact_fd >= 0);
-    static const char exact_text[] = "1234567";
-    assert(write(exact_fd, exact_text, sizeof(exact_text) - 1U) ==
-           (ssize_t)(sizeof(exact_text) - 1U));
-    assert(close(exact_fd) == 0);
-    assert(infiltratr_read_text_file_ex(exact_name, read_buffer,
-                                        sizeof(read_buffer), &length) ==
-           INFILTRATR_IO_OK);
-    assert(strcmp(read_buffer, exact_text) == 0);
-    assert(length == sizeof(exact_text) - 1U);
-    assert(unlink(exact_name) == 0);
-
-    char truncated_name[] = "infiltratr-contract-trunc-XXXXXX";
-    const int truncated_fd = mkstemp(truncated_name);
-    assert(truncated_fd >= 0);
-    static const char truncated_text[] = "12345678";
-    assert(write(truncated_fd, truncated_text,
-                 sizeof(truncated_text) - 1U) ==
-           (ssize_t)(sizeof(truncated_text) - 1U));
-    assert(close(truncated_fd) == 0);
-    assert(infiltratr_read_text_file_ex(truncated_name, read_buffer,
-                                        sizeof(read_buffer), &length) ==
-           INFILTRATR_IO_TRUNCATED);
-    assert(strcmp(read_buffer, "1234567") == 0);
-    assert(length == 7U);
-    assert(unlink(truncated_name) == 0);
-
-    length = 99U;
-    assert(infiltratr_read_text_file_ex("does-not-exist-infiltratr", read_buffer,
-                                        sizeof(read_buffer), &length) ==
-           INFILTRATR_IO_NOT_FOUND);
-    assert(strcmp(read_buffer, "") == 0);
-    assert(length == 0U);
-
-    char invalid_buffer = 'Q';
-    length = 99U;
-    assert(infiltratr_read_text_file_ex("x", &invalid_buffer, 1U, &length) ==
-           INFILTRATR_IO_INVALID_ARGUMENT);
-    assert(invalid_buffer == 'Q');
-    assert(length == 0U);
-
-    assert(strcmp(infiltratr_io_result_name(INFILTRATR_IO_OK), "ok") == 0);
-    assert(strcmp(infiltratr_io_result_name((InfiltratrIoResult)999),
-                  "unknown") == 0);
-
-    assert(!infiltratr_monotonic_nanoseconds(NULL));
-    uint64_t nanoseconds = 0U;
-    assert(infiltratr_monotonic_nanoseconds(&nanoseconds));
-    assert(nanoseconds > 0U);
-}
-
 int main(void)
 {
     test_project_info();
@@ -365,8 +278,7 @@ int main(void)
     test_parsers();
     test_arithmetic();
     test_scaling_and_formatting();
-    test_paths_and_io();
 
-    puts("Infiltratr Common API contract tests passed.");
+    puts("Infiltratr Common portable API contract tests passed.");
     return 0;
 }
