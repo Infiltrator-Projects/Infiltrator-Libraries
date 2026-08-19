@@ -1,10 +1,10 @@
-name: publish-v1.6.0
+name: publish-v1.7.0
 
 on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/publish-v1.6.0.yml
+      - .github/workflows/publish-v1.7.0.yml
 
 permissions:
   contents: write
@@ -21,15 +21,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential clang gh
 
-      - name: Validate Common 1.6.0
+      - name: Validate Common 1.7.0
         run: |
           set -euo pipefail
-          test "$(cat VERSION)" = "1.6.0"
+          test "$(cat VERSION)" = "1.7.0"
           make clean
           make check
           make portable-check
           make shared
-          test -f build/libinfiltratr-common.so.1.6.0
+          test -f build/libinfiltratr-common.so.1.7.0
 
       - name: Publish GitHub release
         env:
@@ -37,13 +37,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          if gh release view v1.6.0 >/dev/null 2>&1; then
-            echo "v1.6.0 already exists; refusing to create a duplicate release."
+          if gh release view v1.7.0 >/dev/null 2>&1; then
+            echo "v1.7.0 already exists; refusing to create a duplicate release."
             exit 0
           fi
 
-          gh release create v1.6.0 \
+          gh release create v1.7.0 \
             --target "$GITHUB_SHA" \
-            --title "Infiltratr Common 1.6.0" \
+            --title "Infiltratr Common 1.7.0" \
             --generate-notes \
             --latest

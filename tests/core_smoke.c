@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file core_smoke.c
- * @brief Standalone regression coverage for Infiltratr Common 1.6.
+ * @brief Standalone regression coverage for Infiltratr Common 1.7.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
@@ -177,7 +177,7 @@ int main(void)
         fread(metadata_text, 1U, sizeof(metadata_text) - 1U, metadata);
     metadata_text[metadata_size] = '\0';
     assert(strstr(metadata_text,
-                  "common-library=infiltratr-common-1.6.0\n") != NULL);
+                  "common-library=infiltratr-common-1.7.0\n") != NULL);
     assert(fclose(metadata) == 0);
 
     puts("Infiltratr Common core smoke test passed.");
