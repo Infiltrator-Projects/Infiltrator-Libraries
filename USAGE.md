@@ -9,9 +9,9 @@ Status meanings: **ACTIVE** is used by production code, **FOUNDATION** is the
 canonical implementation beneath active API, and **READY** is a tested
 completion of an already-active capability family.
 
-Audit baseline: Infiltratr Common 1.6.0, Calendar Plus 3.9.8 migration,
-Linux System Monitor 1.13.11, Linux Defragger 1.8.0-120 and MBLINK 0.2.0,
-18 August 2026.
+Audit baseline: Infiltratr Common 1.7.0, Calendar Plus 3.9.8 migration,
+Linux System Monitor 1.13.13, Linux Defragger 1.8.0-120 and MBLINK 0.2.0,
+19 August 2026.
 
 ## Portable core
 
@@ -21,11 +21,13 @@ Linux System Monitor 1.13.11, Linux Defragger 1.8.0-120 and MBLINK 0.2.0,
 | Bounded copy, trimming and deterministic string comparisons | System Monitor, Calendar Plus, Linux Defragger, MBLINK | ACTIVE |
 | Strict integer parsing and bounded unsigned parsing | System Monitor, Linux Defragger, MBLINK | ACTIVE |
 | Locale-independent finite decimal parsing | Calendar Plus, POSIX typed readers | ACTIVE |
+| Allocation-free key=value and boolean configuration parsing | Linux System Monitor | ACTIVE |
 | Numeric clamping | System Monitor, Calendar Plus | ACTIVE |
 | Checked/saturating unsigned arithmetic | System Monitor, Linux Defragger, MBLINK | ACTIVE |
 | `infiltratr_i64_floor_divmod` | Calendar Plus date/time arithmetic | ACTIVE |
 | `infiltratr_i64_subtract_saturating` | Calendar Plus event timing | ACTIVE |
 | Percentages and rollback-safe counter rates | System Monitor | ACTIVE |
+| Monotonic interval-due scheduling policy | Linux System Monitor | ACTIVE |
 | Quantity scaling and scaled rendering | Shared formatting implementation | FOUNDATION |
 
 Signed floor division is shared because Calendar previously maintained the same
@@ -36,6 +38,11 @@ providers and event semantics remain in Calendar Plus.
 
 The signed parser/range variants not yet called directly by an application are
 retained as READY members of the already-active strict parser family.
+
+The configuration parser entered Common because Linux System Monitor immediately
+replaces application-private key/value and boolean parsing with the shared
+implementation. The interval-due primitive similarly replaces its private
+refresh-cadence implementation while keeping tab and feature policy local.
 
 ## Formatting
 
@@ -63,7 +70,7 @@ compatibility facade.
 
 ## Consumer boundaries
 
-- Linux System Monitor uses Common for general C primitives, formatting and the POSIX provider while hardware/UI policy stays application-owned.
+- Linux System Monitor uses Common for general C primitives, configuration parsing, timing policy, formatting and the POSIX provider while hardware/UI policy stays application-owned.
 - Calendar Plus uses `core.c` plus `arithmetic.c`; calendar systems, astronomy, event indexing, timer adapters, ICU/GVariant integration and Cinnamon UI remain application-owned.
 - Linux Defragger uses Common where generic parsing/arithmetic/POSIX contracts match, while raw I/O, filesystem safety and transaction semantics remain application-owned.
 - MBLINK uses Common portable primitives while ELM327 framing, OBD/ISO-TP semantics, request scheduling and vehicle diagnostics remain application-owned.
