@@ -9,10 +9,16 @@ override CFLAGS += -std=c11 -fPIC -Wall -Wextra -Wpedantic -Werror \
 	-Wshadow -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes
 PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/arithmetic.o \
 	$(BUILD_DIR)/config.o $(BUILD_DIR)/timing.o $(BUILD_DIR)/format.o
-OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/posix.o
+OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/dynlib.o $(BUILD_DIR)/posix.o
 PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
 ARCHIVE := $(BUILD_DIR)/libinfiltratr-common.a
-SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.7.0
+SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.8.0
+
+ifeq ($(OS),Windows_NT)
+DYNLIB_LIBS :=
+else
+DYNLIB_LIBS := -ldl
+endif
 
 .PHONY: all check clean portable portable-check shared
 
@@ -31,11 +37,15 @@ $(BUILD_DIR)/arithmetic.o: src/arithmetic.c include/infiltratr/arithmetic.h | $(
 $(BUILD_DIR)/config.o: src/config.c include/infiltratr/config.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
-$(BUILD_DIR)/timing.o: src/timing.c include/infiltratr/timing.h | $(BUILD_DIR)
+$(BUILD_DIR)/timing.o: src/timing.c include/infiltratr/timing.h \
+	include/infiltratr/core.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/format.o: src/format.c include/infiltratr/format.h \
 	include/infiltratr/core.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/dynlib.o: src/dynlib.c include/infiltratr/dynlib.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/posix.o: src/posix.c include/infiltratr/core.h \
@@ -54,7 +64,7 @@ shared: $(SHARED)
 
 $(SHARED): $(OBJECTS)
 	$(CC) -shared -Wl,-soname,libinfiltratr-common.so.1 \
-		-o $@ $(OBJECTS) -lm
+		-o $@ $(OBJECTS) -lm $(DYNLIB_LIBS)
 
 $(BUILD_DIR)/core-smoke: tests/core_smoke.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
@@ -70,6 +80,9 @@ $(BUILD_DIR)/timing-smoke: tests/timing_smoke.c $(PORTABLE_ARCHIVE)
 
 $(BUILD_DIR)/format-smoke: tests/format_smoke.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
+
+$(BUILD_DIR)/dynlib-smoke: tests/dynlib_smoke.c $(ARCHIVE)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
 
 $(BUILD_DIR)/portable-smoke: tests/portable_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
@@ -90,11 +103,13 @@ portable-check: $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-contract \
 	./$(BUILD_DIR)/timing-smoke
 
 check: $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
-	$(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-contract \
-	$(BUILD_DIR)/arithmetic-smoke $(BUILD_DIR)/config-smoke \
-	$(BUILD_DIR)/timing-smoke $(BUILD_DIR)/posix-contract
+	$(BUILD_DIR)/dynlib-smoke $(BUILD_DIR)/portable-smoke \
+	$(BUILD_DIR)/portable-contract $(BUILD_DIR)/arithmetic-smoke \
+	$(BUILD_DIR)/config-smoke $(BUILD_DIR)/timing-smoke \
+	$(BUILD_DIR)/posix-contract
 	./$(BUILD_DIR)/core-smoke
 	./$(BUILD_DIR)/format-smoke
+	./$(BUILD_DIR)/dynlib-smoke
 	./$(BUILD_DIR)/portable-smoke
 	./$(BUILD_DIR)/portable-contract
 	./$(BUILD_DIR)/arithmetic-smoke
