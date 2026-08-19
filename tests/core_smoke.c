@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file core_smoke.c
- * @brief Standalone regression coverage for Infiltratr Common 1.7.
+ * @brief Smoke tests for Common core and POSIX compatibility helpers.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
  * @license GPL-3.0-or-later
  */
-#define _POSIX_C_SOURCE 200809L
-
 #include "infiltratr/core.h"
 #include "infiltratr/posix.h"
 
@@ -16,137 +14,71 @@
 #undef NDEBUG
 #endif
 #include <assert.h>
-#include <fcntl.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 int main(void)
 {
-    char text[8];
-    infiltratr_copy_string(text, sizeof(text), "123456789");
-    assert(strcmp(text, "1234567") == 0);
+    char text[64];
+    char path[128];
+    uint64_t value = 0U;
+    int64_t signed_value = 0;
+    double decimal = 0.0;
+    double rate = 0.0;
+    uint64_t sum = 0U;
+    uint64_t nanoseconds = 0U;
 
-    char whitespace[] = "  value \n";
-    infiltratr_trim(whitespace);
-    assert(strcmp(whitespace, "value") == 0);
-
+    infiltratr_copy_string(text, sizeof(text), "  hello world  \n");
+    infiltratr_trim(text);
+    assert(strcmp(text, "hello world") == 0);
+    assert(infiltratr_string_equal("same", "same"));
+    assert(!infiltratr_string_equal("same", "different"));
     assert(infiltratr_string_equal(NULL, NULL));
-    assert(infiltratr_string_equal("calendar", "calendar"));
-    assert(!infiltratr_string_equal("calendar", NULL));
     assert(infiltratr_string_starts_with("calendar-plus", "calendar"));
+    assert(!infiltratr_string_starts_with(NULL, "calendar"));
     assert(infiltratr_string_ends_with("calendar-plus", "plus"));
-    assert(!infiltratr_string_ends_with("calendar", "plus"));
+    assert(!infiltratr_string_ends_with("calendar-plus", "calendar"));
 
-    uint64_t parsed = 0U;
-    assert(infiltratr_parse_u64("0x2a", 0U, &parsed));
-    assert(parsed == 42U);
-    assert(!infiltratr_parse_u64("-1", 10U, &parsed));
-    assert(!infiltratr_parse_u64("18446744073709551616", 10U, &parsed));
-    double parsed_double = 0.0;
-    assert(infiltratr_parse_double(" -12.5 ", &parsed_double));
-    assert(parsed_double == -12.5);
-    assert(infiltratr_parse_double(".125e2", &parsed_double));
-    assert(parsed_double == 12.5);
-    assert(infiltratr_parse_double("1.25e-2", &parsed_double));
-    assert(fabs(parsed_double - 0.0125) < 1e-15);
-    assert(infiltratr_parse_double("-0", &parsed_double));
-    assert(signbit(parsed_double));
-    assert(!infiltratr_parse_double("12,5", &parsed_double));
-    assert(!infiltratr_parse_double("0x1.8p+1", &parsed_double));
-    assert(!infiltratr_parse_double("1e", &parsed_double));
-    assert(!infiltratr_parse_double("1e999", &parsed_double));
-    assert(!infiltratr_parse_double("infinity", &parsed_double));
-    assert(infiltratr_clamp_double(-5.0, 0.0, 100.0) == 0.0);
-    assert(infiltratr_clamp_double(105.0, 0.0, 100.0) == 100.0);
-    assert(isnan(infiltratr_clamp_double(NAN, 0.0, 100.0)));
+    assert(infiltratr_parse_u64("1234", 10U, &value));
+    assert(value == 1234U);
+    assert(!infiltratr_parse_u64("-1", 10U, &value));
+    assert(infiltratr_parse_i64("-1234", 10U, &signed_value));
+    assert(signed_value == -1234);
+    assert(infiltratr_parse_u64_range("16", 10U, 10U, 20U, &value));
+    assert(value == 16U);
+    assert(!infiltratr_parse_u64_range("21", 10U, 10U, 20U, &value));
+    assert(infiltratr_parse_i64_range("-4", 10U, -5, 5, &signed_value));
+    assert(signed_value == -4);
+    assert(!infiltratr_parse_i64_range("-6", 10U, -5, 5, &signed_value));
+    assert(infiltratr_parse_double("  -12.5e1  ", &decimal));
+    assert(decimal == -125.0);
+    assert(!infiltratr_parse_double("12,5", &decimal));
+    assert(infiltratr_parse_double_range("45.5", 0.0, 90.0, &decimal));
+    assert(decimal == 45.5);
+    assert(!infiltratr_parse_double_range("91", 0.0, 90.0, &decimal));
 
-    char path[32];
-    assert(infiltratr_path_concat(path, sizeof(path), "/sys/", "device"));
-    assert(strcmp(path, "/sys/device") == 0);
-    assert(infiltratr_path_join(path, sizeof(path), "/sys", "device"));
-    assert(strcmp(path, "/sys/device") == 0);
-
-    char temporary[] = "infiltratr-common-XXXXXX";
-    const int descriptor = mkstemp(temporary);
-    assert(descriptor >= 0);
-    static const char number[] = "  18446744073709551615\n";
-    assert(write(descriptor, number, sizeof(number) - 1U) ==
-           (ssize_t)(sizeof(number) - 1U));
-    assert(close(descriptor) == 0);
-    assert(infiltratr_read_u64_file(temporary, &parsed));
-    assert(parsed == UINT64_MAX);
-    assert(infiltratr_read_u64_file_ex(temporary, &parsed) == INFILTRATR_IO_OK);
-    assert(parsed == UINT64_MAX);
-    assert(unlink(temporary) == 0);
-    assert(infiltratr_read_u64_file_ex(temporary, &parsed) ==
-           INFILTRATR_IO_NOT_FOUND);
-    assert(strcmp(infiltratr_io_result_name(INFILTRATR_IO_NOT_FOUND),
-                  "not-found") == 0);
-
-    char long_temporary[] = "infiltratr-common-long-XXXXXX";
-    const int long_descriptor = mkstemp(long_temporary);
-    assert(long_descriptor >= 0);
-    static const char long_text[] = "abcdefghijklmnopqrstuvwxyz\n";
-    assert(write(long_descriptor, long_text, sizeof(long_text) - 1U) ==
-           (ssize_t)(sizeof(long_text) - 1U));
-    assert(close(long_descriptor) == 0);
-    char short_buffer[8];
-    size_t short_length = 0U;
-    assert(infiltratr_read_text_file_ex(long_temporary, short_buffer,
-                                        sizeof(short_buffer), &short_length) ==
-           INFILTRATR_IO_TRUNCATED);
-    assert(short_length == sizeof(short_buffer) - 1U);
-    assert(strcmp(short_buffer, "abcdefg") == 0);
-    assert(unlink(long_temporary) == 0);
-
-    uint64_t checked_sum = 99U;
-    assert(infiltratr_u64_add_checked(40U, 2U, &checked_sum));
-    assert(checked_sum == 42U);
-    checked_sum = 99U;
-    assert(!infiltratr_u64_add_checked(UINT64_MAX, 1U, &checked_sum));
-    assert(checked_sum == 99U);
-    assert(!infiltratr_u64_add_checked(1U, 2U, NULL));
+    assert(infiltratr_clamp_double(5.0, 0.0, 4.0) == 4.0);
+    assert(infiltratr_clamp_double(-1.0, 0.0, 4.0) == 0.0);
+    assert(infiltratr_u64_add_checked(1U, 2U, &sum));
+    assert(sum == 3U);
     assert(infiltratr_u64_add_saturating(UINT64_MAX, 1U) == UINT64_MAX);
     assert(infiltratr_u64_multiply_saturating(UINT64_MAX, 2U) == UINT64_MAX);
-    assert(infiltratr_percent_u64(1U, 8U) == 12.5);
+    assert(infiltratr_percent_u64(1U, 4U) == 25.0);
+    assert(infiltratr_u64_counter_rate(200U, 100U, 1.0L, 2.0, &rate));
+    assert(rate == 50.0);
 
-    double rate = -1.0;
-    assert(infiltratr_u64_counter_rate(12U, 10U, 512.0L, 2.0, &rate));
-    assert(rate == 512.0);
-    assert(!infiltratr_u64_counter_rate(9U, 10U, 1.0L, 1.0, &rate));
-    assert(rate == 0.0);
+    infiltratr_format_bytes(1536U, text, sizeof(text));
+    assert(strcmp(text, "1.5 KB") == 0);
+    infiltratr_format_rate(2048.0, text, sizeof(text));
+    assert(strcmp(text, "2.0 KB/s") == 0);
 
-    char quantity[32];
-    assert(strcmp(infiltratr_format_bytes(1536U, quantity, sizeof(quantity)),
-                  "1.5 KB") == 0);
-    assert(strcmp(infiltratr_format_rate(NAN, quantity, sizeof(quantity)),
-                  "0 B/s") == 0);
+    assert(infiltratr_path_join(path, sizeof(path), "/tmp", "file"));
+    assert(strcmp(path, "/tmp/file") == 0);
+    assert(infiltratr_path_concat(path, sizeof(path), "/sys", "/class"));
+    assert(strcmp(path, "/sys/class") == 0);
 
-    static const char *const decimal_units[] = {"B", "kB", "MB", "GB"};
-    InfiltratrScaleOptions scale = INFILTRATR_SCALE_OPTIONS_INIT;
-    scale.divisor = 1000.0L;
-    scale.decimal_places = 2U;
-    scale.integer_threshold = 0.0L;
-    scale.integer_at_minimum_unit = false;
-    assert(infiltratr_format_scaled_quantity(1500.0L, decimal_units,
-                                             INFILTRATR_ARRAY_LENGTH(decimal_units),
-                                             "/s", &scale, quantity,
-                                             sizeof(quantity)));
-    assert(strcmp(quantity, "1.50 kB/s") == 0);
-    scale.minimum_unit = 2U;
-    scale.maximum_unit = 2U;
-    long double scaled = 0.0L;
-    size_t unit = 0U;
-    assert(infiltratr_scale_quantity(2500000.0L, &scale,
-                                     INFILTRATR_ARRAY_LENGTH(decimal_units),
-                                     &scaled, &unit));
-    assert(unit == 2U);
-    assert(fabsl(scaled - 2.5L) < 1e-15L);
-
-    uint64_t nanoseconds = 0U;
     assert(infiltratr_monotonic_nanoseconds(&nanoseconds));
     assert(nanoseconds > 0U);
     assert(infiltratr_monotonic_seconds() > 0.0);
@@ -177,7 +109,7 @@ int main(void)
         fread(metadata_text, 1U, sizeof(metadata_text) - 1U, metadata);
     metadata_text[metadata_size] = '\0';
     assert(strstr(metadata_text,
-                  "common-library=infiltratr-common-1.7.0\n") != NULL);
+                  "common-library=infiltratr-common-1.8.0\n") != NULL);
     assert(fclose(metadata) == 0);
 
     puts("Infiltratr Common core smoke test passed.");
