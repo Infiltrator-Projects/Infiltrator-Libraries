@@ -1,0 +1,49 @@
+name: publish-v1.7.0
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-v1.7.0.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+
+      - name: Install release dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang gh
+
+      - name: Validate Common 1.7.0
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "1.7.0"
+          make clean
+          make check
+          make portable-check
+          make shared
+          test -f build/libinfiltratr-common.so.1.7.0
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          if gh release view v1.7.0 >/dev/null 2>&1; then
+            echo "v1.7.0 already exists; refusing to create a duplicate release."
+            exit 0
+          fi
+
+          gh release create v1.7.0 \
+            --target "$GITHUB_SHA" \
+            --title "Infiltratr Common 1.7.0" \
+            --generate-notes \
+            --latest
