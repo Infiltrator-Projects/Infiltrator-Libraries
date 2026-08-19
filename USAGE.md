@@ -9,9 +9,9 @@ Status meanings: **ACTIVE** is used by production code, **FOUNDATION** is the
 canonical implementation beneath active API, and **READY** is a tested
 completion of an already-active capability family.
 
-Audit baseline: Infiltratr Common 1.7.0, Calendar Plus 3.9.8 migration,
-Linux System Monitor 1.13.13, Linux Defragger 1.8.0-120 and MBLINK 0.2.0,
-19 August 2026.
+Audit baseline: Infiltratr Common 1.8.0 migration, Calendar Plus 3.9.8,
+Linux System Monitor 1.13.14, Linux Defragger 1.8.x and MBLINK 0.2.x,
+20 August 2026.
 
 ## Portable core
 
@@ -28,6 +28,8 @@ Linux System Monitor 1.13.13, Linux Defragger 1.8.0-120 and MBLINK 0.2.0,
 | `infiltratr_i64_subtract_saturating` | Calendar Plus event timing | ACTIVE |
 | Percentages and rollback-safe counter rates | System Monitor | ACTIVE |
 | Monotonic interval-due scheduling policy | Linux System Monitor | ACTIVE |
+| Period phase / upward millisecond conversion | Calendar Plus | ACTIVE |
+| Missed-deadline cadence advancement | MBLINK | ACTIVE |
 | Quantity scaling and scaled rendering | Shared formatting implementation | FOUNDATION |
 
 Signed floor division is shared because Calendar previously maintained the same
@@ -40,17 +42,28 @@ The signed parser/range variants not yet called directly by an application are
 retained as READY members of the already-active strict parser family.
 
 The configuration parser entered Common because Linux System Monitor immediately
-replaces application-private key/value and boolean parsing with the shared
-implementation. The interval-due primitive similarly replaces its private
-refresh-cadence implementation while keeping tab and feature policy local.
+replaced application-private key/value and boolean parsing with the shared
+implementation. Timing now covers three distinct but related production needs:
+System Monitor's elapsed refresh cadence, Calendar Plus's phase-aligned one-shot
+clock boundaries, and MBLINK's drift-free advancement past missed periodic
+requests.
+
+## Dynamic-library adapter
+
+`dynlib.c` centralises the native loader mechanics shared by Calendar Plus and
+Linux System Monitor. It wraps POSIX `dlopen`/`dlsym`/`dlclose` and Win32
+`LoadLibrary`/`GetProcAddress`/`FreeLibrary` without exposing either platform's
+types to application code. Calendar retains ICU version probing and required
+symbol policy; System Monitor retains NVML-specific discovery and metrics
+policy. Common owns only module lifetime and safe symbol-pointer transfer.
 
 ## Formatting
 
 Common owns the generic scalar and quantity-formatting engines plus the memory,
 disk, network, percentage, frequency, temperature and power convenience
 formatters currently used by Linux System Monitor. Calendar Plus does not use
-shared presentation formatting after the 3.9.8 migration and therefore does
-not compile `format.c` in its application-local Common footprint.
+shared presentation formatting and therefore does not compile `format.c` in its
+application-local Common footprint.
 
 ## POSIX provider
 
@@ -70,10 +83,10 @@ compatibility facade.
 
 ## Consumer boundaries
 
-- Linux System Monitor uses Common for general C primitives, configuration parsing, timing policy, formatting and the POSIX provider while hardware/UI policy stays application-owned.
-- Calendar Plus uses `core.c` plus `arithmetic.c`; calendar systems, astronomy, event indexing, timer adapters, ICU/GVariant integration and Cinnamon UI remain application-owned.
+- Linux System Monitor uses Common for general C primitives, configuration parsing, timing policy, formatting, dynamic loading and the POSIX provider while hardware/UI policy stays application-owned.
+- Calendar Plus uses Common for generic parsing/string/arithmetic, phase-aligned timing and runtime library loading; calendar systems, astronomy, event indexing, ICU symbol lists/GVariant integration and Cinnamon UI remain application-owned.
 - Linux Defragger uses Common where generic parsing/arithmetic/POSIX contracts match, while raw I/O, filesystem safety and transaction semantics remain application-owned.
-- MBLINK uses Common portable primitives while ELM327 framing, OBD/ISO-TP semantics, request scheduling and vehicle diagnostics remain application-owned.
+- MBLINK uses Common portable primitives and periodic deadline advancement while ELM327 framing, OBD/ISO-TP semantics, request policy and vehicle diagnostics remain application-owned.
 
 ## Rule for adding public API
 
