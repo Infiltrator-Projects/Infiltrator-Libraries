@@ -1,6 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 name: publish-v1.7.0
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
@@ -15,6 +17,8 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          fetch-depth: 0
 
       - name: Install release dependencies
         run: |
@@ -36,13 +40,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          TAG=v1.7.0
 
-          if gh release view v1.7.0 >/dev/null 2>&1; then
-            echo "v1.7.0 already exists; refusing to create a duplicate release."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
+            EXISTING=$(git rev-list -n 1 "$TAG")
+            if [ "$EXISTING" != "$GITHUB_SHA" ]; then
+              echo "$TAG already exists at $EXISTING; expected $GITHUB_SHA." >&2
+              exit 1
+            fi
+            echo "$TAG already exists at the exact validated commit."
             exit 0
           fi
 
-          gh release create v1.7.0 \
+          gh release create "$TAG" \
             --target "$GITHUB_SHA" \
             --title "Infiltratr Common 1.7.0" \
             --generate-notes \
