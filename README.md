@@ -4,7 +4,7 @@
 
 Canonical shared C code for Shannon Smith's Infiltrator software projects.
 
-The current release contains **Infiltratr Common 1.8.0**, the reusable C11
+The current release contains **Infiltratr Common 1.9.0**, the reusable C11
 foundation shared by Linux System Monitor, Calendar Plus, Linux Defragger and
 MBLINK. Application code, calendar rules, hardware collectors, filesystem
 semantics, vehicle-diagnostics logic and user-interface code remain in their
@@ -13,9 +13,10 @@ own repositories.
 ## Shared-code design rule
 
 Common contains reusable implementations backed by real consumer requirements.
-Application-specific behaviour stays with the application. Convenience wrappers
-may expose common cases, but they sit on the canonical shared implementation
-rather than duplicating it.
+Application-specific behaviour stays with the application. Once Common owns an
+algorithmic problem, it owns the complete general contract for that problem,
+including boundary and failure semantics; consumers provide policy rather than
+reimplementing smaller variants. Speculative utility APIs remain out of Common.
 
 The consumer/status map in [USAGE.md](USAGE.md) records why each public
 operation exists.
@@ -29,7 +30,8 @@ The public API covers:
 - strict signed/unsigned integer, range-checked and locale-independent ASCII-decimal parsing;
 - allocation-free `key=value` and conservative boolean configuration parsing;
 - checked and saturating arithmetic, signed floor division with Euclidean remainder, percentages and counter rates;
-- portable elapsed-time, phase-aligned periodic-boundary and missed-deadline timing policy;
+- portable elapsed-time, exact integer periodic boundaries, exact rational cycle partitioning, continuous periodic-boundary and missed-deadline timing policy;
+- exact upward microsecond-to-millisecond delay conversion;
 - configurable quantity scaling with selectable divisor, unit range and precision;
 - base-2 byte and byte-rate formatting;
 - configurable scalar formatting plus shared memory, disk, network, percentage, frequency, temperature and power formatting;
@@ -52,7 +54,7 @@ and monotonic-clock provider.
 | `src/core.c` | Portable project, parsing, scaling and general numeric primitives |
 | `src/arithmetic.c` | Portable signed Euclidean and saturating arithmetic |
 | `src/config.c` | Portable key=value and boolean configuration parsing |
-| `src/timing.c` | Portable elapsed and periodic timing policy |
+| `src/timing.c` | Portable elapsed, exact discrete-cycle and continuous periodic timing policy |
 | `src/format.c` | Portable shared formatting implementation |
 | `src/dynlib.c` | POSIX/Win32 dynamic-library adapter |
 | `src/posix.c` | POSIX platform implementation |
@@ -73,7 +75,7 @@ make shared
 only the dependency-free modules. The default build creates
 `build/libinfiltratr-common.a`; `make portable` creates
 `build/libinfiltratr-portable.a`. The shared target creates
-`build/libinfiltratr-common.so.1.8.0` with SONAME
+`build/libinfiltratr-common.so.1.9.0` with SONAME
 `libinfiltratr-common.so.1`.
 
 GitHub Actions runs strict GCC and Clang builds, the portable-only target,
