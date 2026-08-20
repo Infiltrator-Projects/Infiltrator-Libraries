@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <math.h>
+#include <stddef.h>
 #include <stdint.h>
 
 static void test_elapsed_and_continuous_periods(void)
