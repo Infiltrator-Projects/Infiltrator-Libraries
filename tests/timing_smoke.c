@@ -13,14 +13,13 @@
 #undef NDEBUG
 #endif
 #include <assert.h>
+#include <limits.h>
 #include <math.h>
 #include <stdint.h>
 
-int main(void)
+static void test_elapsed_and_continuous_periods(void)
 {
     long double remaining = 0.0L;
-    uint64_t milliseconds = 0U;
-    uint64_t deadline = 0U;
 
     assert(!infiltratr_interval_due(10.5, 10.0, 1.0));
     assert(infiltratr_interval_due(11.0, 10.0, 1.0));
@@ -38,6 +37,103 @@ int main(void)
     remaining = 77.0L;
     assert(!infiltratr_period_remaining(1.0L, 0.0L, &remaining));
     assert(remaining == 77.0L);
+}
+
+static void test_exact_integer_periods(void)
+{
+    uint64_t remaining = 77U;
+
+    assert(infiltratr_i64_period_remaining(0, 1000000, &remaining));
+    assert(remaining == 1000000U);
+    assert(infiltratr_i64_period_remaining(999999, 1000000, &remaining));
+    assert(remaining == 1U);
+    assert(infiltratr_i64_period_remaining(-1, 1000000, &remaining));
+    assert(remaining == 1U);
+    assert(infiltratr_i64_period_remaining(INT64_MIN, 1000000, &remaining));
+    assert(remaining == 775808U);
+
+    remaining = 77U;
+    assert(!infiltratr_i64_period_remaining(1, 0, &remaining));
+    assert(remaining == 77U);
+    assert(!infiltratr_i64_period_remaining(1, 1, NULL));
+}
+
+static void test_exact_cycle_partitions(void)
+{
+    const uint64_t day_microseconds = 86400000000ULL;
+    uint64_t index = 77U;
+    uint64_t until_next = 77U;
+
+    assert(infiltratr_cycle_partition_u64(
+        0U, day_microseconds, 100000U, &index, &until_next));
+    assert(index == 0U);
+    assert(until_next == 864000U);
+
+    assert(infiltratr_cycle_partition_u64(
+        863999U, day_microseconds, 100000U, &index, &until_next));
+    assert(index == 0U);
+    assert(until_next == 1U);
+
+    assert(infiltratr_cycle_partition_u64(
+        864000U, day_microseconds, 100000U, &index, &until_next));
+    assert(index == 1U);
+    assert(until_next == 864000U);
+
+    /* 86,400,000,000 / 65,536 is rational, so the exact next boundary is
+     * 1,318,359.375 microseconds and must be rounded upward to 1,318,360. */
+    assert(infiltratr_cycle_partition_u64(
+        0U, day_microseconds, 65536U, &index, &until_next));
+    assert(index == 0U);
+    assert(until_next == 1318360U);
+
+    /* Exercise products far beyond UINT64_MAX without a wide integer type. */
+    assert(infiltratr_cycle_partition_u64(
+        UINT64_MAX - 1U, UINT64_MAX, UINT64_MAX, &index, &until_next));
+    assert(index == UINT64_MAX - 1U);
+    assert(until_next == 1U);
+
+    assert(infiltratr_cycle_partition_u64(
+        UINT64_MAX, UINT64_MAX, UINT64_MAX, &index, &until_next));
+    assert(index == 0U);
+    assert(until_next == 1U);
+
+    /* Outputs are independently optional. */
+    index = 77U;
+    assert(infiltratr_cycle_partition_u64(
+        1U, 2U, UINT64_MAX, &index, NULL));
+    assert(index == UINT64_MAX / 2U);
+    until_next = 77U;
+    assert(infiltratr_cycle_partition_u64(
+        1U, 2U, UINT64_MAX, NULL, &until_next));
+    assert(until_next == 1U);
+
+    index = 77U;
+    until_next = 77U;
+    assert(!infiltratr_cycle_partition_u64(
+        1U, 0U, 2U, &index, &until_next));
+    assert(index == 77U && until_next == 77U);
+    assert(!infiltratr_cycle_partition_u64(
+        1U, 2U, 0U, &index, &until_next));
+    assert(index == 77U && until_next == 77U);
+    assert(!infiltratr_cycle_partition_u64(1U, 2U, 2U, NULL, NULL));
+}
+
+static void test_delay_conversions(void)
+{
+    uint64_t milliseconds = 0U;
+
+    assert(infiltratr_microseconds_to_milliseconds_ceil(1U, &milliseconds));
+    assert(milliseconds == 1U);
+    assert(infiltratr_microseconds_to_milliseconds_ceil(1000U, &milliseconds));
+    assert(milliseconds == 1U);
+    assert(infiltratr_microseconds_to_milliseconds_ceil(1001U, &milliseconds));
+    assert(milliseconds == 2U);
+    assert(infiltratr_microseconds_to_milliseconds_ceil(
+        UINT64_MAX, &milliseconds));
+    assert(milliseconds == UINT64_MAX / 1000U + 1U);
+    milliseconds = 77U;
+    assert(!infiltratr_microseconds_to_milliseconds_ceil(0U, &milliseconds));
+    assert(milliseconds == 77U);
 
     assert(infiltratr_seconds_to_milliseconds_ceil(
         0.0001L, &milliseconds));
@@ -48,6 +144,11 @@ int main(void)
     milliseconds = 77U;
     assert(!infiltratr_seconds_to_milliseconds_ceil(0.0L, &milliseconds));
     assert(milliseconds == 77U);
+}
+
+static void test_deadline_advance(void)
+{
+    uint64_t deadline = 0U;
 
     assert(infiltratr_periodic_deadline_advance(100U, 50U, 10U,
                                                 &deadline));
@@ -66,5 +167,14 @@ int main(void)
     deadline = 77U;
     assert(!infiltratr_periodic_deadline_advance(1U, 1U, 0U, &deadline));
     assert(deadline == 77U);
+}
+
+int main(void)
+{
+    test_elapsed_and_continuous_periods();
+    test_exact_integer_periods();
+    test_exact_cycle_partitions();
+    test_delay_conversions();
+    test_deadline_advance();
     return 0;
 }
