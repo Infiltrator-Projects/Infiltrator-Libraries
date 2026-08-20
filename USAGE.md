@@ -9,8 +9,8 @@ Status meanings: **ACTIVE** is used by production code, **FOUNDATION** is the
 canonical implementation beneath active API, and **READY** is a tested
 completion of an already-active capability family.
 
-Audit baseline: Infiltratr Common 1.8.0 migration, Calendar Plus 3.9.8,
-Linux System Monitor 1.13.14, Linux Defragger 1.8.x and MBLINK 0.2.x,
+Audit baseline: Infiltratr Common 1.9.0 / Calendar Plus 3.9.9 migration,
+Linux System Monitor 1.13.14, Linux Defragger 1.8.x and MBLINK 0.7.x,
 20 August 2026.
 
 ## Portable core
@@ -28,7 +28,10 @@ Linux System Monitor 1.13.14, Linux Defragger 1.8.x and MBLINK 0.2.x,
 | `infiltratr_i64_subtract_saturating` | Calendar Plus event timing | ACTIVE |
 | Percentages and rollback-safe counter rates | System Monitor | ACTIVE |
 | Monotonic interval-due scheduling policy | Linux System Monitor | ACTIVE |
-| Period phase / upward millisecond conversion | Calendar Plus | ACTIVE |
+| Continuous period phase / upward millisecond conversion | Calendar Plus | ACTIVE |
+| Exact signed-integer period remaining | Calendar Plus | ACTIVE |
+| Exact rational cycle partition index / next-boundary distance | Calendar Plus | ACTIVE |
+| Exact microsecond-to-millisecond upward conversion | Calendar Plus | ACTIVE |
 | Missed-deadline cadence advancement | MBLINK | ACTIVE |
 | Quantity scaling and scaled rendering | Shared formatting implementation | FOUNDATION |
 
@@ -43,10 +46,18 @@ retained as READY members of the already-active strict parser family.
 
 The configuration parser entered Common because Linux System Monitor immediately
 replaced application-private key/value and boolean parsing with the shared
-implementation. Timing now covers three distinct but related production needs:
-System Monitor's elapsed refresh cadence, Calendar Plus's phase-aligned one-shot
-clock boundaries, and MBLINK's drift-free advancement past missed periodic
-requests.
+implementation.
+
+Timing is split by mathematical domain rather than by application. Continuous
+quantities retain the long-double period operation. Integral clocks use exact
+Euclidean period arithmetic. Repeating integer cycles split into arbitrary
+rational partitions without forming an overflowing `position * count` product;
+this is the canonical implementation used by Calendar Plus for decimal,
+Internet, hexadecimal and other discrete clock boundaries. The returned delay
+is rounded upward in integer source units before exact microsecond-to-millisecond
+conversion, so a timer cannot be armed before the displayed partition changes.
+MBLINK's missed-deadline operation remains the canonical drift-free deadline
+advancer, and System Monitor uses the elapsed interval policy.
 
 ## Dynamic-library adapter
 
@@ -84,7 +95,7 @@ compatibility facade.
 ## Consumer boundaries
 
 - Linux System Monitor uses Common for general C primitives, configuration parsing, timing policy, formatting, dynamic loading and the POSIX provider while hardware/UI policy stays application-owned.
-- Calendar Plus uses Common for generic parsing/string/arithmetic, phase-aligned timing and runtime library loading; calendar systems, astronomy, event indexing, ICU symbol lists/GVariant integration and Cinnamon UI remain application-owned.
+- Calendar Plus uses Common for generic parsing/string/arithmetic, exact discrete and continuous phase-aligned timing, and runtime library loading; calendar systems, astronomy, event indexing, ICU symbol lists/GVariant integration and Cinnamon UI remain application-owned.
 - Linux Defragger uses Common where generic parsing/arithmetic/POSIX contracts match, while raw I/O, filesystem safety and transaction semantics remain application-owned.
 - MBLINK uses Common portable primitives and periodic deadline advancement while ELM327 framing, OBD/ISO-TP semantics, request policy and vehicle diagnostics remain application-owned.
 
@@ -97,4 +108,8 @@ A new public operation must satisfy at least one of these conditions:
 3. it completes an already-active shared capability robustly; or
 4. application-private production code can be replaced immediately.
 
-Every public API change updates this ledger. Speculative utility code stays out.
+Once Common accepts an algorithmic responsibility, the implementation must
+cover the complete declared input domain and define its boundary/failure
+semantics. A consumer-specific special case is not a substitute for completing
+the shared abstraction. Speculative capabilities with no production use remain
+out of Common.
