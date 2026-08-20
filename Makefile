@@ -12,7 +12,7 @@ PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/arithmetic.o \
 OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/dynlib.o $(BUILD_DIR)/posix.o
 PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
 ARCHIVE := $(BUILD_DIR)/libinfiltratr-common.a
-SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.8.0
+SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.9.0
 
 ifeq ($(OS),Windows_NT)
 DYNLIB_LIBS :=
@@ -38,7 +38,7 @@ $(BUILD_DIR)/config.o: src/config.c include/infiltratr/config.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/timing.o: src/timing.c include/infiltratr/timing.h \
-	include/infiltratr/core.h | $(BUILD_DIR)
+	include/infiltratr/core.h include/infiltratr/arithmetic.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/format.o: src/format.c include/infiltratr/format.h \
