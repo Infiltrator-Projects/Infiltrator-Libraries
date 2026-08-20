@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: publish-v1.9.0
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-v1.9.0.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          fetch-depth: 0
+
+      - name: Install release dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang gh
+
+      - name: Validate Common 1.9.0
+        run: |
+          set -euo pipefail
+          test "$(cat VERSION)" = "1.9.0"
+          grep -qx '#define INFILTRATR_COMMON_VERSION "1.9.0"' include/infiltratr/core.h
+          make clean
+          make check
+          make portable-check
+          make shared
+          test -f build/libinfiltratr-common.so.1.9.0
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=v1.9.0
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            git fetch origin "refs/tags/${TAG}:refs/tags/${TAG}" --force
+            EXISTING=$(git rev-list -n 1 "$TAG")
+            if [ "$EXISTING" != "$GITHUB_SHA" ]; then
+              echo "$TAG already exists at $EXISTING; expected $GITHUB_SHA." >&2
+              exit 1
+            fi
+            echo "$TAG already exists at the exact validated commit."
+            exit 0
+          fi
+
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "Infiltratr Common 1.9.0" \
+            --generate-notes \
+            --latest
