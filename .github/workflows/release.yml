@@ -85,11 +85,7 @@ jobs:
           test -s "$notes"
 
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release edit "$tag" \
-              --title "Infiltratr Common $version" \
-              --draft=false \
-              --prerelease=false \
-              --latest
+            printf 'Existing release %s is immutable; verifying only.\n' "$tag"
           else
             gh release create "$tag" \
               --verify-tag \
