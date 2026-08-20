@@ -49,6 +49,22 @@ jobs:
           make clean
           make CC=${{ matrix.compiler }} shared
 
+      - name: Verify authoritative CMake targets and installed package
+        run: |
+          cmake -S . -B cmake-build \
+            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DINFILTRATR_COMMON_BUILD_TESTS=ON \
+            -DINFILTRATR_COMMON_WARNINGS_AS_ERRORS=ON
+          cmake --build cmake-build --parallel
+          ctest --test-dir cmake-build --output-on-failure
+          cmake --install cmake-build --prefix "$PWD/cmake-install"
+          cmake -S tests/cmake-consumer -B cmake-consumer-build \
+            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_PREFIX_PATH="$PWD/cmake-install"
+          cmake --build cmake-consumer-build --parallel
+          ./cmake-consumer-build/infiltratr-common-consumer
+
   sanitizers:
     name: Clang ASan + UBSan
     runs-on: ubuntu-latest
@@ -73,3 +89,34 @@ jobs:
           make CC=clang \
             CFLAGS="-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer" \
             check
+
+  apple-package:
+    name: Apple package / ${{ matrix.configuration }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verify Common owns the complete Apple portable source set
+        shell: bash
+        run: |
+          project=apple/InfiltratrCommon.xcodeproj/project.pbxproj
+          for source in core arithmetic config timing format; do
+            grep -q "../src/${source}.c" "$project"
+            grep -q "${source}.c in Sources" "$project"
+          done
+
+      - name: Build authoritative Apple portable target
+        run: |
+          xcodebuild \
+            -project apple/InfiltratrCommon.xcodeproj \
+            -target InfiltratrCommonPortable \
+            -configuration ${{ matrix.configuration }} \
+            -sdk iphonesimulator \
+            CODE_SIGNING_ALLOWED=NO \
+            build

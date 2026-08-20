@@ -9,9 +9,9 @@ Status meanings: **ACTIVE** is used by production code, **FOUNDATION** is the
 canonical implementation beneath active API, and **READY** is a tested
 completion of an already-active capability family.
 
-Audit baseline: Infiltratr Common 1.9.0 / Calendar Plus 3.9.9 migration,
-Linux System Monitor 1.13.14, Linux Defragger 1.8.x and MBLINK 0.7.x,
-20 August 2026.
+Audit baseline: Infiltratr Common 1.10.0 / Calendar Plus 3.9.9 migration,
+Linux System Monitor 1.13.14, Linux Defragger 1.8.x and MBLINK post-0.7.3,
+21 August 2026.
 
 ## Portable core
 
@@ -98,6 +98,18 @@ compatibility facade.
 - Calendar Plus uses Common for generic parsing/string/arithmetic, exact discrete and continuous phase-aligned timing, and runtime library loading; calendar systems, astronomy, event indexing, ICU symbol lists/GVariant integration and Cinnamon UI remain application-owned.
 - Linux Defragger uses Common where generic parsing/arithmetic/POSIX contracts match, while raw I/O, filesystem safety and transaction semantics remain application-owned.
 - MBLINK uses Common portable primitives and periodic deadline advancement while ELM327 framing, OBD/ISO-TP semantics, request policy and vehicle diagnostics remain application-owned.
+
+## Build-package contract
+
+Common owns the complete membership and dependency graph of its consumer build
+targets. CMake consumers link `InfiltratrCommon::Portable` or
+`InfiltratrCommon::Common`; Apple consumers link the
+`InfiltratrCommonPortable` product from Common's Xcode subproject. Applications
+must not copy an internal `.c` source list into their own build definitions.
+
+This contract is ACTIVE through MBLINK. It prevents the integration omission
+found when Common 1.9 timing correctly began using the canonical arithmetic
+module but MBLINK still had to enumerate those modules independently.
 
 ## Rule for adding public API
 
