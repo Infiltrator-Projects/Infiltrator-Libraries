@@ -15,11 +15,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A10000000000000000000021 /* core.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = core.c; path = ../src/core.c; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000022 /* arithmetic.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = arithmetic.c; path = ../src/arithmetic.c; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000023 /* config.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = config.c; path = ../src/config.c; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000024 /* timing.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = timing.c; path = ../src/timing.c; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000025 /* format.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = format.c; path = ../src/format.c; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000021 /* core.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = core.c; path = "../src/core.c"; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000022 /* arithmetic.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = arithmetic.c; path = "../src/arithmetic.c"; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000023 /* config.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = config.c; path = "../src/config.c"; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000024 /* timing.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = timing.c; path = "../src/timing.c"; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000025 /* format.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = format.c; path = "../src/format.c"; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000026 /* libInfiltratrCommonPortable.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libInfiltratrCommonPortable.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -136,7 +136,7 @@
 				GCC_C_LANGUAGE_STANDARD = c11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"$(inherited)",
-					DEBUG = 1,
+					"DEBUG=1",
 				);
 				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				HEADER_SEARCH_PATHS = "$(SRCROOT)/../include";
