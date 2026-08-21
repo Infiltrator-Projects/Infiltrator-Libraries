@@ -107,9 +107,12 @@ jobs:
           cmake --build cmake-build --parallel
           ctest --test-dir cmake-build --output-on-failure
 
-          tag_commit=$(gh api \
+          tag_commit=""
+          if ! tag_commit=$(gh api \
             "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" \
-            --jq .object.sha 2>/dev/null || true)
+            --jq .object.sha 2>/dev/null); then
+            tag_commit=""
+          fi
           release_exists=false
           if gh release view "$tag" >/dev/null 2>&1; then
             release_exists=true
