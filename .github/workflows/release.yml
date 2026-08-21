@@ -2,6 +2,9 @@
 name: publish-release
 
 on:
+  workflow_run:
+    workflows: [Common CI]
+    types: [completed]
   push:
     tags:
       - 'v*.*.*'
@@ -16,18 +19,24 @@ permissions:
   contents: write
 
 concurrency:
-  group: publish-release-${{ github.repository }}-${{ inputs.tag || github.ref_name }}
+  group: publish-release-${{ github.repository }}-${{ inputs.tag || github.event.workflow_run.head_sha || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   publish:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Check out the immutable release tag
+      - name: Check out the verified release candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
           fetch-depth: 0
 
       - name: Install release dependencies
@@ -36,12 +45,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential clang gh
+            build-essential clang cmake gh
 
       - name: Validate and publish
         env:
           GH_TOKEN: ${{ github.token }}
           DISPATCH_TAG: ${{ inputs.tag }}
+          CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -52,24 +62,34 @@ jobs:
             exit 1
           fi
 
-          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+          expected_tag="v${version}"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+            tag="$expected_tag"
+          elif [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
             tag="$GITHUB_REF_NAME"
           else
             tag="$DISPATCH_TAG"
           fi
-          expected_tag="v${version}"
           if [[ "$tag" != "$expected_tag" ]]; then
             printf 'Tag %s does not match source version %s.\n' "$tag" "$version" >&2
             exit 1
           fi
 
-          git fetch origin "refs/tags/${tag}:refs/tags/${tag}"
-          tag_commit=$(git rev-list -n 1 "$tag")
           head_commit=$(git rev-parse HEAD)
-          if [[ "$tag_commit" != "$head_commit" ]]; then
-            printf 'Tag %s points to %s, not checked-out commit %s.\n' \
-              "$tag" "$tag_commit" "$head_commit" >&2
-            exit 1
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
+            if [[ "$head_commit" != "$CI_HEAD_SHA" ]]; then
+              printf 'Checked-out commit %s does not match successful CI commit %s.\n' \
+                "$head_commit" "$CI_HEAD_SHA" >&2
+              exit 1
+            fi
+            main_commit=$(gh api \
+              "repos/${GITHUB_REPOSITORY}/branches/main" \
+              --jq .commit.sha)
+            if [[ "$main_commit" != "$head_commit" ]]; then
+              printf 'Skipping stale successful CI commit %s; main is %s.\n' \
+                "$head_commit" "$main_commit"
+              exit 0
+            fi
           fi
 
           grep -qx "#define INFILTRATR_COMMON_VERSION \"$version\"" \
@@ -80,11 +100,45 @@ jobs:
           make shared
           test -f "build/libinfiltratr-common.so.$version"
 
+          cmake -S . -B cmake-build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DINFILTRATR_COMMON_BUILD_TESTS=ON \
+            -DINFILTRATR_COMMON_WARNINGS_AS_ERRORS=ON
+          cmake --build cmake-build --parallel
+          ctest --test-dir cmake-build --output-on-failure
+
+          tag_commit=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" \
+            --jq .object.sha 2>/dev/null || true)
+          release_exists=false
+          if gh release view "$tag" >/dev/null 2>&1; then
+            release_exists=true
+          fi
+
+          if [[ -n "$tag_commit" && "$tag_commit" != "$head_commit" ]]; then
+            if [[ "$release_exists" == true ]]; then
+              printf '%s is already released at %s; %s is post-release development.\n' \
+                "$tag" "$tag_commit" "$head_commit"
+              exit 0
+            fi
+            printf '%s exists at %s without a matching release; refusing to move it.\n' \
+              "$tag" "$tag_commit" >&2
+            exit 1
+          fi
+
+          if [[ -z "$tag_commit" ]]; then
+            gh api --method POST \
+              "repos/${GITHUB_REPOSITORY}/git/refs" \
+              -f ref="refs/tags/${tag}" \
+              -f sha="$head_commit" >/dev/null
+            tag_commit="$head_commit"
+          fi
+
           notes="${RUNNER_TEMP}/release-notes.md"
-          git log -1 --format='%B' "$tag" > "$notes"
+          git log -1 --format='%B' "$head_commit" > "$notes"
           test -s "$notes"
 
-          if gh release view "$tag" >/dev/null 2>&1; then
+          if [[ "$release_exists" == true ]]; then
             printf 'Existing release %s is immutable; verifying only.\n' "$tag"
           else
             gh release create "$tag" \

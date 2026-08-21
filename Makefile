@@ -12,7 +12,7 @@ PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/arithmetic.o \
 OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/dynlib.o $(BUILD_DIR)/posix.o
 PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
 ARCHIVE := $(BUILD_DIR)/libinfiltratr-common.a
-SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.9.0
+SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.10.0
 
 ifeq ($(OS),Windows_NT)
 DYNLIB_LIBS :=

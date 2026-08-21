@@ -4,7 +4,7 @@
 
 Canonical shared C code for Shannon Smith's Infiltrator software projects.
 
-The current release contains **Infiltratr Common 1.9.0**, the reusable C11
+The current release contains **Infiltratr Common 1.10.0**, the reusable C11
 foundation shared by Linux System Monitor, Calendar Plus, Linux Defragger and
 MBLINK. Application code, calendar rules, hardware collectors, filesystem
 semantics, vehicle-diagnostics logic and user-interface code remain in their
@@ -58,6 +58,8 @@ and monotonic-clock provider.
 | `src/format.c` | Portable shared formatting implementation |
 | `src/dynlib.c` | POSIX/Win32 dynamic-library adapter |
 | `src/posix.c` | POSIX platform implementation |
+| `CMakeLists.txt` | Authoritative CMake portable/full targets and installable package |
+| `apple/InfiltratrCommon.xcodeproj` | Authoritative Apple portable static-library target |
 | `USAGE.md` | Public API consumer/status ledger |
 | `tests/` | Smoke, portable-contract, dynamic-loader, arithmetic and POSIX contract coverage |
 | `.github/workflows/ci.yml` | GCC/Clang strict builds plus ASan/UBSan verification |
@@ -69,17 +71,31 @@ and monotonic-clock provider.
 make check
 make portable-check
 make shared
+cmake -S . -B cmake-build -DINFILTRATR_COMMON_BUILD_TESTS=ON
+cmake --build cmake-build
+ctest --test-dir cmake-build --output-on-failure
 ```
 
 `make check` runs all smoke and contract suites. `make portable-check` verifies
 only the dependency-free modules. The default build creates
 `build/libinfiltratr-common.a`; `make portable` creates
 `build/libinfiltratr-portable.a`. The shared target creates
-`build/libinfiltratr-common.so.1.9.0` with SONAME
+`build/libinfiltratr-common.so.1.10.0` with SONAME
 `libinfiltratr-common.so.1`.
 
+CMake consumers that vendor Common use `add_subdirectory()` and link either
+`InfiltratrCommon::Portable` or `InfiltratrCommon::Common`; consumers no longer
+enumerate Common's internal source files. Installed packages expose the same
+targets through `find_package(InfiltratrCommon 1.10 CONFIG REQUIRED)`.
+
+Apple projects reference `apple/InfiltratrCommon.xcodeproj` and link its
+`InfiltratrCommonPortable` product. That subproject owns the complete portable
+source set, so adding an internal dependency to Common cannot silently leave an
+application's Xcode target incomplete.
+
 GitHub Actions runs strict GCC and Clang builds, the portable-only target,
-shared-library linking and Clang AddressSanitizer/UndefinedBehaviorSanitizer.
+shared-library linking, CMake target/installation checks, the Apple static
+library build and Clang AddressSanitizer/UndefinedBehaviorSanitizer.
 
 ## Source of truth
 

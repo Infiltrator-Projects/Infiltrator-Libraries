@@ -177,7 +177,7 @@ int main(void)
         fread(metadata_text, 1U, sizeof(metadata_text) - 1U, metadata);
     metadata_text[metadata_size] = '\0';
     assert(strstr(metadata_text,
-                  "common-library=infiltratr-common-1.9.0\n") != NULL);
+                  "common-library=infiltratr-common-1.10.0\n") != NULL);
     assert(fclose(metadata) == 0);
 
     puts("Infiltratr Common core smoke test passed.");
