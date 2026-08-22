@@ -69,7 +69,9 @@ set(INFILTRATR_COMMON_FULL_SOURCES
     ${INFILTRATR_COMMON_PORTABLE_SOURCES}
     src/dynlib.c)
 if(UNIX)
-    list(APPEND INFILTRATR_COMMON_FULL_SOURCES src/posix.c)
+    list(APPEND INFILTRATR_COMMON_FULL_SOURCES
+        src/posix.c
+        src/posix_io.c)
 endif()
 
 add_library(infiltratr-common STATIC ${INFILTRATR_COMMON_FULL_SOURCES})
@@ -118,9 +120,13 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
         tests/portable_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-portable-contract
         tests/portable_contract.c InfiltratrCommon::Portable)
+    infiltratr_common_add_test(infiltratr-encoding-contract
+        tests/encoding_contract.c InfiltratrCommon::Portable)
     if(UNIX)
         infiltratr_common_add_test(infiltratr-posix-contract
             tests/posix_contract.c InfiltratrCommon::Common)
+        infiltratr_common_add_test(infiltratr-posix-io-contract
+            tests/posix_io_contract.c InfiltratrCommon::Common)
     endif()
 endif()
 
