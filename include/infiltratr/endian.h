@@ -1,0 +1,59 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * @file endian.h
+ * @brief Dependency-free fixed-width little-endian conversion primitives.
+ *
+ * @author Shannon Smith
+ * @copyright Copyright (c) 2026 Shannon Smith
+ * @license GPL-3.0-or-later
+ */
+#ifndef INFILTRATR_COMMON_ENDIAN_H
+#define INFILTRATR_COMMON_ENDIAN_H
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+static inline uint16_t infiltratr_bswap16(uint16_t value)
+{
+    return (uint16_t)((value >> 8) | (value << 8));
+}
+
+static inline uint32_t infiltratr_bswap32(uint32_t value)
+{
+    return ((value & UINT32_C(0x000000ff)) << 24) |
+           ((value & UINT32_C(0x0000ff00)) << 8) |
+           ((value & UINT32_C(0x00ff0000)) >> 8) |
+           ((value & UINT32_C(0xff000000)) >> 24);
+}
+
+static inline uint64_t infiltratr_bswap64(uint64_t value)
+{
+    return ((uint64_t)infiltratr_bswap32((uint32_t)value) << 32) |
+           infiltratr_bswap32((uint32_t)(value >> 32));
+}
+
+#if defined(_WIN32) || defined(__LITTLE_ENDIAN__) || \
+    (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#define infiltratr_cpu_to_le16(value) ((uint16_t)(value))
+#define infiltratr_cpu_to_le32(value) ((uint32_t)(value))
+#define infiltratr_cpu_to_le64(value) ((uint64_t)(value))
+#define infiltratr_le16_to_cpu(value) ((uint16_t)(value))
+#define infiltratr_le32_to_cpu(value) ((uint32_t)(value))
+#define infiltratr_le64_to_cpu(value) ((uint64_t)(value))
+#else
+#define infiltratr_cpu_to_le16(value) infiltratr_bswap16((uint16_t)(value))
+#define infiltratr_cpu_to_le32(value) infiltratr_bswap32((uint32_t)(value))
+#define infiltratr_cpu_to_le64(value) infiltratr_bswap64((uint64_t)(value))
+#define infiltratr_le16_to_cpu(value) infiltratr_bswap16((uint16_t)(value))
+#define infiltratr_le32_to_cpu(value) infiltratr_bswap32((uint32_t)(value))
+#define infiltratr_le64_to_cpu(value) infiltratr_bswap64((uint64_t)(value))
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

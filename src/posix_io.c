@@ -1,0 +1,92 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * @file posix_io.c
+ * @brief Exact positioned POSIX descriptor I/O implementation.
+ *
+ * @author Shannon Smith
+ * @copyright Copyright (c) 2026 Shannon Smith
+ * @license GPL-3.0-or-later
+ */
+#define _POSIX_C_SOURCE 200809L
+
+#include "infiltratr/posix_io.h"
+
+#include <errno.h>
+#include <limits.h>
+#include <stdint.h>
+#include <unistd.h>
+
+static int offset_representable(uint64_t offset)
+{
+    if (offset > (uint64_t)INT64_MAX) {
+        errno = EOVERFLOW;
+        return 0;
+    }
+    return 1;
+}
+
+int infiltratr_pread_full(int descriptor, void *buffer, size_t count,
+                          uint64_t offset)
+{
+    if (descriptor < 0 || (!buffer && count != 0U)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    uint8_t *cursor = (uint8_t *)buffer;
+    while (count != 0U) {
+        if (!offset_representable(offset))
+            return -1;
+
+        ssize_t amount;
+        do {
+            amount = pread(descriptor, cursor, count, (off_t)offset);
+        } while (amount < 0 && errno == EINTR);
+
+        if (amount < 0)
+            return -1;
+        if (amount == 0) {
+            errno = EIO;
+            return -1;
+        }
+
+        const size_t completed = (size_t)amount;
+        cursor += completed;
+        count -= completed;
+        offset += (uint64_t)completed;
+    }
+    return 0;
+}
+
+int infiltratr_pwrite_full(int descriptor, const void *buffer, size_t count,
+                           uint64_t offset)
+{
+    if (descriptor < 0 || (!buffer && count != 0U)) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    const uint8_t *cursor = (const uint8_t *)buffer;
+    while (count != 0U) {
+        if (!offset_representable(offset))
+            return -1;
+
+        ssize_t amount;
+        do {
+            amount = pwrite(descriptor, cursor, count, (off_t)offset);
+        } while (amount < 0 && errno == EINTR);
+
+        if (amount < 0)
+            return -1;
+        if (amount == 0) {
+            errno = EIO;
+            return -1;
+        }
+
+        const size_t completed = (size_t)amount;
+        cursor += completed;
+        count -= completed;
+        offset += (uint64_t)completed;
+    }
+    return 0;
+}
