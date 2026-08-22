@@ -6,7 +6,7 @@
 
 int main(void)
 {
-    if (strcmp(INFILTRATR_COMMON_VERSION, "1.10.0") != 0) {
+    if (strcmp(INFILTRATR_COMMON_VERSION, "1.11.0") != 0) {
         fputs("unexpected Infiltratr Common version\n", stderr);
         return 1;
     }
