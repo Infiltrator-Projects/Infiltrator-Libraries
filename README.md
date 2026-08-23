@@ -6,7 +6,7 @@
 
 Infiltrator Libraries is the canonical shared-code repository for reusable first-party components used across the Infiltrator software family.
 
-**Current library:** Infiltratr Common 1.11.0  
+**Current library version:** see [`VERSION`](VERSION)  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -73,7 +73,7 @@ cmake --build cmake-build
 ctest --test-dir cmake-build --output-on-failure
 ```
 
-The default build creates `build/libinfiltratr-common.a`; the portable target creates `build/libinfiltratr-portable.a`; the shared target creates the versioned shared library with the stable major SONAME.
+The default build creates `build/libinfiltratr-common.a`; the portable target creates `build/libinfiltratr-portable.a`; the shared target creates the versioned shared library with the stable major SONAME. The shared filename is derived directly from `VERSION`, and the Makefile refuses to build when `VERSION` and `INFILTRATR_COMMON_VERSION` disagree.
 
 GitHub Actions runs strict GCC and Clang builds, portable-only verification, shared-library linking, CMake package/consumer checks, the Apple static-library target and sanitizer coverage.
 
