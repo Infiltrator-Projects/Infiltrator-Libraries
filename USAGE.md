@@ -9,9 +9,8 @@ Status meanings: **ACTIVE** is used by production code, **FOUNDATION** is the
 canonical implementation beneath active API, and **READY** is a tested
 completion of an already-active capability family.
 
-Audit baseline: Infiltratr Common 1.11.0, Calendar Plus 3.9.9, Linux System
-Monitor 1.13.17 migration, Linux Defragger 1.8.x, LINK 0.9.1, MBLINK 0.7.25,
-JAGLINK 0.2.12 and InfiltratorFS 0.9.x, 23 August 2026.
+Audit baseline: 23 August 2026. Exact consumer versions are intentionally not
+duplicated here; each consumer's checked-in dependency metadata is authoritative.
 
 ## Portable core
 
@@ -123,10 +122,10 @@ targets. CMake consumers link `InfiltratrCommon::Portable` or
 `InfiltratrCommonPortable` product from Common's Xcode subproject. Applications
 must not copy an internal `.c` source list into their own build definitions.
 
-This contract is ACTIVE through LINK, Linux System Monitor's 1.13.17 migration
-and InfiltratorFS. LINK links `InfiltratrCommon::Portable` and then exposes its
-own shared automotive target to MBLINK and JAGLINK. This prevents integration
-omissions when Common's internal source/dependency graph changes.
+This contract is ACTIVE through LINK, Linux System Monitor and InfiltratorFS.
+LINK links `InfiltratrCommon::Portable` and then exposes its own shared automotive
+target to MBLINK and JAGLINK. This prevents integration omissions when Common's
+internal source/dependency graph changes.
 
 ## Rule for adding public API
 
