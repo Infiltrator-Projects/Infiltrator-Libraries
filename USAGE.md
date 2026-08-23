@@ -9,7 +9,7 @@ Status meanings: **ACTIVE** is used by production code, **FOUNDATION** is the
 canonical implementation beneath active API, and **READY** is a tested
 completion of an already-active capability family.
 
-Audit baseline: 23 August 2026. Exact consumer versions are intentionally not
+Audit baseline: 24 August 2026. Exact consumer versions are intentionally not
 duplicated here; each consumer's checked-in dependency metadata is authoritative.
 
 ## Portable core
@@ -19,10 +19,12 @@ duplicated here; each consumer's checked-in dependency metadata is authoritative
 | Project identity validation and metadata output | System Monitor, Calendar Plus, LINK, InfiltratorFS | ACTIVE |
 | Bounded copy, trimming and deterministic string comparisons | System Monitor, Calendar Plus, Linux Defragger, LINK | ACTIVE |
 | Strict integer parsing and bounded unsigned parsing | System Monitor, Linux Defragger, LINK | ACTIVE |
+| Cursor-based unsigned integer token parsing | Linux System Monitor | ACTIVE |
 | Locale-independent finite decimal parsing | Calendar Plus, POSIX typed readers | ACTIVE |
 | Allocation-free key=value and boolean configuration parsing | Linux System Monitor | ACTIVE |
 | Numeric clamping | System Monitor, Calendar Plus | ACTIVE |
 | Checked/saturating unsigned arithmetic | System Monitor, Linux Defragger, LINK, InfiltratorFS | ACTIVE |
+| Checked allocation-size arithmetic and contiguous-array reservation | Linux System Monitor | ACTIVE |
 | Fixed-width little-endian conversion and byte swapping | InfiltratorFS, Linux Defragger | ACTIVE |
 | Strict allocation-free UTF-8 validation | InfiltratorFS | ACTIVE |
 | `infiltratr_i64_floor_divmod` | Calendar Plus date/time arithmetic | ACTIVE |
@@ -46,9 +48,24 @@ providers and event semantics remain in Calendar Plus.
 The signed parser/range variants not yet called directly by an application are
 retained as READY members of the already-active strict parser family.
 
+Cursor-based unsigned token parsing exists because System Monitor repeatedly
+parsed numeric fields embedded inside procfs/sysfs/driver records while Common's
+strict whole-string parser intentionally rejected trailing fields. The shared
+token operation keeps overflow and sign handling consistent while leaving the
+cursor at the first unconsumed byte for the consumer's record grammar.
+
 The configuration parser entered Common because Linux System Monitor immediately
 replaced application-private key/value and boolean parsing with the shared
 implementation.
+
+Checked `size_t` arithmetic and contiguous-array reservation entered Common
+because System Monitor independently maintained the same capacity-doubling,
+overflow-check and realloc pattern across process inspection, filesystem
+inventory, retained process samples, Startup, Services, Users and process
+grouping. The same growth pattern also occurs in other native C projects such as
+Linux Defragger, making the shared contract broader than one UI or data model.
+Consumers continue to own the typed array and its lifetime; Common owns only the
+allocation-size and reserve mechanics.
 
 Little-endian conversion and strict UTF-8 validation entered Common because
 InfiltratorFS requires exactly those portable contracts in its on-disk format,
@@ -103,12 +120,14 @@ whose existing contracts intentionally collapse those states. Exact positioned
 I/O retries `EINTR`, rejects unrepresentable offsets and fails closed on
 premature EOF or a zero-progress write.
 
-Common also owns two generic POSIX mechanics immediately consumed by Linux
-System Monitor. Ordered readable-path selection chooses the first accessible
-candidate while leaving hardware-specific suffix lists in the consumer.
-Durable atomic replacement writes a temporary sibling, fsyncs content, renames
-it and fsyncs the parent directory; the consumer chooses whether the completed
-file is private or preserves an existing regular file's permissions.
+Common also owns generic POSIX mechanics immediately consumed by Linux System
+Monitor. Ordered readable-path selection chooses the first accessible candidate
+while leaving hardware-specific suffix lists in the consumer. Durable atomic
+replacement writes a temporary sibling, fsyncs content, renames it and fsyncs
+the parent directory; the consumer chooses whether the completed file is private
+or preserves an existing regular file's permissions. Lexical basename selection
+now replaces repeated consumer-side `strrchr(path, '/')` helpers without
+claiming Windows path semantics.
 
 ## Compiler annotations
 
@@ -118,7 +137,7 @@ compatibility facade.
 
 ## Consumer boundaries
 
-- Linux System Monitor uses Common for general C primitives, configuration parsing, timing policy, formatting, dynamic loading and the POSIX provider while hardware/UI policy stays application-owned.
+- Linux System Monitor uses Common for general C primitives, checked array growth, token parsing, configuration parsing, timing policy, formatting, dynamic loading and the POSIX provider while hardware/UI policy stays application-owned.
 - Calendar Plus uses Common for generic parsing/string/arithmetic, exact discrete and continuous phase-aligned timing, and runtime library loading; calendar systems, astronomy, event indexing, ICU symbol lists/GVariant integration and Cinnamon UI remain application-owned.
 - Linux Defragger uses Common where generic parsing/arithmetic/POSIX and byte-order contracts match, while raw filesystem safety and transaction semantics remain application-owned.
 - LINK uses Common's portable target for general C primitives and timing policy while ELM327 framing, OBD/UDS/ISO-TP semantics, request policy, diagnostic sequencing and shared vehicle-diagnostics behaviour remain LINK-owned.

@@ -32,13 +32,15 @@ Once Common owns a general algorithmic contract, consumers provide policy rather
 The public API currently covers:
 
 - project/build identity and bounded strings;
-- strict integer, decimal, boolean and `key=value` parsing;
-- checked/saturating arithmetic and Euclidean division;
+- strict whole-value parsing plus cursor-based unsigned integer token parsing;
+- decimal, boolean and `key=value` parsing;
+- checked/saturating arithmetic, checked allocation-size arithmetic and safe contiguous-array reservation;
+- Euclidean signed division;
 - fixed-width endian conversion and strict allocation-free UTF-8 validation;
 - exact elapsed/periodic timing and delay conversion;
 - configurable scalar, byte, rate, percentage, frequency, temperature and power formatting;
 - POSIX/Win32 dynamic-library lifetime and symbol lookup;
-- path handling and bounded text/numeric file reads;
+- POSIX path handling, lexical basename selection and bounded text/numeric file reads;
 - exact EINTR-safe positioned POSIX I/O; and
 - monotonic timing through the POSIX provider.
 
@@ -50,12 +52,14 @@ The portable core remains independent of GLib, GTK and OS APIs. POSIX and dynami
 | --- | --- |
 | `include/infiltratr/` | Public headers and API contracts. |
 | `src/core.c` | Parsing, project metadata, scaling and general primitives. |
-| `src/arithmetic.c` | Checked, saturating and Euclidean arithmetic. |
+| `src/arithmetic.c` | Checked/saturating arithmetic, Euclidean arithmetic and safe array reservation. |
 | `src/config.c` | Portable configuration parsing. |
+| `src/token.c` | Cursor-based numeric token parsing. |
 | `src/timing.c` | Exact elapsed/periodic timing policy. |
 | `src/format.c` | Shared formatting. |
 | `src/dynlib.c` | POSIX/Win32 dynamic-library adapter. |
 | `src/posix.c` | POSIX path/file/clock provider. |
+| `src/posix_path.c` | POSIX lexical-path helpers. |
 | `src/posix_io.c` | Exact positioned POSIX I/O. |
 | `apple/InfiltratrCommon.xcodeproj` | Apple portable static-library target. |
 | `USAGE.md` | Public API consumer/status ledger. |
