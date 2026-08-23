@@ -5,10 +5,11 @@
 Canonical shared C code for Shannon Smith's Infiltrator software projects.
 
 The current release contains **Infiltratr Common 1.11.0**, the reusable C11
-foundation shared by Linux System Monitor, Calendar Plus, Linux Defragger,
-MBLINK and InfiltratorFS. Application code, calendar rules, hardware
-collectors, filesystem semantics, vehicle-diagnostics logic and user-interface
-code remain in their own repositories.
+foundation consumed directly by Linux System Monitor, Calendar Plus, Linux
+Defragger, LINK and InfiltratorFS. LINK then provides the shared automotive
+engine used by the MBLINK and JAGLINK product faces. Application code, calendar
+rules, hardware collectors, filesystem semantics, vehicle/manufacturer-specific
+diagnostics and user-interface code remain in their owning repositories.
 
 ## Shared-code design rule
 
@@ -108,12 +109,14 @@ library build and Clang AddressSanitizer/UndefinedBehaviorSanitizer.
 
 This repository is the authoritative copy of Infiltratr Common. Application
 source releases that vendor Common must match the pinned release source and
-must not become independent forks.
+must not become independent forks. LINK owns the shared vehicle-diagnostics
+layer above Common; MBLINK and JAGLINK consume that layer rather than creating
+parallel copies of Common-owned or LINK-owned algorithms.
 
 ## Licence
 
 Copyright (C) 2026 Shannon Smith.
 
-Infiltratr Common is free software licensed under the GNU General Public
-License, version 3 or (at your option) any later version
+Infiltratr Common is free software licensed under the GNU General Public License,
+version 3 or (at your option) any later version
 (`GPL-3.0-or-later`). The complete licence text is in `LICENSE`.
