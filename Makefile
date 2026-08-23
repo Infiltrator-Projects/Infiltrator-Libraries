@@ -3,6 +3,7 @@
 CC ?= cc
 AR ?= ar
 BUILD_DIR ?= build
+COMMON_VERSION := $(shell tr -d '[:space:]' < VERSION)
 CPPFLAGS += -Iinclude
 CFLAGS ?= -O2 -g
 override CFLAGS += -std=c11 -fPIC -Wall -Wextra -Wpedantic -Werror \
@@ -13,7 +14,7 @@ OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/dynlib.o $(BUILD_DIR)/posix.o \
 	$(BUILD_DIR)/posix_io.o
 PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
 ARCHIVE := $(BUILD_DIR)/libinfiltratr-common.a
-SHARED := $(BUILD_DIR)/libinfiltratr-common.so.1.11.1
+SHARED := $(BUILD_DIR)/libinfiltratr-common.so.$(COMMON_VERSION)
 
 ifeq ($(OS),Windows_NT)
 DYNLIB_LIBS :=
@@ -21,9 +22,14 @@ else
 DYNLIB_LIBS := -ldl
 endif
 
-.PHONY: all check clean portable portable-check shared
+.PHONY: all check clean portable portable-check shared version-check
 
-all: $(ARCHIVE)
+version-check:
+	@grep -qx '#define INFILTRATR_COMMON_VERSION "$(COMMON_VERSION)"' include/infiltratr/core.h || { \
+		echo "VERSION and INFILTRATR_COMMON_VERSION disagree" >&2; exit 1; \
+	}
+
+all: version-check $(ARCHIVE)
 
 $(BUILD_DIR):
 	mkdir -p "$@"
@@ -59,12 +65,12 @@ $(BUILD_DIR)/posix_io.o: src/posix_io.c include/infiltratr/posix_io.h | $(BUILD_
 $(PORTABLE_ARCHIVE): $(PORTABLE_OBJECTS)
 	$(AR) rcsD $@ $(PORTABLE_OBJECTS)
 
-portable: $(PORTABLE_ARCHIVE)
+portable: version-check $(PORTABLE_ARCHIVE)
 
 $(ARCHIVE): $(OBJECTS)
 	$(AR) rcsD $@ $(OBJECTS)
 
-shared: $(SHARED)
+shared: version-check $(SHARED)
 
 $(SHARED): $(OBJECTS)
 	$(CC) -shared -Wl,-soname,libinfiltratr-common.so.1 \
@@ -103,7 +109,7 @@ $(BUILD_DIR)/posix-contract: tests/posix_contract.c $(ARCHIVE)
 $(BUILD_DIR)/posix-io-contract: tests/posix_io_contract.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
 
-portable-check: $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-contract \
+portable-check: version-check $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-contract \
 	$(BUILD_DIR)/encoding-contract $(BUILD_DIR)/arithmetic-smoke \
 	$(BUILD_DIR)/config-smoke $(BUILD_DIR)/timing-smoke
 	./$(BUILD_DIR)/portable-smoke
@@ -113,7 +119,7 @@ portable-check: $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-contract \
 	./$(BUILD_DIR)/config-smoke
 	./$(BUILD_DIR)/timing-smoke
 
-check: $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
+check: version-check $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
 	$(BUILD_DIR)/dynlib-smoke $(BUILD_DIR)/portable-smoke \
 	$(BUILD_DIR)/portable-contract $(BUILD_DIR)/encoding-contract \
 	$(BUILD_DIR)/arithmetic-smoke $(BUILD_DIR)/config-smoke \
