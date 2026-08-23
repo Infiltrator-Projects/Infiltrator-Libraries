@@ -2,41 +2,26 @@
 name: publish-release
 
 on:
-  workflow_run:
-    workflows: [Common CI]
-    types: [completed]
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Existing version tag to validate and publish
-        required: true
-        type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: publish-release-${{ github.repository }}-${{ inputs.tag || github.event.workflow_run.head_sha || github.ref_name }}
+  group: publish-release-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
   publish:
-    if: >-
-      github.event_name != 'workflow_run' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.head_repository.full_name == github.repository)
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Check out the verified release candidate
+      - name: Check out current main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          ref: main
           fetch-depth: 0
 
       - name: Install release dependencies
@@ -47,11 +32,22 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential clang cmake gh
 
+      - name: Validate exact current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --tags
+          head_commit=$(git rev-parse HEAD)
+          main_commit=$(git rev-parse origin/main)
+          if [[ "$head_commit" != "$main_commit" ]]; then
+            printf 'Release checkout %s is not current main %s.\n' \
+              "$head_commit" "$main_commit" >&2
+            exit 1
+          fi
+
       - name: Validate and publish
         env:
           GH_TOKEN: ${{ github.token }}
-          DISPATCH_TAG: ${{ inputs.tag }}
-          CI_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -61,36 +57,8 @@ jobs:
             printf 'Invalid source version: %s\n' "$version" >&2
             exit 1
           fi
-
-          expected_tag="v${version}"
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
-            tag="$expected_tag"
-          elif [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            tag="$GITHUB_REF_NAME"
-          else
-            tag="$DISPATCH_TAG"
-          fi
-          if [[ "$tag" != "$expected_tag" ]]; then
-            printf 'Tag %s does not match source version %s.\n' "$tag" "$version" >&2
-            exit 1
-          fi
-
+          tag="v${version}"
           head_commit=$(git rev-parse HEAD)
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
-            if [[ "$head_commit" != "$CI_HEAD_SHA" ]]; then
-              printf 'Checked-out commit %s does not match successful CI commit %s.\n' \
-                "$head_commit" "$CI_HEAD_SHA" >&2
-              exit 1
-            fi
-            main_commit=$(gh api \
-              "repos/${GITHUB_REPOSITORY}/branches/main" \
-              --jq .commit.sha)
-            if [[ "$main_commit" != "$head_commit" ]]; then
-              printf 'Skipping stale successful CI commit %s; main is %s.\n' \
-                "$head_commit" "$main_commit"
-              exit 0
-            fi
-          fi
 
           grep -qx "#define INFILTRATR_COMMON_VERSION \"$version\"" \
             include/infiltratr/core.h
@@ -107,49 +75,28 @@ jobs:
           cmake --build cmake-build --parallel
           ctest --test-dir cmake-build --output-on-failure
 
-          tag_commit=""
-          if ! tag_commit=$(gh api \
-            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" \
-            --jq .object.sha 2>/dev/null); then
-            tag_commit=""
-          fi
-          release_exists=false
-          if gh release view "$tag" >/dev/null 2>&1; then
-            release_exists=true
-          fi
-
-          if [[ -n "$tag_commit" && "$tag_commit" != "$head_commit" ]]; then
-            if [[ "$release_exists" == true ]]; then
-              printf '%s is already released at %s; %s is post-release development.\n' \
-                "$tag" "$tag_commit" "$head_commit"
-              exit 0
-            fi
-            printf '%s exists at %s without a matching release; refusing to move it.\n' \
-              "$tag" "$tag_commit" >&2
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            printf 'Release tag %s already exists; published releases are immutable.\n' "$tag" >&2
             exit 1
           fi
-
-          if [[ -z "$tag_commit" ]]; then
-            gh api --method POST \
-              "repos/${GITHUB_REPOSITORY}/git/refs" \
-              -f ref="refs/tags/${tag}" \
-              -f sha="$head_commit" >/dev/null
-            tag_commit="$head_commit"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            printf 'Release %s already exists; published releases are immutable.\n' "$tag" >&2
+            exit 1
           fi
 
           notes="${RUNNER_TEMP}/release-notes.md"
           git log -1 --format='%B' "$head_commit" > "$notes"
           test -s "$notes"
 
-          if [[ "$release_exists" == true ]]; then
-            printf 'Existing release %s is immutable; verifying only.\n' "$tag"
-          else
-            gh release create "$tag" \
-              --verify-tag \
-              --title "Infiltratr Common $version" \
-              --notes-file "$notes" \
-              --latest
-          fi
+          git tag "$tag" "$head_commit"
+          git push origin "$tag"
+
+          gh release create "$tag" \
+            --verify-tag \
+            --target "$head_commit" \
+            --title "Infiltratr Common $version" \
+            --notes-file "$notes" \
+            --latest
 
           published_tag=$(gh release view "$tag" --json tagName --jq .tagName)
           test "$published_tag" = "$tag"

@@ -15,6 +15,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  release-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Enforce explicit immutable release approval
+        shell: bash
+        run: |
+          set -euo pipefail
+          release=.github/workflows/release.yml
+          grep -qx '  workflow_dispatch:' "$release"
+          if grep -Eq '^  (push|pull_request|workflow_run|schedule):' "$release"; then
+            echo 'Common release publication must be manual-only.' >&2
+            exit 1
+          fi
+          grep -Fq 'ref: main' "$release"
+          grep -Fq 'published releases are immutable' "$release"
+
   strict-build:
     name: ${{ matrix.compiler }} strict build
     runs-on: ubuntu-latest

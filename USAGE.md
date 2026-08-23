@@ -9,21 +9,21 @@ Status meanings: **ACTIVE** is used by production code, **FOUNDATION** is the
 canonical implementation beneath active API, and **READY** is a tested
 completion of an already-active capability family.
 
-Audit baseline: Infiltratr Common 1.11.0, Calendar Plus 3.9.9 migration,
-Linux System Monitor 1.13.14, Linux Defragger 1.8.x, MBLINK post-0.7.3 and
-InfiltratorFS 0.9.x, 23 August 2026.
+Audit baseline: Infiltratr Common 1.11.0, Calendar Plus 3.9.9, Linux System
+Monitor 1.13.17 migration, Linux Defragger 1.8.x, LINK 0.9.1, MBLINK 0.7.25,
+JAGLINK 0.2.12 and InfiltratorFS 0.9.x, 23 August 2026.
 
 ## Portable core
 
 | Capability | Production consumers | Status |
 | --- | --- | --- |
-| Project identity validation and metadata output | System Monitor, Calendar Plus, MBLINK, InfiltratorFS | ACTIVE |
-| Bounded copy, trimming and deterministic string comparisons | System Monitor, Calendar Plus, Linux Defragger, MBLINK | ACTIVE |
-| Strict integer parsing and bounded unsigned parsing | System Monitor, Linux Defragger, MBLINK | ACTIVE |
+| Project identity validation and metadata output | System Monitor, Calendar Plus, LINK, InfiltratorFS | ACTIVE |
+| Bounded copy, trimming and deterministic string comparisons | System Monitor, Calendar Plus, Linux Defragger, LINK | ACTIVE |
+| Strict integer parsing and bounded unsigned parsing | System Monitor, Linux Defragger, LINK | ACTIVE |
 | Locale-independent finite decimal parsing | Calendar Plus, POSIX typed readers | ACTIVE |
 | Allocation-free key=value and boolean configuration parsing | Linux System Monitor | ACTIVE |
 | Numeric clamping | System Monitor, Calendar Plus | ACTIVE |
-| Checked/saturating unsigned arithmetic | System Monitor, Linux Defragger, MBLINK, InfiltratorFS | ACTIVE |
+| Checked/saturating unsigned arithmetic | System Monitor, Linux Defragger, LINK, InfiltratorFS | ACTIVE |
 | Fixed-width little-endian conversion and byte swapping | InfiltratorFS, Linux Defragger | ACTIVE |
 | Strict allocation-free UTF-8 validation | InfiltratorFS | ACTIVE |
 | `infiltratr_i64_floor_divmod` | Calendar Plus date/time arithmetic | ACTIVE |
@@ -34,7 +34,7 @@ InfiltratorFS 0.9.x, 23 August 2026.
 | Exact signed-integer period remaining | Calendar Plus | ACTIVE |
 | Exact rational cycle partition index / next-boundary distance | Calendar Plus | ACTIVE |
 | Exact microsecond-to-millisecond upward conversion | Calendar Plus | ACTIVE |
-| Missed-deadline cadence advancement | MBLINK | ACTIVE |
+| Missed-deadline cadence advancement | LINK | ACTIVE |
 | Quantity scaling and scaled rendering | Shared formatting implementation | FOUNDATION |
 
 Signed floor division is shared because Calendar previously maintained the same
@@ -64,8 +64,9 @@ this is the canonical implementation used by Calendar Plus for decimal,
 Internet, hexadecimal and other discrete clock boundaries. The returned delay
 is rounded upward in integer source units before exact microsecond-to-millisecond
 conversion, so a timer cannot be armed before the displayed partition changes.
-MBLINK's missed-deadline operation remains the canonical drift-free deadline
-advancer, and System Monitor uses the elapsed interval policy.
+LINK's missed-deadline operation remains the canonical drift-free deadline
+advancer used by the automotive layer, and System Monitor uses the elapsed
+interval policy.
 
 ## Dynamic-library adapter
 
@@ -90,8 +91,8 @@ System Monitor and Linux Defragger use the POSIX path, file-reading and
 monotonic-clock adapters. InfiltratorFS also uses Common's exact positioned
 `pread`/`pwrite` loop contract while retaining block-device discovery, locking,
 filesystem status translation, size queries, randomness and durability policy
-inside its own POSIX storage adapter. Calendar Plus and MBLINK do not compile
-the POSIX provider in their portable-core builds.
+inside its own POSIX storage adapter. Calendar Plus and LINK consume the
+portable Common target for their portable cores rather than the POSIX provider.
 
 Rich `*_ex` readers preserve missing, denied, empty, truncated, invalid-value
 and generic I/O states. Simpler compatibility readers remain for consumers
@@ -110,7 +111,8 @@ compatibility facade.
 - Linux System Monitor uses Common for general C primitives, configuration parsing, timing policy, formatting, dynamic loading and the POSIX provider while hardware/UI policy stays application-owned.
 - Calendar Plus uses Common for generic parsing/string/arithmetic, exact discrete and continuous phase-aligned timing, and runtime library loading; calendar systems, astronomy, event indexing, ICU symbol lists/GVariant integration and Cinnamon UI remain application-owned.
 - Linux Defragger uses Common where generic parsing/arithmetic/POSIX and byte-order contracts match, while raw filesystem safety and transaction semantics remain application-owned.
-- MBLINK uses Common portable primitives and periodic deadline advancement while ELM327 framing, OBD/ISO-TP semantics, request policy and vehicle diagnostics remain application-owned.
+- LINK uses Common's portable target for general C primitives and timing policy while ELM327 framing, OBD/UDS/ISO-TP semantics, request policy, diagnostic sequencing and shared vehicle-diagnostics behaviour remain LINK-owned.
+- MBLINK and JAGLINK consume Common transitively through their pinned LINK dependency; product repositories retain branding, metadata and genuinely manufacturer-specific behaviour rather than duplicating Common or LINK algorithms.
 - InfiltratorFS uses Common for endian conversion, UTF-8 validity, checked arithmetic, shared identity/formatting where applicable and exact POSIX positioned I/O. Checkpoint recovery, allocation, CoW, on-disk ownership, Win32 raw-volume access and filesystem policy remain InfiltratorFS-owned.
 
 ## Build-package contract
@@ -121,10 +123,10 @@ targets. CMake consumers link `InfiltratrCommon::Portable` or
 `InfiltratrCommonPortable` product from Common's Xcode subproject. Applications
 must not copy an internal `.c` source list into their own build definitions.
 
-This contract is ACTIVE through MBLINK and InfiltratorFS. It prevents the
-integration omission found when Common 1.9 timing correctly began using the
-canonical arithmetic module but MBLINK still had to enumerate those modules
-independently.
+This contract is ACTIVE through LINK, Linux System Monitor's 1.13.17 migration
+and InfiltratorFS. LINK links `InfiltratrCommon::Portable` and then exposes its
+own shared automotive target to MBLINK and JAGLINK. This prevents integration
+omissions when Common's internal source/dependency graph changes.
 
 ## Rule for adding public API
 
