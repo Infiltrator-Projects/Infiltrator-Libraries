@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file arithmetic_smoke.c
- * @brief Regression coverage for dependency-free signed arithmetic helpers.
+ * @brief Regression coverage for dependency-free arithmetic helpers.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static void test_floor_divmod(void)
 {
@@ -57,10 +58,72 @@ static void test_saturating_subtract(void)
            INT64_MAX - 1);
 }
 
+static void test_checked_sizes(void)
+{
+    size_t result = 99U;
+    assert(infiltratr_size_add_checked(7U, 5U, &result));
+    assert(result == 12U);
+
+    result = 99U;
+    assert(!infiltratr_size_add_checked(SIZE_MAX, 1U, &result));
+    assert(result == 99U);
+    assert(!infiltratr_size_add_checked(1U, 1U, NULL));
+
+    assert(infiltratr_size_multiply_checked(7U, 5U, &result));
+    assert(result == 35U);
+    result = 99U;
+    assert(!infiltratr_size_multiply_checked(SIZE_MAX, 2U, &result));
+    assert(result == 99U);
+    assert(!infiltratr_size_multiply_checked(1U, 1U, NULL));
+}
+
+static void test_array_reserve(void)
+{
+    uint32_t *items = NULL;
+    size_t capacity = 0U;
+    assert(infiltratr_array_reserve((void **)&items, &capacity,
+                                    sizeof(*items), 5U, 4U));
+    assert(items != NULL);
+    assert(capacity >= 5U);
+    items[0] = 17U;
+    items[4] = 23U;
+
+    const size_t retained_capacity = capacity;
+    uint32_t *retained_pointer = items;
+    assert(infiltratr_array_reserve((void **)&items, &capacity,
+                                    sizeof(*items), 2U, 4U));
+    assert(items == retained_pointer);
+    assert(capacity == retained_capacity);
+    assert(items[0] == 17U && items[4] == 23U);
+
+    assert(!infiltratr_array_reserve((void **)&items, &capacity,
+                                     0U, capacity + 1U, 4U));
+    assert(items == retained_pointer);
+    assert(capacity == retained_capacity);
+
+    void *overflow_items = NULL;
+    size_t overflow_capacity = 0U;
+    assert(!infiltratr_array_reserve(&overflow_items, &overflow_capacity,
+                                     SIZE_MAX, 2U, 1U));
+    assert(overflow_items == NULL);
+    assert(overflow_capacity == 0U);
+
+    void *inconsistent = NULL;
+    size_t inconsistent_capacity = 8U;
+    assert(!infiltratr_array_reserve(&inconsistent, &inconsistent_capacity,
+                                     1U, 9U, 8U));
+    assert(inconsistent == NULL);
+    assert(inconsistent_capacity == 8U);
+
+    free(items);
+}
+
 int main(void)
 {
     test_floor_divmod();
     test_saturating_subtract();
-    puts("Infiltratr Common signed arithmetic tests passed.");
+    test_checked_sizes();
+    test_array_reserve();
+    puts("Infiltratr Common arithmetic tests passed.");
     return 0;
 }

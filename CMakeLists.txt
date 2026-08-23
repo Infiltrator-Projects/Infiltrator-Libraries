@@ -27,6 +27,7 @@ set(INFILTRATR_COMMON_PORTABLE_SOURCES
     src/core.c
     src/arithmetic.c
     src/config.c
+    src/token.c
     src/timing.c
     src/format.c)
 
@@ -71,6 +72,7 @@ set(INFILTRATR_COMMON_FULL_SOURCES
 if(UNIX)
     list(APPEND INFILTRATR_COMMON_FULL_SOURCES
         src/posix.c
+        src/posix_path.c
         src/posix_io.c)
 endif()
 
@@ -110,6 +112,8 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
         tests/arithmetic_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-config-smoke
         tests/config_smoke.c InfiltratrCommon::Portable)
+    infiltratr_common_add_test(infiltratr-token-smoke
+        tests/token_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-timing-smoke
         tests/timing_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-format-smoke
@@ -125,6 +129,8 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
     if(UNIX)
         infiltratr_common_add_test(infiltratr-posix-contract
             tests/posix_contract.c InfiltratrCommon::Common)
+        infiltratr_common_add_test(infiltratr-posix-path-smoke
+            tests/posix_path_smoke.c InfiltratrCommon::Common)
         infiltratr_common_add_test(infiltratr-posix-io-contract
             tests/posix_io_contract.c InfiltratrCommon::Common)
     endif()

@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+/**
+ * @file token.c
+ * @brief Allocation-free numeric token parsing implementation.
+ *
+ * @author Shannon Smith
+ * @copyright Copyright (c) 2026 Shannon Smith
+ * @license GPL-3.0-or-later
+ */
+#include "infiltratr/token.h"
+
+#include <ctype.h>
+#include <errno.h>
+#include <stdlib.h>
+
+bool infiltratr_parse_u64_token(const char **cursor, unsigned int base,
+                                uint64_t *value)
+{
+    if (!cursor || !*cursor || !value || base == 1U || base > 36U)
+        return false;
+
+    const char *start = *cursor;
+    while (*start && isspace((unsigned char)*start)) start++;
+    if (*start == '+' || *start == '-' || *start == '\0') return false;
+
+    errno = 0;
+    char *end = NULL;
+    const unsigned long long parsed = strtoull(start, &end, (int)base);
+    if (errno != 0 || end == start ||
+        parsed > (unsigned long long)UINT64_MAX)
+        return false;
+
+    *cursor = end;
+    *value = (uint64_t)parsed;
+    return true;
+}

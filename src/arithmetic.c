@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file arithmetic.c
- * @brief Dependency-free implementation of shared signed arithmetic.
+ * @brief Dependency-free implementation of shared arithmetic primitives.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
@@ -10,6 +10,7 @@
 #include "infiltratr/arithmetic.h"
 
 #include <limits.h>
+#include <stdlib.h>
 
 bool infiltratr_i64_floor_divmod(int64_t value, int64_t divisor,
                                  int64_t *quotient, int64_t *remainder)
@@ -33,4 +34,49 @@ int64_t infiltratr_i64_subtract_saturating(int64_t left, int64_t right)
     if (right > 0 && left < INT64_MIN + right) return INT64_MIN;
     if (right < 0 && left > INT64_MAX + right) return INT64_MAX;
     return left - right;
+}
+
+bool infiltratr_size_add_checked(size_t left, size_t right, size_t *result)
+{
+    if (!result || right > SIZE_MAX - left) return false;
+    *result = left + right;
+    return true;
+}
+
+bool infiltratr_size_multiply_checked(size_t left, size_t right,
+                                      size_t *result)
+{
+    if (!result || (left != 0U && right > SIZE_MAX / left)) return false;
+    *result = left * right;
+    return true;
+}
+
+bool infiltratr_array_reserve(void **array, size_t *capacity,
+                              size_t element_size, size_t required,
+                              size_t initial_capacity)
+{
+    if (!array || !capacity || element_size == 0U ||
+        (*capacity > 0U && !*array))
+        return false;
+    if (required <= *capacity) return true;
+
+    size_t next = *capacity;
+    if (next == 0U) next = initial_capacity > 0U ? initial_capacity : 1U;
+    while (next < required) {
+        if (next > SIZE_MAX / 2U) {
+            next = required;
+            break;
+        }
+        next *= 2U;
+    }
+
+    size_t bytes = 0U;
+    if (!infiltratr_size_multiply_checked(next, element_size, &bytes))
+        return false;
+
+    void *grown = realloc(*array, bytes);
+    if (!grown) return false;
+    *array = grown;
+    *capacity = next;
+    return true;
 }

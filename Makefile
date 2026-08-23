@@ -9,9 +9,10 @@ CFLAGS ?= -O2 -g
 override CFLAGS += -std=c11 -fPIC -Wall -Wextra -Wpedantic -Werror \
 	-Wshadow -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes
 PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/arithmetic.o \
-	$(BUILD_DIR)/config.o $(BUILD_DIR)/timing.o $(BUILD_DIR)/format.o
+	$(BUILD_DIR)/config.o $(BUILD_DIR)/token.o $(BUILD_DIR)/timing.o \
+	$(BUILD_DIR)/format.o
 OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/dynlib.o $(BUILD_DIR)/posix.o \
-	$(BUILD_DIR)/posix_io.o
+	$(BUILD_DIR)/posix_path.o $(BUILD_DIR)/posix_io.o
 PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
 ARCHIVE := $(BUILD_DIR)/libinfiltratr-common.a
 SHARED := $(BUILD_DIR)/libinfiltratr-common.so.$(COMMON_VERSION)
@@ -44,6 +45,9 @@ $(BUILD_DIR)/arithmetic.o: src/arithmetic.c include/infiltratr/arithmetic.h | $(
 $(BUILD_DIR)/config.o: src/config.c include/infiltratr/config.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
+$(BUILD_DIR)/token.o: src/token.c include/infiltratr/token.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
 $(BUILD_DIR)/timing.o: src/timing.c include/infiltratr/timing.h \
 	include/infiltratr/core.h include/infiltratr/arithmetic.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
@@ -57,6 +61,9 @@ $(BUILD_DIR)/dynlib.o: src/dynlib.c include/infiltratr/dynlib.h | $(BUILD_DIR)
 
 $(BUILD_DIR)/posix.o: src/posix.c include/infiltratr/core.h \
 	include/infiltratr/posix.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/posix_path.o: src/posix_path.c include/infiltratr/posix_path.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/posix_io.o: src/posix_io.c include/infiltratr/posix_io.h | $(BUILD_DIR)
@@ -85,6 +92,9 @@ $(BUILD_DIR)/arithmetic-smoke: tests/arithmetic_smoke.c $(PORTABLE_ARCHIVE)
 $(BUILD_DIR)/config-smoke: tests/config_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
 
+$(BUILD_DIR)/token-smoke: tests/token_smoke.c $(PORTABLE_ARCHIVE)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
+
 $(BUILD_DIR)/timing-smoke: tests/timing_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
 
@@ -106,24 +116,29 @@ $(BUILD_DIR)/encoding-contract: tests/encoding_contract.c $(PORTABLE_ARCHIVE)
 $(BUILD_DIR)/posix-contract: tests/posix_contract.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
 
+$(BUILD_DIR)/posix-path-smoke: tests/posix_path_smoke.c $(ARCHIVE)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
+
 $(BUILD_DIR)/posix-io-contract: tests/posix_io_contract.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
 
 portable-check: version-check $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-contract \
 	$(BUILD_DIR)/encoding-contract $(BUILD_DIR)/arithmetic-smoke \
-	$(BUILD_DIR)/config-smoke $(BUILD_DIR)/timing-smoke
+	$(BUILD_DIR)/config-smoke $(BUILD_DIR)/token-smoke $(BUILD_DIR)/timing-smoke
 	./$(BUILD_DIR)/portable-smoke
 	./$(BUILD_DIR)/portable-contract
 	./$(BUILD_DIR)/encoding-contract
 	./$(BUILD_DIR)/arithmetic-smoke
 	./$(BUILD_DIR)/config-smoke
+	./$(BUILD_DIR)/token-smoke
 	./$(BUILD_DIR)/timing-smoke
 
 check: version-check $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
 	$(BUILD_DIR)/dynlib-smoke $(BUILD_DIR)/portable-smoke \
 	$(BUILD_DIR)/portable-contract $(BUILD_DIR)/encoding-contract \
 	$(BUILD_DIR)/arithmetic-smoke $(BUILD_DIR)/config-smoke \
-	$(BUILD_DIR)/timing-smoke $(BUILD_DIR)/posix-contract \
+	$(BUILD_DIR)/token-smoke $(BUILD_DIR)/timing-smoke \
+	$(BUILD_DIR)/posix-contract $(BUILD_DIR)/posix-path-smoke \
 	$(BUILD_DIR)/posix-io-contract
 	./$(BUILD_DIR)/core-smoke
 	./$(BUILD_DIR)/format-smoke
@@ -133,8 +148,10 @@ check: version-check $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
 	./$(BUILD_DIR)/encoding-contract
 	./$(BUILD_DIR)/arithmetic-smoke
 	./$(BUILD_DIR)/config-smoke
+	./$(BUILD_DIR)/token-smoke
 	./$(BUILD_DIR)/timing-smoke
 	./$(BUILD_DIR)/posix-contract
+	./$(BUILD_DIR)/posix-path-smoke
 	./$(BUILD_DIR)/posix-io-contract
 
 clean:
