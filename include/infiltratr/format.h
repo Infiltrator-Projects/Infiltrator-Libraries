@@ -154,6 +154,24 @@ char *infiltratr_format_celsius(bool available, double value,
 char *infiltratr_format_watts(bool available, double value,
                               char *buffer, size_t size);
 
+/**
+ * Format a duration as HH:MM:SS, prefixed by whole days when nonzero.
+ *
+ * Examples are `00:00:00`, `01:01:01` and `1d 01:01:01`.
+ */
+char *infiltratr_format_duration_clock(uint64_t seconds,
+                                       char *buffer, size_t size);
+
+/**
+ * Format an optional duration as compact whole day/hour/minute text.
+ *
+ * Unavailable values render as `N/A`. Available values discard sub-minute
+ * seconds; zero therefore renders as `0m` rather than being treated as
+ * unavailable by the shared formatter.
+ */
+char *infiltratr_format_duration_compact(bool available, uint64_t seconds,
+                                         char *buffer, size_t size);
+
 #ifdef __cplusplus
 }
 #endif

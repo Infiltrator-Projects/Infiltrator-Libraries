@@ -35,6 +35,7 @@ duplicated here; each consumer's checked-in dependency metadata is authoritative
 | Exact microsecond-to-millisecond upward conversion | Calendar Plus | ACTIVE |
 | Missed-deadline cadence advancement | LINK | ACTIVE |
 | Quantity scaling and scaled rendering | Shared formatting implementation | FOUNDATION |
+| Clock and compact duration rendering | Linux System Monitor | ACTIVE |
 
 Signed floor division is shared because Calendar previously maintained the same
 negative-safe quotient/remainder algorithm in its Julian-day, astronomical-time
@@ -79,10 +80,13 @@ policy. Common owns only module lifetime and safe symbol-pointer transfer.
 ## Formatting
 
 Common owns the generic scalar and quantity-formatting engines plus the memory,
-disk, network, percentage, frequency, temperature and power convenience
-formatters currently used by Linux System Monitor. InfiltratorFS may use the
-same base-2 byte formatter for user-facing capacity/status text, while on-disk
-sizes and filesystem policy remain application-owned.
+disk, network, percentage, frequency, temperature, power and duration
+formatters currently used by Linux System Monitor. Duration availability is an
+explicit caller decision: Common renders an available zero duration as `0m`,
+while consumers such as System Monitor may map domain-specific zero estimates
+to unavailable before calling it. InfiltratorFS may use the same base-2 byte
+formatter for user-facing capacity/status text, while on-disk sizes and
+filesystem policy remain application-owned.
 
 ## POSIX provider
 
@@ -98,6 +102,13 @@ and generic I/O states. Simpler compatibility readers remain for consumers
 whose existing contracts intentionally collapse those states. Exact positioned
 I/O retries `EINTR`, rejects unrepresentable offsets and fails closed on
 premature EOF or a zero-progress write.
+
+Common also owns two generic POSIX mechanics immediately consumed by Linux
+System Monitor. Ordered readable-path selection chooses the first accessible
+candidate while leaving hardware-specific suffix lists in the consumer.
+Durable atomic replacement writes a temporary sibling, fsyncs content, renames
+it and fsyncs the parent directory; the consumer chooses whether the completed
+file is private or preserves an existing regular file's permissions.
 
 ## Compiler annotations
 

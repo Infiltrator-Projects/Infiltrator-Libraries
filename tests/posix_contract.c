@@ -19,10 +19,13 @@
 #undef NDEBUG
 #endif
 #include <assert.h>
+#include <dirent.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 static void write_all(int descriptor, const char *text, size_t length)
@@ -55,6 +58,31 @@ static void test_paths(void)
     char resolved[1] = {'x'};
     assert(!infiltratr_realpath_copy(".", resolved, sizeof(resolved)));
     assert(resolved[0] == '\0');
+}
+
+static void test_first_readable_path(void)
+{
+    char directory[] = "infiltratr-readable-path-XXXXXX";
+    assert(mkdtemp(directory));
+    char readable[256];
+    assert(snprintf(readable, sizeof(readable), "%s/present", directory) > 0);
+    FILE *file = fopen(readable, "wb");
+    assert(file);
+    assert(fputs("value\n", file) >= 0);
+    assert(fclose(file) == 0);
+
+    static const char *const suffixes[] = {"/missing", "/present"};
+    char selected[256] = "old";
+    assert(infiltratr_first_readable_path(directory, suffixes, 2U,
+                                          selected, sizeof(selected)));
+    assert(strcmp(selected, readable) == 0);
+
+    static const char *const absent[] = {"/missing", NULL};
+    assert(!infiltratr_first_readable_path(directory, absent, 2U,
+                                           selected, sizeof(selected)));
+    assert(strcmp(selected, "") == 0);
+    assert(unlink(readable) == 0);
+    assert(rmdir(directory) == 0);
 }
 
 static void test_text_io(void)
@@ -150,6 +178,75 @@ static void test_typed_io(void)
     assert(unlink(invalid_name) == 0);
 }
 
+static bool fail_after_partial_write(FILE *stream, const void *user_data)
+{
+    (void)user_data;
+    assert(fputs("incomplete", stream) >= 0);
+    errno = ENOSPC;
+    return false;
+}
+
+static void expect_contents(const char *path, const char *expected)
+{
+    FILE *file = fopen(path, "rb");
+    assert(file);
+    char contents[128];
+    const size_t length = fread(contents, 1U, sizeof(contents) - 1U, file);
+    assert(fclose(file) == 0);
+    contents[length] = '\0';
+    assert(strcmp(contents, expected) == 0);
+}
+
+static void expect_no_atomic_temporaries(const char *directory)
+{
+    DIR *stream = opendir(directory);
+    assert(stream);
+    struct dirent *entry;
+    while ((entry = readdir(stream)))
+        assert(strncmp(entry->d_name, ".infiltratr-write-", 18U) != 0);
+    assert(closedir(stream) == 0);
+}
+
+static void test_atomic_replacement(void)
+{
+    char directory[] = "infiltratr-atomic-file-XXXXXX";
+    assert(mkdtemp(directory));
+    char path[256];
+    assert(snprintf(path, sizeof(path), "%s/state.conf", directory) > 0);
+
+    static const char first[] = "first complete value\n";
+    assert(infiltratr_atomic_file_write_bytes(
+               path, INFILTRATR_ATOMIC_FILE_PRIVATE,
+               first, sizeof(first) - 1U) == 0);
+    expect_contents(path, first);
+    struct stat status;
+    assert(stat(path, &status) == 0);
+    assert((status.st_mode & 0777) == 0600);
+
+    assert(chmod(path, 0640) == 0);
+    static const char second[] = "replacement\n";
+    assert(infiltratr_atomic_file_write_bytes(
+               path, INFILTRATR_ATOMIC_FILE_PRESERVE_PERMISSIONS,
+               second, sizeof(second) - 1U) == 0);
+    expect_contents(path, second);
+    assert(stat(path, &status) == 0);
+    assert((status.st_mode & 0777) == 0640);
+
+    assert(infiltratr_atomic_file_write(
+               path, INFILTRATR_ATOMIC_FILE_PRIVATE,
+               fail_after_partial_write, NULL) == ENOSPC);
+    expect_contents(path, second);
+    expect_no_atomic_temporaries(directory);
+
+    assert(infiltratr_atomic_file_write_bytes(
+               NULL, INFILTRATR_ATOMIC_FILE_PRIVATE,
+               first, sizeof(first) - 1U) == EINVAL);
+    assert(infiltratr_atomic_file_write_bytes(
+               path, INFILTRATR_ATOMIC_FILE_PRIVATE, NULL, 1U) == EINVAL);
+    assert(unlink(path) == 0);
+    assert(rmdir(directory) == 0);
+}
+
 static void test_results_and_clock(void)
 {
     assert(strcmp(infiltratr_io_result_name(INFILTRATR_IO_OK), "ok") == 0);
@@ -168,8 +265,10 @@ static void test_results_and_clock(void)
 int main(void)
 {
     test_paths();
+    test_first_readable_path();
     test_text_io();
     test_typed_io();
+    test_atomic_replacement();
     test_results_and_clock();
 
     puts("Infiltratr Common POSIX API contract tests passed.");

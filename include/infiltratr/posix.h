@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,6 +35,18 @@ typedef enum {
     INFILTRATR_IO_INVALID_VALUE,
     INFILTRATR_IO_ERROR
 } InfiltratrIoResult;
+
+/** Permission policy for durable atomic file replacement. */
+typedef enum {
+    /** Restrict the completed file to its owning user (0600). */
+    INFILTRATR_ATOMIC_FILE_PRIVATE = 0,
+    /** Preserve an existing regular file's mode; otherwise use 0600. */
+    INFILTRATR_ATOMIC_FILE_PRESERVE_PERMISSIONS
+} InfiltratrAtomicFileMode;
+
+/** Writer callback used by infiltratr_atomic_file_write(). */
+typedef bool (*InfiltratrAtomicFileWriter)(FILE *stream,
+                                           const void *user_data);
 
 /**
  * Return a stable machine-readable name for an I/O result.
@@ -73,6 +86,19 @@ bool infiltratr_path_concat(char *destination, size_t size,
  */
 bool infiltratr_path_join(char *destination, size_t size,
                           const char *left, const char *right);
+
+/**
+ * Select the first readable path from ordered suffix candidates.
+ *
+ * Each non-NULL suffix is concatenated directly to `base`; no separator is
+ * inserted. Candidates that do not fit in the caller buffer or are not
+ * readable are skipped. On success `destination` receives the first readable
+ * candidate. Failure leaves a valid destination buffer empty.
+ */
+bool infiltratr_first_readable_path(const char *base,
+                                    const char *const *suffixes,
+                                    size_t suffix_count,
+                                    char *destination, size_t size);
 
 /**
  * Read one complete bounded text file with explicit failure reporting.
@@ -153,6 +179,33 @@ double infiltratr_read_double_or_nan(const char *path);
 bool infiltratr_read_first_u64(const char *base,
                                const char *const *suffixes,
                                size_t suffix_count, uint64_t *value);
+
+/**
+ * Durably replace a file with content supplied by a callback.
+ *
+ * A temporary file is created beside the destination, assigned the requested
+ * permission policy, written and fsynced before rename. The containing
+ * directory is then fsynced so successful return means the replacement is
+ * durable across a power loss. The callback must not close `stream`.
+ * Returning false abandons the replacement and preserves the old destination.
+ *
+ * @return Zero on durable success; otherwise an errno-compatible error value.
+ */
+int infiltratr_atomic_file_write(const char *path,
+                                 InfiltratrAtomicFileMode mode,
+                                 InfiltratrAtomicFileWriter writer,
+                                 const void *user_data);
+
+/**
+ * Durably replace a file with an in-memory byte sequence.
+ *
+ * `data` may be NULL only when `length` is zero.
+ *
+ * @return Zero on durable success; otherwise an errno-compatible error value.
+ */
+int infiltratr_atomic_file_write_bytes(const char *path,
+                                       InfiltratrAtomicFileMode mode,
+                                       const void *data, size_t length);
 
 /**
  * Return `CLOCK_MONOTONIC` as exact integer nanoseconds when representable.

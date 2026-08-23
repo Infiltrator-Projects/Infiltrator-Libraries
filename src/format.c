@@ -19,7 +19,6 @@ static char *unavailable(char *buffer, size_t size)
     return buffer;
 }
 
-
 bool infiltratr_format_scalar(bool available, long double value,
                               const InfiltratrScalarFormatOptions *options,
                               char *buffer, size_t size)
@@ -217,5 +216,43 @@ char *infiltratr_format_watts(bool available, double value,
     options.suffix = " W";
     (void)infiltratr_format_scalar(available, (long double)value, &options,
                                    buffer, size);
+    return buffer;
+}
+
+char *infiltratr_format_duration_clock(uint64_t seconds,
+                                       char *buffer, size_t size)
+{
+    if (!buffer || size == 0U) return buffer;
+    const uint64_t days = seconds / 86400U;
+    seconds %= 86400U;
+    const unsigned int hours = (unsigned int)(seconds / 3600U);
+    const unsigned int minutes = (unsigned int)((seconds % 3600U) / 60U);
+    const unsigned int remainder = (unsigned int)(seconds % 60U);
+    if (days > 0U)
+        (void)snprintf(buffer, size, "%llud %02u:%02u:%02u",
+                       (unsigned long long)days, hours, minutes, remainder);
+    else
+        (void)snprintf(buffer, size, "%02u:%02u:%02u",
+                       hours, minutes, remainder);
+    return buffer;
+}
+
+char *infiltratr_format_duration_compact(bool available, uint64_t seconds,
+                                         char *buffer, size_t size)
+{
+    if (!buffer || size == 0U) return buffer;
+    if (!available) return unavailable(buffer, size);
+
+    const uint64_t days = seconds / 86400U;
+    seconds %= 86400U;
+    const unsigned int hours = (unsigned int)(seconds / 3600U);
+    const unsigned int minutes = (unsigned int)((seconds % 3600U) / 60U);
+    if (days > 0U)
+        (void)snprintf(buffer, size, "%llud %02uh %02um",
+                       (unsigned long long)days, hours, minutes);
+    else if (hours > 0U)
+        (void)snprintf(buffer, size, "%uh %02um", hours, minutes);
+    else
+        (void)snprintf(buffer, size, "%um", minutes);
     return buffer;
 }

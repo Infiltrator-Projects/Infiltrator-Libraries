@@ -50,5 +50,24 @@ int main(void)
     assert(strcmp(infiltratr_format_watts(true, NAN, text, sizeof(text)),
                   "N/A") == 0);
 
+    assert(strcmp(infiltratr_format_duration_clock(0U, text, sizeof(text)),
+                  "00:00:00") == 0);
+    assert(strcmp(infiltratr_format_duration_clock(3661U, text, sizeof(text)),
+                  "01:01:01") == 0);
+    assert(strcmp(infiltratr_format_duration_clock(90061U, text, sizeof(text)),
+                  "1d 01:01:01") == 0);
+    assert(strcmp(infiltratr_format_duration_compact(false, 0U, text,
+                                                     sizeof(text)),
+                  "N/A") == 0);
+    assert(strcmp(infiltratr_format_duration_compact(true, 0U, text,
+                                                     sizeof(text)),
+                  "0m") == 0);
+    assert(strcmp(infiltratr_format_duration_compact(true, 3661U, text,
+                                                     sizeof(text)),
+                  "1h 01m") == 0);
+    assert(strcmp(infiltratr_format_duration_compact(true, 176460U, text,
+                                                     sizeof(text)),
+                  "2d 01h 01m") == 0);
+
     return 0;
 }
