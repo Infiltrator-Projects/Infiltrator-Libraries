@@ -4,10 +4,18 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef INFILTRATR_COMMON_EXPECTED_VERSION
+#error "INFILTRATR_COMMON_EXPECTED_VERSION must be supplied by the package consumer build"
+#endif
+
 int main(void)
 {
-    if (strcmp(INFILTRATR_COMMON_VERSION, "1.11.0") != 0) {
-        fputs("unexpected Infiltratr Common version\n", stderr);
+    if (strcmp(INFILTRATR_COMMON_VERSION,
+               INFILTRATR_COMMON_EXPECTED_VERSION) != 0) {
+        fprintf(stderr,
+                "Infiltratr Common package/header version mismatch: package=%s header=%s\n",
+                INFILTRATR_COMMON_EXPECTED_VERSION,
+                INFILTRATR_COMMON_VERSION);
         return 1;
     }
 
