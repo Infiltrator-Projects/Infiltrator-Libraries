@@ -13,6 +13,7 @@
 		A10000000000000000000014 /* timing.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000024 /* timing.c */; };
 		A10000000000000000000015 /* format.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000025 /* format.c */; };
 		A10000000000000000000016 /* token.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027 /* token.c */; };
+		A10000000000000000000017 /* i18n.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000028 /* i18n.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +24,7 @@
 		A10000000000000000000025 /* format.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = format.c; path = "../src/format.c"; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000026 /* libInfiltratrCommonPortable.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libInfiltratrCommonPortable.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000027 /* token.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = token.c; path = "../src/token.c"; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000028 /* i18n.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = i18n.c; path = "../src/i18n.c"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,6 +52,7 @@
 				A10000000000000000000021 /* core.c */,
 				A10000000000000000000022 /* arithmetic.c */,
 				A10000000000000000000023 /* config.c */,
+				A10000000000000000000028 /* i18n.c */,
 				A10000000000000000000027 /* token.c */,
 				A10000000000000000000024 /* timing.c */,
 				A10000000000000000000025 /* format.c */,
@@ -124,6 +127,7 @@
 				A10000000000000000000011 /* core.c in Sources */,
 				A10000000000000000000012 /* arithmetic.c in Sources */,
 				A10000000000000000000013 /* config.c in Sources */,
+				A10000000000000000000017 /* i18n.c in Sources */,
 				A10000000000000000000016 /* token.c in Sources */,
 				A10000000000000000000014 /* timing.c in Sources */,
 				A10000000000000000000015 /* format.c in Sources */,
