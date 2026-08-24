@@ -1,8 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "infiltratr/i18n.h"
 
-#include <assert.h>
+#include <stdio.h>
 #include <string.h>
+
+static int failures = 0;
+
+#define CHECK(condition) do { \
+    if (!(condition)) { \
+        fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #condition); \
+        failures++; \
+    } \
+} while (0)
 
 static const InfiltratrI18nEntry english_entries[] = {
     {"nav.vehicle", "Vehicle"},
@@ -25,32 +34,37 @@ int main(void)
     char output[64];
     size_t required;
 
-    assert(infiltratr_i18n_init(&context, catalogs,
-                                sizeof(catalogs) / sizeof(catalogs[0]),
-                                "en_AU"));
-    assert(strcmp(infiltratr_i18n_locale(&context), "en-AU") == 0);
-    assert(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Vehicle") == 0);
+    CHECK(infiltratr_i18n_init(&context, catalogs,
+                               sizeof(catalogs) / sizeof(catalogs[0]),
+                               "en_AU"));
+    CHECK(strcmp(infiltratr_i18n_locale(&context), "en-AU") == 0);
+    CHECK(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Vehicle") == 0);
 
-    assert(infiltratr_i18n_set_locale(&context, "de_AT.UTF-8"));
-    assert(strcmp(infiltratr_i18n_locale(&context), "de-AT") == 0);
-    assert(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Fahrzeug") == 0);
-    assert(strcmp(infiltratr_i18n_get(&context, "fallback.only"),
-                  "English fallback") == 0);
-    assert(strcmp(infiltratr_i18n_get(&context, "missing.key"),
-                  "missing.key") == 0);
+    CHECK(infiltratr_i18n_set_locale(&context, "de_AT.UTF-8"));
+    CHECK(strcmp(infiltratr_i18n_locale(&context), "de-AT") == 0);
+    CHECK(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Fahrzeug") == 0);
+    CHECK(strcmp(infiltratr_i18n_get(&context, "fallback.only"),
+                 "English fallback") == 0);
+    CHECK(strcmp(infiltratr_i18n_get(&context, "missing.key"),
+                 "missing.key") == 0);
 
     required = infiltratr_i18n_format(
         output, sizeof(output),
         infiltratr_i18n_get(&context, "scan.modules_found"),
         arguments, sizeof(arguments) / sizeof(arguments[0]));
-    assert(required == strlen("7 Steuergeraete gefunden"));
-    assert(strcmp(output, "7 Steuergeraete gefunden") == 0);
+    CHECK(required == strlen("7 Steuergeraete gefunden"));
+    CHECK(strcmp(output, "7 Steuergeraete gefunden") == 0);
 
     required = infiltratr_i18n_format(output, 8U, "Hello {name}", NULL, 0U);
-    assert(required == strlen("Hello {name}"));
-    assert(strcmp(output, "Hello {") == 0);
+    CHECK(required == strlen("Hello {name}"));
+    CHECK(strcmp(output, "Hello {") == 0);
 
-    assert(!infiltratr_i18n_set_locale(&context, "zz-ZZ"));
-    assert(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Vehicle") == 0);
+    CHECK(!infiltratr_i18n_set_locale(&context, "zz-ZZ"));
+    CHECK(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Vehicle") == 0);
+
+    if (failures != 0) {
+        fprintf(stderr, "%d localisation test(s) failed\n", failures);
+        return 1;
+    }
     return 0;
 }
