@@ -34,6 +34,7 @@ The public API currently covers:
 - project/build identity and bounded strings;
 - strict whole-value parsing plus cursor-based unsigned integer token parsing;
 - decimal, boolean and `key=value` parsing;
+- allocation-free localisation catalogue lookup, locale/language fallback and named-placeholder interpolation;
 - checked/saturating arithmetic, checked allocation-size arithmetic and safe contiguous-array reservation;
 - Euclidean signed division;
 - fixed-width endian conversion and strict allocation-free UTF-8 validation;
@@ -54,6 +55,7 @@ The portable core remains independent of GLib, GTK and OS APIs. POSIX and dynami
 | `src/core.c` | Parsing, project metadata, scaling and general primitives. |
 | `src/arithmetic.c` | Checked/saturating arithmetic, Euclidean arithmetic and safe array reservation. |
 | `src/config.c` | Portable configuration parsing. |
+| `src/i18n.c` | Portable localisation lookup, fallback and interpolation. |
 | `src/token.c` | Cursor-based numeric token parsing. |
 | `src/timing.c` | Exact elapsed/periodic timing policy. |
 | `src/format.c` | Shared formatting. |
@@ -62,6 +64,7 @@ The portable core remains independent of GLib, GTK and OS APIs. POSIX and dynami
 | `src/posix_path.c` | POSIX lexical-path helpers. |
 | `src/posix_io.c` | Exact positioned POSIX I/O. |
 | `apple/InfiltratrCommon.xcodeproj` | Apple portable static-library target. |
+| `docs/I18N.md` | Shared localisation ownership and fallback contract. |
 | `USAGE.md` | Public API consumer/status ledger. |
 
 CMake consumers link `InfiltratrCommon::Portable` or `InfiltratrCommon::Common`; consumers must not enumerate Common's internal source files themselves.
