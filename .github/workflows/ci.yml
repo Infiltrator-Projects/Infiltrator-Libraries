@@ -128,7 +128,7 @@ jobs:
         shell: bash
         run: |
           project=apple/InfiltratrCommon.xcodeproj/project.pbxproj
-          for source in core arithmetic config token timing format; do
+          for source in core arithmetic config i18n token timing format; do
             grep -q "../src/${source}.c" "$project"
             grep -q "${source}.c in Sources" "$project"
           done
