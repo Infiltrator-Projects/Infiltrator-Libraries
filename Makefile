@@ -9,8 +9,8 @@ CFLAGS ?= -O2 -g
 override CFLAGS += -std=c11 -fPIC -Wall -Wextra -Wpedantic -Werror \
 	-Wshadow -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes
 PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/arithmetic.o \
-	$(BUILD_DIR)/config.o $(BUILD_DIR)/token.o $(BUILD_DIR)/timing.o \
-	$(BUILD_DIR)/format.o
+	$(BUILD_DIR)/config.o $(BUILD_DIR)/i18n.o $(BUILD_DIR)/token.o \
+	$(BUILD_DIR)/timing.o $(BUILD_DIR)/format.o
 OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/dynlib.o $(BUILD_DIR)/posix.o \
 	$(BUILD_DIR)/posix_path.o $(BUILD_DIR)/posix_io.o
 PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
@@ -43,6 +43,9 @@ $(BUILD_DIR)/arithmetic.o: src/arithmetic.c include/infiltratr/arithmetic.h | $(
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/config.o: src/config.c include/infiltratr/config.h | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/i18n.o: src/i18n.c include/infiltratr/i18n.h | $(BUILD_DIR)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/token.o: src/token.c include/infiltratr/token.h | $(BUILD_DIR)
@@ -92,6 +95,9 @@ $(BUILD_DIR)/arithmetic-smoke: tests/arithmetic_smoke.c $(PORTABLE_ARCHIVE)
 $(BUILD_DIR)/config-smoke: tests/config_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
 
+$(BUILD_DIR)/i18n-smoke: tests/i18n_smoke.c $(PORTABLE_ARCHIVE)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
+
 $(BUILD_DIR)/token-smoke: tests/token_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
 
@@ -124,12 +130,14 @@ $(BUILD_DIR)/posix-io-contract: tests/posix_io_contract.c $(ARCHIVE)
 
 portable-check: version-check $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-contract \
 	$(BUILD_DIR)/encoding-contract $(BUILD_DIR)/arithmetic-smoke \
-	$(BUILD_DIR)/config-smoke $(BUILD_DIR)/token-smoke $(BUILD_DIR)/timing-smoke
+	$(BUILD_DIR)/config-smoke $(BUILD_DIR)/i18n-smoke $(BUILD_DIR)/token-smoke \
+	$(BUILD_DIR)/timing-smoke
 	./$(BUILD_DIR)/portable-smoke
 	./$(BUILD_DIR)/portable-contract
 	./$(BUILD_DIR)/encoding-contract
 	./$(BUILD_DIR)/arithmetic-smoke
 	./$(BUILD_DIR)/config-smoke
+	./$(BUILD_DIR)/i18n-smoke
 	./$(BUILD_DIR)/token-smoke
 	./$(BUILD_DIR)/timing-smoke
 
@@ -137,7 +145,7 @@ check: version-check $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
 	$(BUILD_DIR)/dynlib-smoke $(BUILD_DIR)/portable-smoke \
 	$(BUILD_DIR)/portable-contract $(BUILD_DIR)/encoding-contract \
 	$(BUILD_DIR)/arithmetic-smoke $(BUILD_DIR)/config-smoke \
-	$(BUILD_DIR)/token-smoke $(BUILD_DIR)/timing-smoke \
+	$(BUILD_DIR)/i18n-smoke $(BUILD_DIR)/token-smoke $(BUILD_DIR)/timing-smoke \
 	$(BUILD_DIR)/posix-contract $(BUILD_DIR)/posix-path-smoke \
 	$(BUILD_DIR)/posix-io-contract
 	./$(BUILD_DIR)/core-smoke
@@ -148,6 +156,7 @@ check: version-check $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
 	./$(BUILD_DIR)/encoding-contract
 	./$(BUILD_DIR)/arithmetic-smoke
 	./$(BUILD_DIR)/config-smoke
+	./$(BUILD_DIR)/i18n-smoke
 	./$(BUILD_DIR)/token-smoke
 	./$(BUILD_DIR)/timing-smoke
 	./$(BUILD_DIR)/posix-contract
