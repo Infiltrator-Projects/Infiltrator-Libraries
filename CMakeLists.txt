@@ -27,6 +27,7 @@ set(INFILTRATR_COMMON_PORTABLE_SOURCES
     src/core.c
     src/arithmetic.c
     src/config.c
+    src/i18n.c
     src/token.c
     src/timing.c
     src/format.c)
@@ -112,6 +113,8 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
         tests/arithmetic_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-config-smoke
         tests/config_smoke.c InfiltratrCommon::Portable)
+    infiltratr_common_add_test(infiltratr-i18n-smoke
+        tests/i18n_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-token-smoke
         tests/token_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-timing-smoke
