@@ -16,8 +16,7 @@ jobs:
   release-policy:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Enforce main-only automatic immutable publishing
         shell: bash
         run: |
@@ -28,14 +27,8 @@ jobs:
           grep -Fq "startsWith(github.event.workflow_run.head_commit.message, 'Release ')" "$release"
           grep -Fq "github.event.workflow_run.head_branch == 'main'" "$release"
           grep -Fq 'published releases are immutable' "$release"
-          if grep -Eq '^  workflow_dispatch:|^  pull_request:|^  schedule:' "$release"; then
-            echo 'Common publication must be automatic from tested main only.' >&2
-            exit 1
-          fi
-          if grep -Eq '^  pull_request:|^  merge_group:' .github/workflows/ci.yml; then
-            echo 'Common CI must run from main only.' >&2
-            exit 1
-          fi
+          if grep -Eq '^  workflow_dispatch:|^  pull_request:|^  schedule:' "$release"; then exit 1; fi
+          if grep -Eq '^  pull_request:|^  merge_group:' .github/workflows/ci.yml; then exit 1; fi
 
   strict-build:
     name: ${{ matrix.compiler }} strict build
@@ -44,73 +37,48 @@ jobs:
       fail-fast: false
       matrix:
         compiler: [gcc, clang]
-
     steps:
-      - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Verify hosted compiler toolchain
-        run: |
-          command -v ${{ matrix.compiler }}
-          command -v make
-          command -v ar
-          ${{ matrix.compiler }} --version
-
-      - name: Run full contract and smoke tests
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Full Make and CMake verification
         run: |
           make clean
           make CC=${{ matrix.compiler }} check
-
-      - name: Verify POSIX-free portable target independently
-        run: |
           make clean
           make CC=${{ matrix.compiler }} portable-check
-
-      - name: Verify shared-library link
-        run: |
           make clean
           make CC=${{ matrix.compiler }} shared
-
-      - name: Verify authoritative CMake targets and installed package
-        run: |
-          cmake -S . -B cmake-build \
-            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DINFILTRATR_COMMON_BUILD_TESTS=ON \
-            -DINFILTRATR_COMMON_WARNINGS_AS_ERRORS=ON
+          cmake -S . -B cmake-build -DCMAKE_C_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=Debug -DINFILTRATR_COMMON_BUILD_TESTS=ON -DINFILTRATR_COMMON_WARNINGS_AS_ERRORS=ON -DINFILTRATR_COMMON_BUILD_SHARED=ON
           cmake --build cmake-build --parallel
           ctest --test-dir cmake-build --output-on-failure
           cmake --install cmake-build --prefix "$PWD/cmake-install"
-          cmake -S tests/cmake-consumer -B cmake-consumer-build \
-            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
-            -DCMAKE_PREFIX_PATH="$PWD/cmake-install"
+          cmake -S tests/cmake-consumer -B cmake-consumer-build -DCMAKE_C_COMPILER=${{ matrix.compiler }} -DCMAKE_PREFIX_PATH="$PWD/cmake-install"
           cmake --build cmake-consumer-build --parallel
           ./cmake-consumer-build/infiltratr-common-consumer
 
   sanitizers:
     name: Clang ASan + UBSan
     runs-on: ubuntu-latest
-
     steps:
-      - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Verify hosted Clang toolchain
-        run: |
-          command -v clang
-          command -v make
-          command -v ar
-          clang --version
-
-      - name: Run address and undefined-behaviour sanitizers
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run sanitizers
         env:
           ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
           UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
         run: |
           make clean
-          make CC=clang \
-            CFLAGS="-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer" \
-            check
+          make CC=clang CFLAGS="-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer" check
+
+  windows-package:
+    name: Windows MSVC CMake
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build and test portable/Win32 Common
+        shell: pwsh
+        run: |
+          cmake -S . -B cmake-build -A x64 -DINFILTRATR_COMMON_BUILD_TESTS=ON -DINFILTRATR_COMMON_BUILD_SHARED=ON
+          cmake --build cmake-build --config Release --parallel
+          ctest --test-dir cmake-build -C Release --output-on-failure
 
   apple-package:
     name: Apple package / ${{ matrix.configuration }}
@@ -119,26 +87,16 @@ jobs:
       fail-fast: false
       matrix:
         configuration: [Debug, Release]
-
     steps:
-      - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Verify Common owns the complete Apple portable source set
         shell: bash
         run: |
           project=apple/InfiltratrCommon.xcodeproj/project.pbxproj
-          for source in core arithmetic config i18n token timing format; do
+          for source in core arithmetic config i18n token timing format quantity; do
             grep -q "../src/${source}.c" "$project"
             grep -q "${source}.c in Sources" "$project"
           done
-
       - name: Build authoritative Apple portable target
         run: |
-          xcodebuild \
-            -project apple/InfiltratrCommon.xcodeproj \
-            -target InfiltratrCommonPortable \
-            -configuration ${{ matrix.configuration }} \
-            -sdk iphonesimulator \
-            CODE_SIGNING_ALLOWED=NO \
-            build
+          xcodebuild -project apple/InfiltratrCommon.xcodeproj -target InfiltratrCommonPortable -configuration ${{ matrix.configuration }} -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO build

@@ -14,6 +14,7 @@
 		A10000000000000000000015 /* format.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000025 /* format.c */; };
 		A10000000000000000000016 /* token.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000027 /* token.c */; };
 		A10000000000000000000017 /* i18n.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000028 /* i18n.c */; };
+		A10000000000000000000018 /* quantity.c in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000029 /* quantity.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +26,7 @@
 		A10000000000000000000026 /* libInfiltratrCommonPortable.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libInfiltratrCommonPortable.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000027 /* token.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = token.c; path = "../src/token.c"; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000028 /* i18n.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = i18n.c; path = "../src/i18n.c"; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000029 /* quantity.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = quantity.c; path = "../src/quantity.c"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,6 +58,7 @@
 				A10000000000000000000027 /* token.c */,
 				A10000000000000000000024 /* timing.c */,
 				A10000000000000000000025 /* format.c */,
+				A10000000000000000000029 /* quantity.c */,
 			);
 			name = "Portable Sources";
 			sourceTree = "<group>";
@@ -131,6 +134,7 @@
 				A10000000000000000000016 /* token.c in Sources */,
 				A10000000000000000000014 /* timing.c in Sources */,
 				A10000000000000000000015 /* format.c in Sources */,
+				A10000000000000000000018 /* quantity.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
