@@ -2,6 +2,11 @@
 /**
  * @file format.h
  * @brief Dependency-free formatting helpers shared by Infiltrator programs.
+ *
+ * Convenience formatters use caller-owned buffers and never allocate. Unless a
+ * function explicitly returns a boolean contract, the returned pointer is the
+ * same buffer supplied by the caller; NULL/zero-sized buffers are tolerated by
+ * the convenience wrappers and simply cannot receive text.
  */
 #ifndef INFILTRATR_COMMON_FORMAT_H
 #define INFILTRATR_COMMON_FORMAT_H
@@ -53,28 +58,41 @@ typedef struct {
       .suffix = "", \
       .unavailable_text = "N/A" }
 
+/** Render one finite/available scalar according to a versioned option policy. */
 bool infiltratr_format_scalar(bool available, long double value,
                               const InfiltratrScalarFormatOptions *options,
                               char *buffer, size_t size);
+
+/** Render bytes as a fixed one-decimal binary-scaled GB value. */
 char *infiltratr_format_memory_gb(uint64_t bytes, char *buffer, size_t size);
+/** Render storage bytes with Common's normal binary auto-scaling policy. */
 char *infiltratr_format_disk_capacity(uint64_t bytes, char *buffer, size_t size);
+/** Render byte/bit quantity or rate, forcing at least the kilo-scale display. */
 char *infiltratr_format_network(long double bytes, bool use_bits,
                                 bool per_second, char *buffer, size_t size);
+/** Render send/receive rates using one shared scale selected from the larger value. */
 char *infiltratr_format_network_pair(long double send_bytes,
                                      long double receive_bytes, bool use_bits,
                                      char *buffer, size_t size);
+/** Render a positive decimal-Mb/s link speed; unavailable input becomes N/A. */
 char *infiltratr_format_link_speed_mbps(double megabits_per_second,
                                         char *buffer, size_t size);
+/** Render an optional percentage rounded to whole percent and clamped to 0..100. */
 char *infiltratr_format_percent(bool available, double value,
                                 char *buffer, size_t size);
+/** Render an optional whole-number MHz value. */
 char *infiltratr_format_mhz(bool available, double value,
                             char *buffer, size_t size);
+/** Render an optional whole-number degrees-Celsius value. */
 char *infiltratr_format_celsius(bool available, double value,
                                 char *buffer, size_t size);
+/** Render an optional watt value with one fractional digit. */
 char *infiltratr_format_watts(bool available, double value,
                               char *buffer, size_t size);
+/** Render seconds as HH:MM:SS, prefixing whole days when required. */
 char *infiltratr_format_duration_clock(uint64_t seconds,
                                        char *buffer, size_t size);
+/** Render an optional compact day/hour/minute duration; unavailable becomes N/A. */
 char *infiltratr_format_duration_compact(bool available, uint64_t seconds,
                                          char *buffer, size_t size);
 

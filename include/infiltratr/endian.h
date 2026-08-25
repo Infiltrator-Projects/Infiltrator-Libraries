@@ -2,6 +2,12 @@
 /**
  * @file endian.h
  * @brief Dependency-free fixed-width endian conversion and byte-access primitives.
+ *
+ * CPU conversion helpers operate on integer values. Load/store helpers operate
+ * on byte storage and make no alignment assumptions, making them suitable for
+ * packed on-disk or wire-format records. Callers must provide non-NULL storage
+ * containing at least 2, 4 or 8 bytes as required; these low-level primitives
+ * deliberately perform no bounds checking.
  */
 #ifndef INFILTRATR_COMMON_ENDIAN_H
 #define INFILTRATR_COMMON_ENDIAN_H
@@ -12,6 +18,7 @@
 extern "C" {
 #endif
 
+/** Fixed-width byte swaps; each operation is its own inverse. */
 static inline uint16_t infiltratr_bswap16(uint16_t value)
 {
     return (uint16_t)((value >> 8) | (value << 8));
@@ -31,6 +38,7 @@ static inline uint64_t infiltratr_bswap64(uint64_t value)
            infiltratr_bswap32((uint32_t)(value >> 32));
 }
 
+/* Compile-time host/endian conversion; input is evaluated exactly once. */
 #if defined(_WIN32) || defined(__LITTLE_ENDIAN__) || \
     (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 #define infiltratr_cpu_to_le16(value) ((uint16_t)(value))
@@ -60,6 +68,7 @@ static inline uint64_t infiltratr_bswap64(uint64_t value)
 #define infiltratr_be64_to_cpu(value) ((uint64_t)(value))
 #endif
 
+/** Load unsigned little-endian integers from potentially unaligned bytes. */
 static inline uint16_t infiltratr_load_le16(const void *bytes)
 {
     const uint8_t *p = (const uint8_t *)bytes;
@@ -80,6 +89,7 @@ static inline uint64_t infiltratr_load_le64(const void *bytes)
            ((uint64_t)infiltratr_load_le32(p + 4) << 32);
 }
 
+/** Load unsigned big-endian integers from potentially unaligned bytes. */
 static inline uint16_t infiltratr_load_be16(const void *bytes)
 {
     const uint8_t *p = (const uint8_t *)bytes;
@@ -100,6 +110,7 @@ static inline uint64_t infiltratr_load_be64(const void *bytes)
            (uint64_t)infiltratr_load_be32(p + 4);
 }
 
+/** Store unsigned integers into potentially unaligned little-endian bytes. */
 static inline void infiltratr_store_le16(void *bytes, uint16_t value)
 {
     uint8_t *p = (uint8_t *)bytes;
@@ -123,6 +134,7 @@ static inline void infiltratr_store_le64(void *bytes, uint64_t value)
     infiltratr_store_le32(p + 4, (uint32_t)(value >> 32));
 }
 
+/** Store unsigned integers into potentially unaligned big-endian bytes. */
 static inline void infiltratr_store_be16(void *bytes, uint16_t value)
 {
     uint8_t *p = (uint8_t *)bytes;

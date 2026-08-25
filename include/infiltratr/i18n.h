@@ -21,22 +21,26 @@ extern "C" {
 
 #define INFILTRATR_I18N_LOCALE_CAPACITY 32U
 
+/** Immutable key/value entry; both pointers must remain valid with its catalogue. */
 typedef struct {
     const char *key;
     const char *value;
 } InfiltratrI18nEntry;
 
+/** Immutable locale catalogue backed by caller-owned process-lifetime storage. */
 typedef struct {
     const char *locale;
     const InfiltratrI18nEntry *entries;
     size_t entry_count;
 } InfiltratrI18nCatalog;
 
+/** Named interpolation argument used by infiltratr_i18n_format(). */
 typedef struct {
     const char *name;
     const char *value;
 } InfiltratrI18nArgument;
 
+/** Allocation-free selection context; catalogue storage remains caller-owned. */
 typedef struct {
     const InfiltratrI18nCatalog *catalogs;
     size_t catalog_count;
@@ -44,6 +48,12 @@ typedef struct {
     char fallback_locale[INFILTRATR_I18N_LOCALE_CAPACITY];
 } InfiltratrI18n;
 
+/**
+ * Initialise a localisation context and canonical fallback locale.
+ *
+ * The catalogue table is borrowed, not copied. Malformed catalogue/fallback
+ * input is rejected without establishing a usable context.
+ */
 bool infiltratr_i18n_init(InfiltratrI18n *context,
                           const InfiltratrI18nCatalog *catalogs,
                           size_t catalog_count,
@@ -56,9 +66,24 @@ bool infiltratr_i18n_init(InfiltratrI18n *context,
  */
 bool infiltratr_i18n_set_locale(InfiltratrI18n *context, const char *locale);
 
+/** Return the canonical selected locale stored by the context. */
 const char *infiltratr_i18n_locale(const InfiltratrI18n *context);
+
+/**
+ * Resolve a key through exact locale, language and configured fallback order.
+ * Returned strings alias immutable catalogue storage; missing keys fall back
+ * to the supplied key rather than allocating a replacement.
+ */
 const char *infiltratr_i18n_get(const InfiltratrI18n *context,
                                 const char *key);
+
+/**
+ * Interpolate named arguments into a caller-owned bounded buffer.
+ *
+ * The operation never allocates. The returned size is the number of bytes
+ * required excluding NUL; callers can therefore detect truncation when the
+ * result is greater than or equal to `capacity`.
+ */
 size_t infiltratr_i18n_format(char *destination, size_t capacity,
                               const char *format,
                               const InfiltratrI18nArgument *arguments,
