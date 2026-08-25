@@ -17,15 +17,8 @@ option(INFILTRATR_COMMON_WARNINGS_AS_ERRORS "Treat Common warnings as errors" ${
 option(INFILTRATR_COMMON_BUILD_SHARED "Build the versioned shared Common library" ON)
 
 set(INFILTRATR_COMMON_PORTABLE_SOURCES
-    src/core.c
-    src/arithmetic.c
-    src/config.c
-    src/i18n.c
-    src/token.c
-    src/timing.c
-    src/format.c
-    src/quantity.c)
-
+    src/core.c src/arithmetic.c src/config.c src/i18n.c
+    src/token.c src/timing.c src/format.c src/quantity.c)
 set(INFILTRATR_COMMON_WARNING_FLAGS
     -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes)
 
@@ -50,12 +43,16 @@ infiltratr_common_configure_target(infiltratr-common-portable Portable)
 
 set(INFILTRATR_COMMON_FULL_SOURCES ${INFILTRATR_COMMON_PORTABLE_SOURCES} src/dynlib.c)
 if(UNIX)
-    list(APPEND INFILTRATR_COMMON_FULL_SOURCES src/posix.c src/posix_path.c src/posix_io.c)
+    list(APPEND INFILTRATR_COMMON_FULL_SOURCES
+        src/posix.c src/posix_path.c src/posix_io.c src/posix_numeric.c)
 endif()
 
 add_library(infiltratr-common STATIC ${INFILTRATR_COMMON_FULL_SOURCES})
 add_library(InfiltratrCommon::Common ALIAS infiltratr-common)
 set_target_properties(infiltratr-common PROPERTIES OUTPUT_NAME infiltratr-common)
+if(WIN32)
+    set_target_properties(infiltratr-common PROPERTIES OUTPUT_NAME infiltratr-common-static)
+endif()
 infiltratr_common_configure_target(infiltratr-common Common)
 
 if(INFILTRATR_COMMON_BUILD_SHARED)
@@ -64,7 +61,8 @@ if(INFILTRATR_COMMON_BUILD_SHARED)
     set_target_properties(infiltratr-common-shared PROPERTIES
         OUTPUT_NAME infiltratr-common
         VERSION "${PROJECT_VERSION}"
-        SOVERSION "${PROJECT_VERSION_MAJOR}")
+        SOVERSION "${PROJECT_VERSION_MAJOR}"
+        WINDOWS_EXPORT_ALL_SYMBOLS ON)
     infiltratr_common_configure_target(infiltratr-common-shared Shared)
 endif()
 
@@ -98,7 +96,6 @@ function(infiltratr_common_add_test target source library)
 endfunction()
 
 if(INFILTRATR_COMMON_BUILD_TESTS)
-    infiltratr_common_add_test(infiltratr-core-smoke tests/core_smoke.c InfiltratrCommon::Common)
     infiltratr_common_add_test(infiltratr-arithmetic-smoke tests/arithmetic_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-config-smoke tests/config_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-i18n-smoke tests/i18n_smoke.c InfiltratrCommon::Portable)
@@ -110,10 +107,15 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
     infiltratr_common_add_test(infiltratr-portable-contract tests/portable_contract.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-encoding-contract tests/encoding_contract.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-completion-contract tests/completion_contract.c InfiltratrCommon::Portable)
+    if(INFILTRATR_COMMON_BUILD_SHARED)
+        infiltratr_common_add_test(infiltratr-shared-smoke tests/portable_smoke.c InfiltratrCommon::Shared)
+    endif()
     if(UNIX)
+        infiltratr_common_add_test(infiltratr-core-smoke tests/core_smoke.c InfiltratrCommon::Common)
         infiltratr_common_add_test(infiltratr-posix-contract tests/posix_contract.c InfiltratrCommon::Common)
         infiltratr_common_add_test(infiltratr-posix-path-smoke tests/posix_path_smoke.c InfiltratrCommon::Common)
         infiltratr_common_add_test(infiltratr-posix-io-contract tests/posix_io_contract.c InfiltratrCommon::Common)
+        infiltratr_common_add_test(infiltratr-posix-numeric-contract tests/posix_numeric_contract.c InfiltratrCommon::Common)
     endif()
 endif()
 

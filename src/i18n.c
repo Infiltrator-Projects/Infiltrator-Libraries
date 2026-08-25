@@ -2,12 +2,31 @@
 #include "infiltratr/i18n.h"
 #include "infiltratr/core.h"
 
-#include <ctype.h>
 #include <string.h>
 
 static int ascii_alpha(unsigned char c)
 {
     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
+static int ascii_digit(unsigned char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+static int ascii_alnum(unsigned char c)
+{
+    return ascii_alpha(c) || ascii_digit(c);
+}
+
+static char ascii_lower(unsigned char c)
+{
+    return c >= 'A' && c <= 'Z' ? (char)(c + ('a' - 'A')) : (char)c;
+}
+
+static char ascii_upper(unsigned char c)
+{
+    return c >= 'a' && c <= 'z' ? (char)(c - ('a' - 'A')) : (char)c;
 }
 
 static size_t normalise_locale(char *destination, size_t capacity,
@@ -18,7 +37,6 @@ static size_t normalise_locale(char *destination, size_t capacity,
     if (!source || !source[0]) return 0U;
 
     size_t out = 0U;
-    size_t segment_start = 0U;
     size_t segment_length = 0U;
     for (size_t i = 0U; source[i] != '\0'; ++i) {
         const unsigned char c = (unsigned char)source[i];
@@ -29,15 +47,14 @@ static size_t normalise_locale(char *destination, size_t capacity,
                 return 0U;
             }
             destination[out++] = '-';
-            segment_start = out;
             segment_length = 0U;
             continue;
         }
-        if (!isalnum(c) || out + 1U >= capacity) {
+        if (!ascii_alnum(c) || out + 1U >= capacity) {
             destination[0] = '\0';
             return 0U;
         }
-        destination[out++] = (char)tolower(c);
+        destination[out++] = ascii_lower(c);
         segment_length++;
     }
     if (segment_length == 0U) {
@@ -57,14 +74,13 @@ static size_t normalise_locale(char *destination, size_t capacity,
                 if (!ascii_alpha((unsigned char)destination[i])) all_alpha = false;
             if (all_alpha && length == 2U) {
                 for (size_t i = start; i < end; ++i)
-                    destination[i] = (char)toupper((unsigned char)destination[i]);
+                    destination[i] = ascii_upper((unsigned char)destination[i]);
             } else if (all_alpha && length == 4U) {
-                destination[start] = (char)toupper((unsigned char)destination[start]);
+                destination[start] = ascii_upper((unsigned char)destination[start]);
             }
         }
         start = end + 1U;
     }
-    (void)segment_start;
     return out;
 }
 

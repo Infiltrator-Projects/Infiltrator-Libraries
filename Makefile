@@ -11,7 +11,7 @@ PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/arithmetic.o \
 	$(BUILD_DIR)/config.o $(BUILD_DIR)/i18n.o $(BUILD_DIR)/token.o \
 	$(BUILD_DIR)/timing.o $(BUILD_DIR)/format.o $(BUILD_DIR)/quantity.o
 OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/dynlib.o $(BUILD_DIR)/posix.o \
-	$(BUILD_DIR)/posix_path.o $(BUILD_DIR)/posix_io.o
+	$(BUILD_DIR)/posix_path.o $(BUILD_DIR)/posix_io.o $(BUILD_DIR)/posix_numeric.o
 PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
 ARCHIVE := $(BUILD_DIR)/libinfiltratr-common.a
 SHARED := $(BUILD_DIR)/libinfiltratr-common.so.$(COMMON_VERSION)
@@ -64,6 +64,8 @@ $(BUILD_DIR)/posix-path-smoke: tests/posix_path_smoke.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
 $(BUILD_DIR)/posix-io-contract: tests/posix_io_contract.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
+$(BUILD_DIR)/posix-numeric-contract: tests/posix_numeric_contract.c $(ARCHIVE)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
 portable-check: version-check $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-contract \
 	$(BUILD_DIR)/encoding-contract $(BUILD_DIR)/completion-contract \
 	$(BUILD_DIR)/arithmetic-smoke $(BUILD_DIR)/config-smoke $(BUILD_DIR)/i18n-smoke \
@@ -79,12 +81,14 @@ portable-check: version-check $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-
 	./$(BUILD_DIR)/timing-smoke
 check: portable-check $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
 	$(BUILD_DIR)/dynlib-smoke $(BUILD_DIR)/posix-contract \
-	$(BUILD_DIR)/posix-path-smoke $(BUILD_DIR)/posix-io-contract
+	$(BUILD_DIR)/posix-path-smoke $(BUILD_DIR)/posix-io-contract \
+	$(BUILD_DIR)/posix-numeric-contract
 	./$(BUILD_DIR)/core-smoke
 	./$(BUILD_DIR)/format-smoke
 	./$(BUILD_DIR)/dynlib-smoke
 	./$(BUILD_DIR)/posix-contract
 	./$(BUILD_DIR)/posix-path-smoke
 	./$(BUILD_DIR)/posix-io-contract
+	./$(BUILD_DIR)/posix-numeric-contract
 clean:
 	rm -rf "$(BUILD_DIR)"
