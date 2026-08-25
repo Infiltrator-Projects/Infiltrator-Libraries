@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "infiltratr/i18n.h"
+#include "infiltratr/core.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -129,8 +130,8 @@ bool infiltratr_i18n_init(InfiltratrI18n *context,
                          sizeof(context->fallback_locale),
                          fallback_locale) == 0U)
         return false;
-    (void)strncpy(context->locale, context->fallback_locale,
-                  sizeof(context->locale) - 1U);
+    infiltratr_copy_string(context->locale, sizeof(context->locale),
+                           context->fallback_locale);
     return find_catalog_language(context, context->fallback_locale) != NULL;
 }
 
@@ -140,8 +141,7 @@ bool infiltratr_i18n_set_locale(InfiltratrI18n *context, const char *locale)
     if (context == NULL || locale == NULL) return false;
     if (normalise_locale(normalised, sizeof(normalised), locale) == 0U)
         return false;
-    (void)strncpy(context->locale, normalised, sizeof(context->locale) - 1U);
-    context->locale[sizeof(context->locale) - 1U] = '\0';
+    infiltratr_copy_string(context->locale, sizeof(context->locale), normalised);
     return find_catalog_language(context, context->locale) != NULL;
 }
 
