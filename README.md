@@ -6,11 +6,11 @@
 
 Infiltrator Libraries is the canonical shared-code repository for reusable first-party components used across the Infiltrator software family.
 
-**Current library version:** see [`VERSION`](VERSION)  
+**Current library version:** 1.15.0  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
-## Role in the project family
+## Role
 
 ```text
 Infiltratr Common
@@ -23,53 +23,43 @@ Infiltratr Common
            └─ JAGLINK
 ```
 
-Common owns portable facilities useful across multiple products. Application behaviour, filesystem semantics, hardware collectors, calendar rules, vehicle diagnostics and user interfaces remain in their owning repositories.
+Common owns portable mechanics and algorithms that have real use across the project family. Application behaviour, filesystem semantics, hardware policy, calendar rules, vehicle diagnostics and user interfaces remain in their owning repositories.
 
-Once Common owns a general algorithmic contract, consumers provide policy rather than reimplementing smaller private variants. Speculative utility APIs stay out of Common until there is a real consumer requirement.
+## Common 1.15.0
 
-## Capabilities
+1.15 completes several capability families that were already active in Common:
 
-The public API currently covers:
-
-- project/build identity and bounded strings;
-- strict whole-value parsing plus cursor-based unsigned integer token parsing;
-- decimal, boolean and `key=value` parsing;
-- allocation-free localisation catalogue lookup, locale/language fallback and named-placeholder interpolation;
-- checked/saturating arithmetic, checked allocation-size arithmetic and safe contiguous-array reservation;
-- Euclidean signed division;
-- fixed-width endian conversion and strict allocation-free UTF-8 validation;
-- exact elapsed/periodic timing and delay conversion;
-- configurable scalar, byte, rate, percentage, frequency, temperature and power formatting;
+- checked unsigned add/subtract/multiply and saturating arithmetic;
+- strict whole-value signed/unsigned parsing, range parsing, signed and unsigned cursor-token parsing;
+- strict locale-independent finite decimal parsing;
+- strict binary quantity parsing from B/K/KB/KiB through E/EB/EiB;
+- little- and big-endian CPU conversion plus unaligned byte load/store helpers for 16/32/64-bit values;
+- strict UTF-8 validation;
+- exact EINTR-safe sequential `read`/`write` and positioned `pread`/`pwrite` contracts;
+- rich POSIX text/u64/i64/double readers with explicit failure categories;
+- durable atomic replacement writes and monotonic clocks;
+- allocation-free localisation lookup/interpolation with strict non-truncating locale normalisation;
+- quantity, percentage, frequency, temperature, power and duration formatting;
 - POSIX/Win32 dynamic-library lifetime and symbol lookup;
-- POSIX path handling, lexical basename selection and bounded text/numeric file reads;
-- exact EINTR-safe positioned POSIX I/O; and
-- monotonic timing through the POSIX provider.
+- stable ABI-prefix validation for versioned option structures.
 
-The portable core remains independent of GLib, GTK and OS APIs. POSIX and dynamic-loader adapters are isolated from the dependency-free modules.
+The portable core remains independent of GLib, GTK and OS APIs. POSIX and native loader adapters are isolated from dependency-free modules.
 
-## Architecture
+## ABI policy
 
-| Path | Purpose |
-| --- | --- |
-| `include/infiltratr/` | Public headers and API contracts. |
-| `src/core.c` | Parsing, project metadata, scaling and general primitives. |
-| `src/arithmetic.c` | Checked/saturating arithmetic, Euclidean arithmetic and safe array reservation. |
-| `src/config.c` | Portable configuration parsing. |
-| `src/i18n.c` | Portable localisation lookup, fallback and interpolation. |
-| `src/token.c` | Cursor-based numeric token parsing. |
-| `src/timing.c` | Exact elapsed/periodic timing policy. |
-| `src/format.c` | Shared formatting. |
-| `src/dynlib.c` | POSIX/Win32 dynamic-library adapter. |
-| `src/posix.c` | POSIX path/file/clock provider. |
-| `src/posix_path.c` | POSIX lexical-path helpers. |
-| `src/posix_io.c` | Exact positioned POSIX I/O. |
-| `apple/InfiltratrCommon.xcodeproj` | Apple portable static-library target. |
-| `docs/I18N.md` | Shared localisation ownership and fallback contract. |
-| `USAGE.md` | Public API consumer/status ledger. |
+The shared library retains major SONAME 1. ABI-bearing public structures begin with `struct_size` and `abi_version`. Version-1 implementations require the supplied structure to cover all fields defined by ABI 1, not `sizeof()` the newest compiler layout. Trailing padding and future appended fields therefore do not make an older ABI-1 caller invalid.
 
-CMake consumers link `InfiltratrCommon::Portable` or `InfiltratrCommon::Common`; consumers must not enumerate Common's internal source files themselves.
+An incompatible semantic layout requires a new ABI version; an incompatible shared-library contract requires a new library major version.
 
-## Build and test
+## Build targets
+
+CMake exports:
+
+- `InfiltratrCommon::Portable` — dependency-free static portable core;
+- `InfiltratrCommon::Common` — full static Common target;
+- `InfiltratrCommon::Shared` — versioned shared Common target.
+
+The Makefile continues to build `libinfiltratr-portable.a`, `libinfiltratr-common.a`, and the versioned `libinfiltratr-common.so.<version>` on POSIX systems.
 
 ```sh
 make check
@@ -80,39 +70,30 @@ cmake --build cmake-build
 ctest --test-dir cmake-build --output-on-failure
 ```
 
-The default build creates `build/libinfiltratr-common.a`; the portable target creates `build/libinfiltratr-portable.a`; the shared target creates the versioned shared library with the stable major SONAME. The shared filename is derived directly from `VERSION`, and the Makefile refuses to build when `VERSION` and `INFILTRATR_COMMON_VERSION` disagree.
+## Verification
 
-GitHub Actions runs strict GCC and Clang builds, portable-only verification, shared-library linking, CMake package/consumer checks, the Apple static-library target and sanitizer coverage.
+Every push to `main` runs:
 
-## Release assets
-
-A numbered Common release publishes:
-
-| File | Purpose |
-| --- | --- |
-| `Infiltratr-Common-<version>-source.zip` | Exact tested source archive. |
-| `SHA256SUMS.txt` | SHA-256 checksum for the source archive. |
-
-Consumer repositories pin an exact reviewed Common release/commit rather than maintaining private forks.
+- strict GCC and Clang builds;
+- portable/full contract suites;
+- CMake install and external-consumer tests;
+- shared-library linkage tests;
+- Clang ASan + UBSan;
+- Windows MSVC static/shared CMake builds and tests;
+- Apple Debug and Release portable-library builds.
 
 ## Repository and release policy
 
-This repository uses `main` as its working branch. Development changes are made directly on `main`; the normal project workflow does not depend on PR, feature or release branches.
+`main` is the working branch. Ordinary commits do not publish. A commit becomes release-eligible only when its subject begins with `Release <version>` and the complete Common CI run succeeds.
 
-Every push to `main` runs Common CI. Ordinary commits do not publish. A commit is release-eligible only when its subject begins with the exact source version as `Release <version>` and the complete Common CI run succeeds.
-
-The publisher checks out the exact tested commit, verifies it is still current `main`, reruns the Common build/test gates, creates the tested source ZIP and checksum, then creates the immutable version tag and GitHub release. Existing version tags and published releases are never moved, replaced or edited in place.
-
-Manually runnable build/test helpers, where present, are diagnostic tools only and are not release-approval mechanisms.
+The publisher verifies the exact tested `main` commit, rebuilds the source package, creates the immutable version tag and GitHub release, and publishes the source archive plus SHA-256 checksums. Published tags/releases are never moved or edited in place.
 
 ## Source of truth
 
-This repository is the authoritative copy of Infiltratr Common. Application source releases that vendor Common must match the pinned release source. LINK owns the shared automotive layer above Common; MBLINK and JAGLINK consume LINK instead of duplicating Common- or LINK-owned algorithms.
-
-See `USAGE.md` for the public API consumer/status map.
+This repository is the authoritative copy of Infiltratr Common. Consumers pin an exact reviewed Common release/commit rather than maintaining private variants. See `USAGE.md` for capability ownership and consumer boundaries.
 
 ## Licence
 
 Copyright © 2026 Shannon Smith.
 
-Infiltratr Common is free software licensed under the GNU General Public License version 3 or, at your option, any later version (`GPL-3.0-or-later`). The complete licence text is in `LICENSE`.
+Infiltratr Common is licensed under GNU GPL-3.0-or-later. See `LICENSE`.
