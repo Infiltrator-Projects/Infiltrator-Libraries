@@ -1,17 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-/**
- * @file format.c
- * @brief Dependency-free shared metric formatting implementation.
- *
- * @author Shannon Smith
- * @copyright Copyright (c) 2026 Shannon Smith
- * @license GPL-3.0-or-later
- */
+/** @file format.c @brief Dependency-free shared metric formatting implementation. */
 #include "infiltratr/format.h"
 #include "infiltratr/core.h"
 
 #include <math.h>
 #include <stdio.h>
+
+#define INFILTRATR_SCALAR_FORMAT_OPTIONS_ABI1_SIZE \
+    (offsetof(InfiltratrScalarFormatOptions, unavailable_text) + \
+     sizeof(((InfiltratrScalarFormatOptions *)0)->unavailable_text))
 
 static char *unavailable(char *buffer, size_t size)
 {
@@ -24,21 +21,18 @@ bool infiltratr_format_scalar(bool available, long double value,
                               char *buffer, size_t size)
 {
     if (buffer && size > 0U) buffer[0] = '\0';
-    if (!options || options->struct_size < sizeof(*options) ||
+    if (!options || options->struct_size < INFILTRATR_SCALAR_FORMAT_OPTIONS_ABI1_SIZE ||
         options->abi_version != INFILTRATR_SCALAR_FORMAT_OPTIONS_ABI ||
         !buffer || size == 0U || options->decimal_places > 9U)
         return false;
 
     const char *prefix = options->prefix ? options->prefix : "";
     const char *suffix = options->suffix ? options->suffix : "";
-    const char *missing = options->unavailable_text
-        ? options->unavailable_text : "N/A";
-
+    const char *missing = options->unavailable_text ? options->unavailable_text : "N/A";
     if (!available || !isfinite(value)) {
         const int written = snprintf(buffer, size, "%s", missing);
         return written >= 0 && (size_t)written < size;
     }
-
     if (options->clamp) {
         if (isnan(options->minimum) || isnan(options->maximum) ||
             options->minimum > options->maximum)
@@ -46,7 +40,6 @@ bool infiltratr_format_scalar(bool available, long double value,
         if (value < options->minimum) value = options->minimum;
         if (value > options->maximum) value = options->maximum;
     }
-
     const int written = snprintf(buffer, size, "%s%.*Lf%s", prefix,
                                  (int)options->decimal_places, value, suffix);
     return written >= 0 && (size_t)written < size;
@@ -85,14 +78,12 @@ char *infiltratr_format_network(long double bytes, bool use_bits,
     static const char *const bit_units[] = {"b", "Kb", "Mb", "Gb", "Tb"};
     if (!buffer || size == 0U) return buffer;
     if (!isfinite(bytes) || bytes < 0.0L) bytes = 0.0L;
-
     InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
     options.minimum_unit = 1U;
     options.decimal_places = 1U;
     options.integer_threshold = 0.0L;
     options.integer_at_minimum_unit = false;
     options.zero_below_minimum_unit = true;
-
     const long double value = use_bits ? bytes * 8.0L : bytes;
     const char *const *units = use_bits ? bit_units : byte_units;
     (void)infiltratr_format_scaled_quantity(value, units,
@@ -111,18 +102,15 @@ char *infiltratr_format_network_pair(long double send_bytes,
     if (!buffer || size == 0U) return buffer;
     if (!isfinite(send_bytes) || send_bytes < 0.0L) send_bytes = 0.0L;
     if (!isfinite(receive_bytes) || receive_bytes < 0.0L) receive_bytes = 0.0L;
-
     long double send = use_bits ? send_bytes * 8.0L : send_bytes;
     long double receive = use_bits ? receive_bytes * 8.0L : receive_bytes;
     const long double maximum = fmaxl(send, receive);
-
     InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
     options.minimum_unit = 1U;
     options.decimal_places = 1U;
     options.integer_threshold = 0.0L;
     options.integer_at_minimum_unit = false;
     options.zero_below_minimum_unit = true;
-
     long double ignored = 0.0L;
     size_t unit = 1U;
     if (!infiltratr_scale_quantity(maximum, &options,
@@ -131,7 +119,6 @@ char *infiltratr_format_network_pair(long double send_bytes,
         buffer[0] = '\0';
         return buffer;
     }
-
     options.minimum_unit = unit;
     options.maximum_unit = unit;
     options.zero_below_minimum_unit = false;
@@ -144,7 +131,6 @@ char *infiltratr_format_network_pair(long double send_bytes,
     (void)infiltratr_scale_quantity(receive, &options,
                                     INFILTRATR_ARRAY_LENGTH(byte_units),
                                     &scaled_receive, &selected_unit);
-
     const char *const *units = use_bits ? bit_units : byte_units;
     (void)snprintf(buffer, size, "S:%.1Lf R:%.1Lf %s/s", scaled_send,
                    scaled_receive, units[unit]);
@@ -158,15 +144,12 @@ char *infiltratr_format_link_speed_mbps(double megabits_per_second,
     if (!buffer || size == 0U) return buffer;
     if (!isfinite(megabits_per_second) || megabits_per_second <= 0.0)
         return unavailable(buffer, size);
-
     InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
     options.minimum_unit = 1U;
     options.decimal_places = 2U;
     options.integer_threshold = 0.0L;
     options.integer_at_minimum_unit = false;
-
-    const long double bits_per_second =
-        (long double)megabits_per_second * 1000000.0L;
+    const long double bits_per_second = (long double)megabits_per_second * 1000000.0L;
     (void)infiltratr_format_scaled_quantity(bits_per_second, units,
                                              INFILTRATR_ARRAY_LENGTH(units),
                                              "", &options, buffer, size);
@@ -182,45 +165,37 @@ char *infiltratr_format_percent(bool available, double value,
     options.minimum = 0.0L;
     options.maximum = 100.0L;
     options.suffix = "%";
-    (void)infiltratr_format_scalar(available, (long double)value, &options,
-                                   buffer, size);
+    (void)infiltratr_format_scalar(available, (long double)value, &options, buffer, size);
     return buffer;
 }
 
-char *infiltratr_format_mhz(bool available, double value,
-                            char *buffer, size_t size)
+char *infiltratr_format_mhz(bool available, double value, char *buffer, size_t size)
 {
     InfiltratrScalarFormatOptions options = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
     options.decimal_places = 0U;
     options.suffix = " MHz";
-    (void)infiltratr_format_scalar(available, (long double)value, &options,
-                                   buffer, size);
+    (void)infiltratr_format_scalar(available, (long double)value, &options, buffer, size);
     return buffer;
 }
 
-char *infiltratr_format_celsius(bool available, double value,
-                                char *buffer, size_t size)
+char *infiltratr_format_celsius(bool available, double value, char *buffer, size_t size)
 {
     InfiltratrScalarFormatOptions options = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
     options.decimal_places = 0U;
     options.suffix = " °C";
-    (void)infiltratr_format_scalar(available, (long double)value, &options,
-                                   buffer, size);
+    (void)infiltratr_format_scalar(available, (long double)value, &options, buffer, size);
     return buffer;
 }
 
-char *infiltratr_format_watts(bool available, double value,
-                              char *buffer, size_t size)
+char *infiltratr_format_watts(bool available, double value, char *buffer, size_t size)
 {
     InfiltratrScalarFormatOptions options = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
     options.suffix = " W";
-    (void)infiltratr_format_scalar(available, (long double)value, &options,
-                                   buffer, size);
+    (void)infiltratr_format_scalar(available, (long double)value, &options, buffer, size);
     return buffer;
 }
 
-char *infiltratr_format_duration_clock(uint64_t seconds,
-                                       char *buffer, size_t size)
+char *infiltratr_format_duration_clock(uint64_t seconds, char *buffer, size_t size)
 {
     if (!buffer || size == 0U) return buffer;
     const uint64_t days = seconds / 86400U;
@@ -232,8 +207,7 @@ char *infiltratr_format_duration_clock(uint64_t seconds,
         (void)snprintf(buffer, size, "%llud %02u:%02u:%02u",
                        (unsigned long long)days, hours, minutes, remainder);
     else
-        (void)snprintf(buffer, size, "%02u:%02u:%02u",
-                       hours, minutes, remainder);
+        (void)snprintf(buffer, size, "%02u:%02u:%02u", hours, minutes, remainder);
     return buffer;
 }
 
@@ -242,7 +216,6 @@ char *infiltratr_format_duration_compact(bool available, uint64_t seconds,
 {
     if (!buffer || size == 0U) return buffer;
     if (!available) return unavailable(buffer, size);
-
     const uint64_t days = seconds / 86400U;
     seconds %= 86400U;
     const unsigned int hours = (unsigned int)(seconds / 3600U);

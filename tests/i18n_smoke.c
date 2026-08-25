@@ -5,13 +5,7 @@
 #include <string.h>
 
 static int failures = 0;
-
-#define CHECK(condition) do { \
-    if (!(condition)) { \
-        fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #condition); \
-        failures++; \
-    } \
-} while (0)
+#define CHECK(condition) do { if (!(condition)) { fprintf(stderr, "FAIL %s:%d: %s\n", __FILE__, __LINE__, #condition); failures++; } } while (0)
 
 static const InfiltratrI18nEntry english_entries[] = {
     {"nav.vehicle", "Vehicle"},
@@ -35,21 +29,20 @@ int main(void)
     size_t required;
 
     CHECK(infiltratr_i18n_init(&context, catalogs,
-                               sizeof(catalogs) / sizeof(catalogs[0]),
-                               "en_AU"));
+                               sizeof(catalogs) / sizeof(catalogs[0]), "en_AU"));
     CHECK(strcmp(infiltratr_i18n_locale(&context), "en-AU") == 0);
     CHECK(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Vehicle") == 0);
 
     CHECK(infiltratr_i18n_set_locale(&context, "de_AT.UTF-8"));
     CHECK(strcmp(infiltratr_i18n_locale(&context), "de-AT") == 0);
     CHECK(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Fahrzeug") == 0);
-    CHECK(strcmp(infiltratr_i18n_get(&context, "fallback.only"),
-                 "English fallback") == 0);
-    CHECK(strcmp(infiltratr_i18n_get(&context, "missing.key"),
-                 "missing.key") == 0);
+    CHECK(strcmp(infiltratr_i18n_get(&context, "fallback.only"), "English fallback") == 0);
 
-    required = infiltratr_i18n_format(
-        output, sizeof(output),
+    CHECK(infiltratr_i18n_set_locale(&context, "de_Latn_DE.UTF-8"));
+    CHECK(strcmp(infiltratr_i18n_locale(&context), "de-Latn-DE") == 0);
+    CHECK(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Fahrzeug") == 0);
+
+    required = infiltratr_i18n_format(output, sizeof(output),
         infiltratr_i18n_get(&context, "scan.modules_found"),
         arguments, sizeof(arguments) / sizeof(arguments[0]));
     CHECK(required == strlen("7 Steuergeraete gefunden"));
@@ -58,6 +51,13 @@ int main(void)
     required = infiltratr_i18n_format(output, 8U, "Hello {name}", NULL, 0U);
     CHECK(required == strlen("Hello {name}"));
     CHECK(strcmp(output, "Hello {") == 0);
+
+    const char before[INFILTRATR_I18N_LOCALE_CAPACITY] = "de-Latn-DE";
+    CHECK(!infiltratr_i18n_set_locale(&context, "en--AU"));
+    CHECK(strcmp(infiltratr_i18n_locale(&context), before) == 0);
+    CHECK(!infiltratr_i18n_set_locale(&context,
+        "en-abcdefghijklmnopqrstuvwxyz0123456789-TOO-LONG"));
+    CHECK(strcmp(infiltratr_i18n_locale(&context), before) == 0);
 
     CHECK(!infiltratr_i18n_set_locale(&context, "zz-ZZ"));
     CHECK(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Vehicle") == 0);

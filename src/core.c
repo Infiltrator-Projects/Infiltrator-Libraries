@@ -17,6 +17,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define INFILTRATR_PROJECT_INFO_ABI1_SIZE \
+    (offsetof(InfiltratrProjectInfo, copyright_text) + \
+     sizeof(((InfiltratrProjectInfo *)0)->copyright_text))
+#define INFILTRATR_SCALE_OPTIONS_ABI1_SIZE \
+    (offsetof(InfiltratrScaleOptions, zero_below_minimum_unit) + \
+     sizeof(((InfiltratrScaleOptions *)0)->zero_below_minimum_unit))
+
 static bool populated(const char *text)
 {
     return text && text[0] != '\0';
@@ -24,7 +31,7 @@ static bool populated(const char *text)
 
 bool infiltratr_project_info_is_valid(const InfiltratrProjectInfo *info)
 {
-    return info && info->struct_size >= sizeof(*info) &&
+    return info && info->struct_size >= INFILTRATR_PROJECT_INFO_ABI1_SIZE &&
            info->abi_version == INFILTRATR_PROJECT_INFO_ABI &&
            populated(info->program_name) && populated(info->executable_name) &&
            populated(info->application_id) && populated(info->version) &&
@@ -193,19 +200,9 @@ static bool ascii_digit(char character)
     return character >= '0' && character <= '9';
 }
 
-/*
- * Apply a base-10 exponent without constructing one huge or tiny intermediate
- * power of ten. On implementations where long double has the same exponent
- * range as double, powl(10, -N) can underflow to zero before multiplication by
- * a large significand would bring the final value back into the subnormal
- * range. Bounded 10^18 steps keep every intermediate monotonic with the final
- * magnitude, so a zero here means the represented non-zero value truly cannot
- * survive in long double rather than being an artefact of the scaling method.
- */
 static bool apply_decimal_exponent(long double *value, int64_t exponent)
 {
     if (!value || !isfinite(*value) || *value == 0.0L) return false;
-
     static const long double chunk = 1000000000000000000.0L;
     while (exponent >= 18) {
         if (*value > LDBL_MAX / chunk) return false;
@@ -217,7 +214,6 @@ static bool apply_decimal_exponent(long double *value, int64_t exponent)
         if (*value == 0.0L) return false;
         exponent += 18;
     }
-
     long double factor = 1.0L;
     if (exponent > 0) {
         for (int64_t index = 0; index < exponent; index++) factor *= 10.0L;
@@ -228,24 +224,14 @@ static bool apply_decimal_exponent(long double *value, int64_t exponent)
         *value /= factor;
         if (*value == 0.0L) return false;
     }
-
     return isfinite(*value);
 }
 
-/*
- * Parse the machine-readable decimal syntax used by project configuration
- * and kernel text interfaces.  This deliberately does not call strtod():
- * strtod() follows LC_NUMERIC, while these data formats always use an ASCII
- * full stop as the decimal separator.  Keeping the grammar here also makes
- * parsing deterministic when the desktop session uses a comma-decimal locale.
- */
 bool infiltratr_parse_double(const char *text, double *value)
 {
     if (!text || !value) return false;
-
     const char *cursor = text;
     while (ascii_space(*cursor)) cursor++;
-
     bool negative = false;
     if (*cursor == '+' || *cursor == '-') {
         negative = *cursor == '-';
@@ -272,10 +258,8 @@ bool infiltratr_parse_double(const char *text, double *value)
             significand = significand * 10U + (uint64_t)digit;
             significant_digits++;
         } else {
-            if (first_discarded_digit < 0)
-                first_discarded_digit = (int)digit;
-            else if (digit != 0U)
-                discarded_nonzero = true;
+            if (first_discarded_digit < 0) first_discarded_digit = (int)digit;
+            else if (digit != 0U) discarded_nonzero = true;
             if (decimal_exponent == INT64_MAX) return false;
             decimal_exponent++;
         }
@@ -300,17 +284,14 @@ bool infiltratr_parse_double(const char *text, double *value)
                 if (decimal_exponent == INT64_MIN) return false;
                 decimal_exponent--;
             } else {
-                if (first_discarded_digit < 0)
-                    first_discarded_digit = (int)digit;
-                else if (digit != 0U)
-                    discarded_nonzero = true;
+                if (first_discarded_digit < 0) first_discarded_digit = (int)digit;
+                else if (digit != 0U) discarded_nonzero = true;
             }
             cursor++;
         }
     }
 
     if (!saw_digit) return false;
-
     int64_t explicit_exponent = 0;
     bool exponent_negative = false;
     if (*cursor == 'e' || *cursor == 'E') {
@@ -331,39 +312,26 @@ bool infiltratr_parse_double(const char *text, double *value)
 
     while (ascii_space(*cursor)) cursor++;
     if (*cursor != '\0') return false;
-
     if (!saw_nonzero) {
         *value = negative ? -0.0 : 0.0;
         return true;
     }
-
-    if ((explicit_exponent > 0 &&
-         decimal_exponent > INT64_MAX - explicit_exponent) ||
-        (explicit_exponent < 0 &&
-         decimal_exponent < INT64_MIN - explicit_exponent))
+    if ((explicit_exponent > 0 && decimal_exponent > INT64_MAX - explicit_exponent) ||
+        (explicit_exponent < 0 && decimal_exponent < INT64_MIN - explicit_exponent))
         return false;
     decimal_exponent += explicit_exponent;
-
-    /* Round the retained 19 significant digits before scaling. */
     if (first_discarded_digit > 5 ||
         (first_discarded_digit == 5 &&
-         (discarded_nonzero || (significand & 1U) != 0U))) {
+         (discarded_nonzero || (significand & 1U) != 0U)))
         significand++;
-    }
-
-    /* Any exponent outside this generous range cannot produce a finite double. */
     if (decimal_exponent > 400 || decimal_exponent < -400) return false;
-
     long double parsed = (long double)significand;
-    if (decimal_exponent != 0 &&
-        !apply_decimal_exponent(&parsed, decimal_exponent))
+    if (decimal_exponent != 0 && !apply_decimal_exponent(&parsed, decimal_exponent))
         return false;
     if (negative) parsed = -parsed;
     if (!isfinite(parsed)) return false;
-
     const double converted = (double)parsed;
-    if (!isfinite(converted) || (converted == 0.0 && parsed != 0.0L))
-        return false;
+    if (!isfinite(converted) || (converted == 0.0 && parsed != 0.0L)) return false;
     *value = converted;
     return true;
 }
@@ -371,11 +339,9 @@ bool infiltratr_parse_double(const char *text, double *value)
 bool infiltratr_parse_double_range(const char *text, double minimum,
                                    double maximum, double *value)
 {
-    if (!value || isnan(minimum) || isnan(maximum) || minimum > maximum)
-        return false;
+    if (!value || isnan(minimum) || isnan(maximum) || minimum > maximum) return false;
     double parsed = 0.0;
-    if (!infiltratr_parse_double(text, &parsed) ||
-        parsed < minimum || parsed > maximum)
+    if (!infiltratr_parse_double(text, &parsed) || parsed < minimum || parsed > maximum)
         return false;
     *value = parsed;
     return true;
@@ -383,14 +349,12 @@ bool infiltratr_parse_double_range(const char *text, double minimum,
 
 double infiltratr_clamp_double(double value, double lower, double upper)
 {
-    if (isnan(value) || isnan(lower) || isnan(upper) || lower > upper)
-        return value;
+    if (isnan(value) || isnan(lower) || isnan(upper) || lower > upper) return value;
     if (value < lower) return lower;
     return value > upper ? upper : value;
 }
 
-bool infiltratr_u64_add_checked(uint64_t left, uint64_t right,
-                                uint64_t *result)
+bool infiltratr_u64_add_checked(uint64_t left, uint64_t right, uint64_t *result)
 {
     if (!result || right > UINT64_MAX - left) return false;
     *result = left + right;
@@ -404,15 +368,13 @@ uint64_t infiltratr_u64_add_saturating(uint64_t left, uint64_t right)
 
 uint64_t infiltratr_u64_multiply_saturating(uint64_t left, uint64_t right)
 {
-    return left != 0U && right > UINT64_MAX / left
-        ? UINT64_MAX : left * right;
+    return left != 0U && right > UINT64_MAX / left ? UINT64_MAX : left * right;
 }
 
 double infiltratr_percent_u64(uint64_t part, uint64_t whole)
 {
     if (whole == 0U) return 0.0;
-    const long double percentage =
-        100.0L * (long double)part / (long double)whole;
+    const long double percentage = 100.0L * (long double)part / (long double)whole;
     if (percentage <= 0.0L) return 0.0;
     return percentage >= 100.0L ? 100.0 : (double)percentage;
 }
@@ -427,12 +389,10 @@ bool infiltratr_u64_counter_rate(uint64_t current, uint64_t previous,
         !isfinite(units_per_count) || elapsed_seconds <= 0.0 ||
         !isfinite(elapsed_seconds))
         return false;
-
     const long double calculated =
         (long double)(current - previous) * units_per_count /
         (long double)elapsed_seconds;
-    if (!isfinite(calculated) || calculated > (long double)DBL_MAX)
-        return false;
+    if (!isfinite(calculated) || calculated > (long double)DBL_MAX) return false;
     *rate = (double)calculated;
     return true;
 }
@@ -440,7 +400,7 @@ bool infiltratr_u64_counter_rate(uint64_t current, uint64_t previous,
 static bool scale_options_valid(const InfiltratrScaleOptions *options,
                                 size_t unit_count, size_t *maximum_unit)
 {
-    if (!options || options->struct_size < sizeof(*options) ||
+    if (!options || options->struct_size < INFILTRATR_SCALE_OPTIONS_ABI1_SIZE ||
         options->abi_version != INFILTRATR_SCALE_OPTIONS_ABI ||
         !isfinite(options->divisor) || options->divisor <= 1.0L ||
         unit_count == 0U || options->minimum_unit >= unit_count ||
@@ -451,8 +411,7 @@ static bool scale_options_valid(const InfiltratrScaleOptions *options,
 
     const size_t maximum = options->maximum_unit == SIZE_MAX
         ? unit_count - 1U : options->maximum_unit;
-    if (maximum >= unit_count || maximum < options->minimum_unit)
-        return false;
+    if (maximum >= unit_count || maximum < options->minimum_unit) return false;
     if (maximum_unit) *maximum_unit = maximum;
     return true;
 }
@@ -466,7 +425,6 @@ bool infiltratr_scale_quantity(long double value,
     if (!scaled_value || !unit_index || !isfinite(value) ||
         !scale_options_valid(options, unit_count, &maximum_unit))
         return false;
-
     const long double magnitude = fabsl(value);
     long double minimum_boundary = 1.0L;
     for (size_t index = 0U; index < options->minimum_unit; index++) {
@@ -476,23 +434,18 @@ bool infiltratr_scale_quantity(long double value,
         }
         minimum_boundary *= options->divisor;
     }
-
     size_t unit = options->minimum_unit;
     if (options->zero_below_minimum_unit && magnitude < minimum_boundary) {
         *scaled_value = 0.0L;
         *unit_index = unit;
         return true;
     }
-
     long double scaled = value;
-    for (size_t index = 0U; index < unit; index++)
-        scaled /= options->divisor;
-
+    for (size_t index = 0U; index < unit; index++) scaled /= options->divisor;
     while (unit < maximum_unit && fabsl(scaled) >= options->divisor) {
         scaled /= options->divisor;
         unit++;
     }
-
     *scaled_value = scaled;
     *unit_index = unit;
     return true;
@@ -507,51 +460,40 @@ bool infiltratr_format_scaled_quantity(long double value,
 {
     if (buffer && buffer_size > 0U) buffer[0] = '\0';
     if (!units || !buffer || buffer_size == 0U) return false;
-
     long double scaled = 0.0L;
     size_t unit = 0U;
-    if (!infiltratr_scale_quantity(value, options, unit_count,
-                                   &scaled, &unit) || !units[unit])
+    if (!infiltratr_scale_quantity(value, options, unit_count, &scaled, &unit) ||
+        !units[unit])
         return false;
-
     unsigned int decimal_places = options->decimal_places;
-    if ((options->integer_at_minimum_unit &&
-         unit == options->minimum_unit) ||
+    if ((options->integer_at_minimum_unit && unit == options->minimum_unit) ||
         (options->integer_threshold > 0.0L &&
          fabsl(scaled) >= options->integer_threshold))
         decimal_places = 0U;
-
     const char *actual_suffix = suffix ? suffix : "";
     const int written = snprintf(buffer, buffer_size, "%.*Lf %s%s",
-                                 (int)decimal_places, scaled, units[unit],
-                                 actual_suffix);
+                                 (int)decimal_places, scaled, units[unit], actual_suffix);
     return written >= 0 && (size_t)written < buffer_size;
 }
 
-char *infiltratr_format_bytes(uint64_t bytes, char *buffer,
-                              size_t buffer_size)
+char *infiltratr_format_bytes(uint64_t bytes, char *buffer, size_t buffer_size)
 {
     static const char *const units[] = {"B", "KB", "MB", "GB", "TB"};
     const InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
-    (void)infiltratr_format_scaled_quantity((long double)bytes,
-                                             units,
+    (void)infiltratr_format_scaled_quantity((long double)bytes, units,
                                              INFILTRATR_ARRAY_LENGTH(units),
-                                             "", &options, buffer,
-                                             buffer_size);
+                                             "", &options, buffer, buffer_size);
     return buffer;
 }
 
 char *infiltratr_format_rate(double bytes_per_second, char *buffer,
                              size_t buffer_size)
 {
-    if (!isfinite(bytes_per_second) || bytes_per_second < 0.0)
-        bytes_per_second = 0.0;
+    if (!isfinite(bytes_per_second) || bytes_per_second < 0.0) bytes_per_second = 0.0;
     static const char *const units[] = {"B", "KB", "MB", "GB", "TB"};
     const InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
-    (void)infiltratr_format_scaled_quantity((long double)bytes_per_second,
-                                             units,
+    (void)infiltratr_format_scaled_quantity((long double)bytes_per_second, units,
                                              INFILTRATR_ARRAY_LENGTH(units),
-                                             "/s", &options, buffer,
-                                             buffer_size);
+                                             "/s", &options, buffer, buffer_size);
     return buffer;
 }

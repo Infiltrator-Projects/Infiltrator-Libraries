@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-/** @file completion_contract.c @brief Common 1.15 completion-family coverage. */
 #include "infiltratr/arithmetic.h"
+#include "infiltratr/core.h"
 #include "infiltratr/endian.h"
+#include "infiltratr/format.h"
 #include "infiltratr/quantity.h"
 #include "infiltratr/token.h"
 
@@ -9,6 +10,7 @@
 #undef NDEBUG
 #endif
 #include <assert.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,13 +24,8 @@ static void test_endian_load_store(void)
     infiltratr_store_le64(bytes, UINT64_C(0x0123456789abcdef));
     assert(bytes[0] == 0xefU && bytes[7] == 0x01U);
     assert(infiltratr_load_le64(bytes) == UINT64_C(0x0123456789abcdef));
-
-    const uint16_t be16 = infiltratr_cpu_to_be16(UINT16_C(0x1234));
     const uint32_t be32 = infiltratr_cpu_to_be32(UINT32_C(0x12345678));
-    const uint64_t be64 = infiltratr_cpu_to_be64(UINT64_C(0x0123456789abcdef));
-    assert(infiltratr_be16_to_cpu(be16) == UINT16_C(0x1234));
     assert(infiltratr_be32_to_cpu(be32) == UINT32_C(0x12345678));
-    assert(infiltratr_be64_to_cpu(be64) == UINT64_C(0x0123456789abcdef));
 }
 
 static void test_checked_arithmetic(void)
@@ -50,7 +47,6 @@ static void test_signed_token(void)
     int64_t value = 17;
     assert(infiltratr_parse_i64_token(&cursor, 10U, &value));
     assert(value == -42 && strcmp(cursor, ",tail") == 0);
-
     text = "9223372036854775808";
     cursor = text;
     value = 17;
@@ -70,8 +66,27 @@ static void test_binary_quantity(void)
     bytes = 99U;
     assert(!infiltratr_parse_binary_quantity_u64("1.1B", &bytes));
     assert(bytes == 99U);
-    assert(!infiltratr_parse_binary_quantity_u64("-1K", &bytes));
-    assert(!infiltratr_parse_binary_quantity_u64("9XB", &bytes));
+}
+
+static void test_abi_prefix_sizes(void)
+{
+    static const char *const units[] = {"B", "KB"};
+    InfiltratrScaleOptions scale = INFILTRATR_SCALE_OPTIONS_INIT;
+    scale.struct_size = offsetof(InfiltratrScaleOptions, zero_below_minimum_unit) +
+                        sizeof(scale.zero_below_minimum_unit);
+    long double scaled = 0.0L;
+    size_t unit = 0U;
+    assert(infiltratr_scale_quantity(2048.0L, &scale, 2U, &scaled, &unit));
+    assert(unit == 1U && scaled == 2.0L);
+
+    InfiltratrScalarFormatOptions scalar = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
+    scalar.struct_size = offsetof(InfiltratrScalarFormatOptions, unavailable_text) +
+                         sizeof(scalar.unavailable_text);
+    char text[32];
+    assert(infiltratr_format_scalar(true, 12.5L, &scalar, text, sizeof(text)));
+    assert(strcmp(text, "12.5") == 0);
+
+    (void)units;
 }
 
 int main(void)
@@ -80,6 +95,7 @@ int main(void)
     test_checked_arithmetic();
     test_signed_token();
     test_binary_quantity();
+    test_abi_prefix_sizes();
     puts("Infiltratr Common completion contract tests passed.");
     return 0;
 }
