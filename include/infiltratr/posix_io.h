@@ -4,10 +4,12 @@
  * @brief Exact EINTR-safe POSIX descriptor I/O.
  *
  * These helpers complete the requested byte count or fail; short transfers are
- * retried and EINTR is transparent. A zero-byte transfer before completion is
- * treated as EIO rather than as a successful partial operation. Invalid
- * descriptors/buffers set EINVAL. Positioned offsets above INT64_MAX set
- * EOVERFLOW so uint64 callers never silently wrap an off_t.
+ * retried and EINTR is transparent. Individual system calls are capped at
+ * SSIZE_MAX so oversized size_t requests never rely on implementation-defined
+ * transfer counts. A zero-byte transfer before completion is treated as EIO
+ * rather than as a successful partial operation. Invalid descriptors/buffers
+ * set EINVAL. Positioned offsets are checked against the native signed off_t
+ * range and set EOVERFLOW rather than silently narrowing a uint64_t offset.
  */
 #ifndef INFILTRATR_COMMON_POSIX_IO_H
 #define INFILTRATR_COMMON_POSIX_IO_H
