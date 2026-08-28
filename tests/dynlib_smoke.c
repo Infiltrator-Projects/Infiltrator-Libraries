@@ -31,6 +31,12 @@ int main(void)
     assert(!infiltratr_dynlib_is_open(&library));
     assert(!infiltratr_dynlib_open(NULL, library_name));
     assert(!infiltratr_dynlib_open(&library, ""));
+#ifdef _WIN32
+    {
+        static const char invalid_utf8[] = {(char)0xff, '\0'};
+        assert(!infiltratr_dynlib_open(&library, invalid_utf8));
+    }
+#endif
     assert(infiltratr_dynlib_open(&library, library_name));
     assert(infiltratr_dynlib_is_open(&library));
     assert(!infiltratr_dynlib_open(&library, library_name));
