@@ -77,6 +77,14 @@ static void test_strings(void)
     infiltratr_copy_string(&single, 0U, "x");
     assert(single == 'Q');
     infiltratr_copy_string(NULL, 8U, "x");
+    char overlap_right[8] = "abcdef";
+    infiltratr_copy_string(overlap_right + 1, sizeof(overlap_right) - 1U,
+                           overlap_right);
+    assert(strcmp(overlap_right + 1, "abcdef") == 0);
+    char overlap_left[8] = "abcdef";
+    infiltratr_copy_string(overlap_left, sizeof(overlap_left),
+                           overlap_left + 1);
+    assert(strcmp(overlap_left, "bcdef") == 0);
     char whitespace[] = "\t  value \r\n";
     infiltratr_trim(whitespace);
     assert(strcmp(whitespace, "value") == 0);
