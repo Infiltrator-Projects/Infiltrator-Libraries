@@ -84,10 +84,6 @@ jobs:
             printf 'Release tag %s already exists; published releases are immutable.\n' "$tag" >&2
             exit 1
           fi
-          if gh release view "$tag" >/dev/null 2>&1; then
-            printf 'Release %s already exists; published releases are immutable.\n' "$tag" >&2
-            exit 1
-          fi
 
           source="Infiltratr-Common-${version}-source.zip"
           git archive --format=zip --prefix="Infiltratr-Common-${version}/" --output="$source" "$head_commit"
@@ -100,16 +96,28 @@ jobs:
 
           git fetch origin main --tags
           test "$(git rev-parse origin/main)" = "$EXPECTED_SHA"
-          git tag "$tag" "$head_commit"
-          git push origin "$tag"
 
-          gh release create "$tag" "$source" SHA256SUMS.txt \
-            --verify-tag \
-            --target "$head_commit" \
-            --title "Infiltratr Common $version" \
-            --notes-file "$notes" \
-            --latest
+          release_state=$(gh release view "$tag" \
+            --json isDraft,targetCommitish --jq '[.isDraft, .targetCommitish] | @tsv' \
+            2>/dev/null || true)
+          if [[ -n "$release_state" ]]; then
+            IFS=$'\t' read -r is_draft target_commitish <<<"$release_state"
+            if [[ "$is_draft" != "true" || "$target_commitish" != "$head_commit" ]]; then
+              printf 'Release %s already exists; published releases are immutable.\n' "$tag" >&2
+              exit 1
+            fi
+          else
+            gh release create "$tag" \
+              --target "$head_commit" \
+              --draft \
+              --title "Infiltratr Common $version" \
+              --notes-file "$notes"
+          fi
+          gh release upload "$tag" "$source" SHA256SUMS.txt --clobber
 
           expected_assets=$(printf '%s\n%s\n' "$source" SHA256SUMS.txt | sort)
           published_assets=$(gh release view "$tag" --json assets --jq '.assets[].name' | sort)
           test "$published_assets" = "$expected_assets"
+          gh release edit "$tag" --draft=false --latest
+          git fetch origin "refs/tags/$tag:refs/tags/$tag"
+          test "$(git rev-parse "refs/tags/$tag^{commit}")" = "$head_commit"
