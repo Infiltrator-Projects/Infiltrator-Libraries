@@ -6,7 +6,7 @@
 
 Infiltrator Libraries is the canonical shared-code repository for reusable first-party components used across the Infiltrator software family.
 
-**Current library version:** 1.15.1  
+**Current library version:** 1.15.2  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -24,6 +24,20 @@ Infiltratr Common
 ```
 
 Common owns portable mechanics and algorithms that have real use across the project family. Application behaviour, filesystem semantics, hardware policy, calendar rules, vehicle diagnostics and user interfaces remain in their owning repositories.
+
+## Common 1.15.2
+
+1.15.2 hardens Common's low-level contracts without changing the ABI:
+
+- binary quantity parsing is exact across the full uint64_t domain and never
+  routes integer quantities through floating point;
+- bounded string copying is overlap-safe;
+- exact POSIX descriptor I/O chunks oversized requests and validates positioned
+  offsets against the native signed off_t width;
+- Windows dynamic-library paths are validated as UTF-8 and loaded through the
+  Unicode LoadLibraryW API;
+- token-parser documentation now matches its established leading-whitespace
+  behaviour, with regression coverage for all of these boundaries.
 
 ## Common 1.15.1
 
