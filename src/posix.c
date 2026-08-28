@@ -11,7 +11,9 @@
 #define _XOPEN_SOURCE 700
 
 #include "infiltratr/posix.h"
+#include "infiltratr/arithmetic.h"
 #include "infiltratr/core.h"
+#include "posix_read_internal.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -27,20 +29,6 @@ typedef struct {
     const void *data;
     size_t length;
 } InfiltratrAtomicBytes;
-
-static InfiltratrIoResult io_result_from_errno(int error_number)
-{
-    switch (error_number) {
-    case ENOENT:
-    case ENOTDIR:
-        return INFILTRATR_IO_NOT_FOUND;
-    case EACCES:
-    case EPERM:
-        return INFILTRATR_IO_PERMISSION_DENIED;
-    default:
-        return INFILTRATR_IO_ERROR;
-    }
-}
 
 const char *infiltratr_io_result_name(InfiltratrIoResult result)
 {
@@ -148,7 +136,8 @@ InfiltratrIoResult infiltratr_read_text_file_ex(const char *path,
     buffer[0] = '\0';
 
     const int descriptor = open(path, O_RDONLY | O_CLOEXEC);
-    if (descriptor < 0) return io_result_from_errno(errno);
+    if (descriptor < 0)
+        return infiltratr_posix_io_result_from_errno(errno);
 
     size_t used = 0U;
     InfiltratrIoResult result = INFILTRATR_IO_OK;
@@ -159,7 +148,7 @@ InfiltratrIoResult infiltratr_read_text_file_ex(const char *path,
         } while (amount < 0 && errno == EINTR);
 
         if (amount < 0) {
-            result = io_result_from_errno(errno);
+            result = infiltratr_posix_io_result_from_errno(errno);
             break;
         }
         if (amount == 0) break;
@@ -173,14 +162,14 @@ InfiltratrIoResult infiltratr_read_text_file_ex(const char *path,
             amount = read(descriptor, &extra, 1U);
         } while (amount < 0 && errno == EINTR);
         if (amount < 0)
-            result = io_result_from_errno(errno);
+            result = infiltratr_posix_io_result_from_errno(errno);
         else if (amount > 0)
             result = INFILTRATR_IO_TRUNCATED;
     }
 
     const int close_result = close(descriptor);
     if (result == INFILTRATR_IO_OK && close_result != 0)
-        result = io_result_from_errno(errno);
+        result = infiltratr_posix_io_result_from_errno(errno);
 
     buffer[used] = '\0';
     infiltratr_trim_line_end(buffer);
@@ -189,56 +178,64 @@ InfiltratrIoResult infiltratr_read_text_file_ex(const char *path,
     return used == 0U ? INFILTRATR_IO_EMPTY : INFILTRATR_IO_OK;
 }
 
+static InfiltratrIoResult parse_u64_file(const char *path, uint64_t *value)
+{
+    if (!path || !value) return INFILTRATR_IO_INVALID_ARGUMENT;
+
+    char *text = NULL;
+    size_t length = 0U;
+    const InfiltratrIoResult status =
+        infiltratr_posix_read_alloc(path, &text, &length);
+    if (status != INFILTRATR_IO_OK) return status;
+
+    const bool valid_text = memchr(text, '\0', length) == NULL;
+    const bool parsed = valid_text &&
+        infiltratr_parse_u64(text, 10U, value);
+    free(text);
+    return parsed ? INFILTRATR_IO_OK : INFILTRATR_IO_INVALID_VALUE;
+}
+
 InfiltratrIoResult infiltratr_read_u64_file_ex(const char *path,
                                                uint64_t *value)
 {
-    if (!value) return INFILTRATR_IO_INVALID_ARGUMENT;
-    char buffer[128];
-    const InfiltratrIoResult result =
-        infiltratr_read_text_file_ex(path, buffer, sizeof(buffer), NULL);
-    if (result != INFILTRATR_IO_OK) return result;
-    return infiltratr_parse_u64(buffer, 10U, value)
-        ? INFILTRATR_IO_OK : INFILTRATR_IO_INVALID_VALUE;
+    return parse_u64_file(path, value);
+}
+
+static InfiltratrIoResult parse_double_file(const char *path, double *value)
+{
+    if (!path || !value) return INFILTRATR_IO_INVALID_ARGUMENT;
+
+    char *text = NULL;
+    size_t length = 0U;
+    const InfiltratrIoResult status =
+        infiltratr_posix_read_alloc(path, &text, &length);
+    if (status != INFILTRATR_IO_OK) return status;
+
+    const bool valid_text = memchr(text, '\0', length) == NULL;
+    const bool parsed = valid_text && infiltratr_parse_double(text, value);
+    free(text);
+    return parsed ? INFILTRATR_IO_OK : INFILTRATR_IO_INVALID_VALUE;
 }
 
 InfiltratrIoResult infiltratr_read_double_file_ex(const char *path,
                                                   double *value)
 {
-    if (!value) return INFILTRATR_IO_INVALID_ARGUMENT;
-    char buffer[128];
-    const InfiltratrIoResult result =
-        infiltratr_read_text_file_ex(path, buffer, sizeof(buffer), NULL);
-    if (result != INFILTRATR_IO_OK) return result;
-    return infiltratr_parse_double(buffer, value)
-        ? INFILTRATR_IO_OK : INFILTRATR_IO_INVALID_VALUE;
+    return parse_double_file(path, value);
 }
 
 bool infiltratr_read_text_file(const char *path, char *buffer, size_t size)
 {
     if (!path || !buffer || size < 2U) return false;
+    const InfiltratrIoResult status =
+        infiltratr_read_text_file_ex(path, buffer, size, NULL);
+    if (status == INFILTRATR_IO_OK) return true;
     buffer[0] = '\0';
-    const int descriptor = open(path, O_RDONLY | O_CLOEXEC);
-    if (descriptor < 0) return false;
-
-    ssize_t length;
-    do {
-        length = read(descriptor, buffer, size - 1U);
-    } while (length < 0 && errno == EINTR);
-    const int saved_errno = errno;
-    (void)close(descriptor);
-    errno = saved_errno;
-
-    if (length <= 0) return false;
-    buffer[(size_t)length] = '\0';
-    infiltratr_trim_line_end(buffer);
-    return true;
+    return false;
 }
 
 bool infiltratr_read_u64_file(const char *path, uint64_t *value)
 {
-    char buffer[128];
-    return value && infiltratr_read_text_file(path, buffer, sizeof(buffer)) &&
-           infiltratr_parse_u64(buffer, 10U, value);
+    return infiltratr_read_u64_file_ex(path, value) == INFILTRATR_IO_OK;
 }
 
 uint64_t infiltratr_read_u64_or_zero(const char *path)
@@ -250,9 +247,7 @@ uint64_t infiltratr_read_u64_or_zero(const char *path)
 
 bool infiltratr_read_double_file(const char *path, double *value)
 {
-    char buffer[128];
-    return value && infiltratr_read_text_file(path, buffer, sizeof(buffer)) &&
-           infiltratr_parse_double(buffer, value);
+    return infiltratr_read_double_file_ex(path, value) == INFILTRATR_IO_OK;
 }
 
 double infiltratr_read_double_or_nan(const char *path)
@@ -262,16 +257,40 @@ double infiltratr_read_double_or_nan(const char *path)
     return value;
 }
 
+static char *path_concat_alloc(const char *base, const char *suffix)
+{
+    if (!base || !suffix) return NULL;
+
+    const size_t base_length = strlen(base);
+    const size_t suffix_length = strlen(suffix);
+    size_t length = 0U;
+    size_t size = 0U;
+    if (!infiltratr_size_add_checked(base_length, suffix_length, &length) ||
+        !infiltratr_size_add_checked(length, 1U, &size)) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    char *path = malloc(size);
+    if (!path) return NULL;
+    memcpy(path, base, base_length);
+    memcpy(path + base_length, suffix, suffix_length + 1U);
+    return path;
+}
+
 bool infiltratr_read_first_u64(const char *base,
                                const char *const *suffixes,
                                size_t suffix_count, uint64_t *value)
 {
     if (!base || !suffixes || !value) return false;
-    char path[512];
+
     for (size_t index = 0U; index < suffix_count; index++) {
-        if (!infiltratr_path_concat(path, sizeof(path), base, suffixes[index]))
-            continue;
-        if (infiltratr_read_u64_file(path, value)) return true;
+        if (!suffixes[index]) continue;
+        char *path = path_concat_alloc(base, suffixes[index]);
+        if (!path) return false;
+        const bool read = infiltratr_read_u64_file(path, value);
+        free(path);
+        if (read) return true;
     }
     return false;
 }
@@ -461,6 +480,10 @@ bool infiltratr_monotonic_nanoseconds(uint64_t *nanoseconds)
 double infiltratr_monotonic_seconds(void)
 {
     struct timespec timestamp = {0};
-    if (clock_gettime(CLOCK_MONOTONIC, &timestamp) != 0) return 0.0;
-    return (double)timestamp.tv_sec + (double)timestamp.tv_nsec / 1000000000.0;
+    if (clock_gettime(CLOCK_MONOTONIC, &timestamp) != 0 ||
+        timestamp.tv_sec < 0 || timestamp.tv_nsec < 0 ||
+        timestamp.tv_nsec >= 1000000000L)
+        return 0.0;
+    return (double)timestamp.tv_sec +
+           (double)timestamp.tv_nsec / 1000000000.0;
 }

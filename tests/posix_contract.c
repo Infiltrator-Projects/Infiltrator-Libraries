@@ -1,18 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-/**
- * @file posix_contract.c
- * @brief Boundary and failure-state coverage for the POSIX provider.
- *
- * The portable API contracts live in portable_contract.c. This suite isolates
- * path, file-I/O and monotonic-clock semantics so portable consumers can run
- * their full contract checks without compiling POSIX code.
- *
- * @author Shannon Smith
- * @copyright Copyright (c) 2026 Shannon Smith
- * @license GPL-3.0-or-later
- */
 #define _POSIX_C_SOURCE 200809L
-
 #include "infiltratr/posix.h"
 
 #ifdef NDEBUG
@@ -85,6 +72,45 @@ static void test_first_readable_path(void)
     assert(rmdir(directory) == 0);
 }
 
+static void test_long_first_u64_path(void)
+{
+    char root[] = "infiltratr-long-u64-XXXXXX";
+    assert(mkdtemp(root));
+
+    char paths[7][1024];
+    assert(snprintf(paths[0], sizeof(paths[0]), "%s", root) > 0);
+    for (size_t depth = 1U; depth < 7U; ++depth) {
+        char component[82];
+        memset(component, (int)('a' + (int)depth), 80U);
+        component[80] = (char)('0' + (int)depth);
+        component[81] = '\0';
+        const int written = snprintf(paths[depth], sizeof(paths[depth]),
+                                     "%s/%s", paths[depth - 1U], component);
+        assert(written > 0 && (size_t)written < sizeof(paths[depth]));
+        assert(mkdir(paths[depth], 0700) == 0);
+    }
+    assert(strlen(paths[6]) > 512U);
+
+    char file_path[1024];
+    const int written = snprintf(file_path, sizeof(file_path),
+                                 "%s/value", paths[6]);
+    assert(written > 0 && (size_t)written < sizeof(file_path));
+    FILE *file = fopen(file_path, "wb");
+    assert(file);
+    assert(fputs("42\n", file) >= 0);
+    assert(fclose(file) == 0);
+
+    static const char *const suffixes[] = {"/missing", "/value"};
+    uint64_t value = 0U;
+    assert(infiltratr_read_first_u64(paths[6], suffixes, 2U, &value));
+    assert(value == 42U);
+
+    assert(unlink(file_path) == 0);
+    for (size_t depth = 7U; depth-- > 1U;)
+        assert(rmdir(paths[depth]) == 0);
+    assert(rmdir(root) == 0);
+}
+
 static void test_text_io(void)
 {
     char empty_name[] = "infiltratr-contract-empty-XXXXXX";
@@ -114,6 +140,9 @@ static void test_text_io(void)
            INFILTRATR_IO_OK);
     assert(strcmp(read_buffer, exact_text) == 0);
     assert(length == sizeof(exact_text) - 1U);
+    assert(infiltratr_read_text_file(exact_name, read_buffer,
+                                     sizeof(read_buffer)));
+    assert(strcmp(read_buffer, exact_text) == 0);
     assert(unlink(exact_name) == 0);
 
     char truncated_name[] = "infiltratr-contract-trunc-XXXXXX";
@@ -127,6 +156,10 @@ static void test_text_io(void)
            INFILTRATR_IO_TRUNCATED);
     assert(strcmp(read_buffer, "1234567") == 0);
     assert(length == 7U);
+    strcpy(read_buffer, "old");
+    assert(!infiltratr_read_text_file(truncated_name, read_buffer,
+                                      sizeof(read_buffer)));
+    assert(strcmp(read_buffer, "") == 0);
     assert(unlink(truncated_name) == 0);
 
     length = 99U;
@@ -149,15 +182,39 @@ static void test_typed_io(void)
     char number_name[] = "infiltratr-contract-number-XXXXXX";
     int descriptor = mkstemp(number_name);
     assert(descriptor >= 0);
-    static const char number_text[] = "18446744073709551615\n";
-    write_all(descriptor, number_text, sizeof(number_text) - 1U);
+
+    char long_number[700];
+    memset(long_number, ' ', 300U);
+    memcpy(long_number + 300U, "18446744073709551615", 20U);
+    memset(long_number + 320U, ' ', 300U);
+    long_number[620U] = '\n';
+    write_all(descriptor, long_number, 621U);
     assert(close(descriptor) == 0);
 
     uint64_t unsigned_value = 7U;
     assert(infiltratr_read_u64_file_ex(number_name, &unsigned_value) ==
            INFILTRATR_IO_OK);
     assert(unsigned_value == UINT64_MAX);
+    unsigned_value = 7U;
+    assert(infiltratr_read_u64_file(number_name, &unsigned_value));
+    assert(unsigned_value == UINT64_MAX);
     assert(unlink(number_name) == 0);
+
+    char double_name[] = "infiltratr-contract-double-XXXXXX";
+    descriptor = mkstemp(double_name);
+    assert(descriptor >= 0);
+    char long_double[700];
+    memset(long_double, ' ', 300U);
+    memcpy(long_double + 300U, "1.25", 4U);
+    memset(long_double + 304U, ' ', 300U);
+    long_double[604U] = '\n';
+    write_all(descriptor, long_double, 605U);
+    assert(close(descriptor) == 0);
+    double double_value = 0.0;
+    assert(infiltratr_read_double_file_ex(double_name, &double_value) ==
+           INFILTRATR_IO_OK);
+    assert(double_value == 1.25);
+    assert(unlink(double_name) == 0);
 
     char invalid_name[] = "infiltratr-contract-invalid-XXXXXX";
     descriptor = mkstemp(invalid_name);
@@ -171,11 +228,23 @@ static void test_typed_io(void)
            INFILTRATR_IO_INVALID_VALUE);
     assert(unsigned_value == 99U);
 
-    double double_value = 9.0;
+    double_value = 9.0;
     assert(infiltratr_read_double_file_ex(invalid_name, &double_value) ==
            INFILTRATR_IO_INVALID_VALUE);
     assert(double_value == 9.0);
     assert(unlink(invalid_name) == 0);
+
+    char nul_name[] = "infiltratr-contract-nul-XXXXXX";
+    descriptor = mkstemp(nul_name);
+    assert(descriptor >= 0);
+    static const char nul_text[] = {'1', '\0', '2'};
+    write_all(descriptor, nul_text, sizeof(nul_text));
+    assert(close(descriptor) == 0);
+    unsigned_value = 99U;
+    assert(infiltratr_read_u64_file_ex(nul_name, &unsigned_value) ==
+           INFILTRATR_IO_INVALID_VALUE);
+    assert(unsigned_value == 99U);
+    assert(unlink(nul_name) == 0);
 }
 
 static bool fail_after_partial_write(FILE *stream, const void *user_data)
@@ -266,6 +335,7 @@ int main(void)
 {
     test_paths();
     test_first_readable_path();
+    test_long_first_u64_path();
     test_text_io();
     test_typed_io();
     test_atomic_replacement();

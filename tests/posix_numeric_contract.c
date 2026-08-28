@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 int main(void)
@@ -17,12 +18,20 @@ int main(void)
     char path[] = "infiltratr-posix-numeric-XXXXXX";
     const int descriptor = mkstemp(path);
     assert(descriptor >= 0);
-    static const char negative[] = "-9223372036854775808\n";
-    assert(infiltratr_write_full(descriptor, negative, sizeof(negative) - 1U) == 0);
+
+    char text[700];
+    memset(text, ' ', 300U);
+    memcpy(text + 300U, "-9223372036854775808", 20U);
+    memset(text + 320U, ' ', 300U);
+    text[620U] = '\n';
+    assert(infiltratr_write_full(descriptor, text, 621U) == 0);
     assert(close(descriptor) == 0);
 
     int64_t value = 77;
     assert(infiltratr_read_i64_file_ex(path, &value) == INFILTRATR_IO_OK);
+    assert(value == INT64_MIN);
+    value = 77;
+    assert(infiltratr_read_i64_file(path, &value));
     assert(value == INT64_MIN);
     assert(unlink(path) == 0);
 
