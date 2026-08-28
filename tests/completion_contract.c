@@ -77,7 +77,7 @@ static void test_binary_quantity(void)
     char long_exact[260];
     long_exact[0] = '1';
     memset(long_exact + 1, '0', 200U);
-    memcpy(long_exact + 201, "e-200B", 8U);
+    memcpy(long_exact + 201, "e-200B", sizeof("e-200B"));
     assert(infiltratr_parse_binary_quantity_u64(long_exact, &bytes));
     assert(bytes == UINT64_C(1));
 
