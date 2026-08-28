@@ -161,7 +161,8 @@ char *infiltratr_format_link_speed_mbps(double megabits_per_second,
     options.decimal_places = 2U;
     options.integer_threshold = 0.0L;
     options.integer_at_minimum_unit = false;
-    const long double bits_per_second = (long double)megabits_per_second * 1000000.0L;
+    const long double bits_per_second =
+        (long double)megabits_per_second * 1024.0L * 1024.0L;
     (void)infiltratr_format_scaled_quantity(bits_per_second, units,
                                              INFILTRATR_ARRAY_LENGTH(units),
                                              "", &options, buffer, size);

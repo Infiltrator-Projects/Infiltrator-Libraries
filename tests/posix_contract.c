@@ -41,6 +41,8 @@ static void test_paths(void)
     assert(strcmp(path, "/sys/dev") == 0);
     assert(infiltratr_path_join(path, sizeof(path), "", "/dev"));
     assert(strcmp(path, "/dev") == 0);
+    assert(infiltratr_path_join(path, sizeof(path), "a///", "///b"));
+    assert(strcmp(path, "a///b") == 0);
 
     char resolved[1] = {'x'};
     assert(!infiltratr_realpath_copy(".", resolved, sizeof(resolved)));

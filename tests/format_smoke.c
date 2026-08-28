@@ -36,7 +36,9 @@ int main(void)
                                                  text, sizeof(text)),
                   "S:1.0 R:2.0 KB/s") == 0);
     assert(strcmp(infiltratr_format_link_speed_mbps(1000.0, text, sizeof(text)),
-                  "953.67 Mb/s") == 0);
+                  "1000.00 Mb/s") == 0);
+    assert(strcmp(infiltratr_format_link_speed_mbps(1024.0, text, sizeof(text)),
+                  "1.00 Gb/s") == 0);
     assert(strcmp(infiltratr_format_link_speed_mbps(0.0, text, sizeof(text)),
                   "N/A") == 0);
     assert(strcmp(infiltratr_format_percent(true, 52.4, text, sizeof(text)),

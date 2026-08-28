@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -66,6 +67,20 @@ int main(void)
         errno = 0;
         assert(infiltratr_pwrite_full(descriptor, payload, 1U,
                                       invalid_offset) == -1);
+        assert(errno == EOVERFLOW);
+
+        struct stat before;
+        struct stat after;
+        assert(fstat(descriptor, &before) == 0);
+        errno = 0;
+        assert(infiltratr_pwrite_full(descriptor, payload, 2U,
+                                      maximum_offset) == -1);
+        assert(errno == EOVERFLOW);
+        assert(fstat(descriptor, &after) == 0);
+        assert(after.st_size == before.st_size);
+        errno = 0;
+        assert(infiltratr_pread_full(descriptor, readback, 2U,
+                                     maximum_offset) == -1);
         assert(errno == EOVERFLOW);
     }
     errno = 0;

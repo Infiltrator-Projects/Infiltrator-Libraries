@@ -47,9 +47,19 @@ const char *infiltratr_io_result_name(InfiltratrIoResult result);
 
 bool infiltratr_realpath_copy(const char *path, char *destination, size_t size);
 
+/** Concatenate two byte-exact POSIX path fragments without inserting a separator. */
 bool infiltratr_path_concat(char *destination, size_t size,
                             const char *base, const char *suffix);
 
+/**
+ * Join two POSIX path fragments at their boundary without normalizing either
+ * fragment internally. A nonempty left fragment is copied verbatim; leading
+ * slashes are removed from the right fragment, and one slash is inserted only
+ * when the preserved left fragment does not already end in one. With an empty
+ * left fragment, the right fragment is preserved verbatim (including a leading
+ * slash). Source strings must not overlap the writable destination. On an
+ * otherwise-valid size failure, destination is cleared.
+ */
 bool infiltratr_path_join(char *destination, size_t size,
                           const char *left, const char *right);
 

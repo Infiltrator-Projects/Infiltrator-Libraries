@@ -67,11 +67,10 @@ void infiltratr_dynlib_close(InfiltratrDynlib *library)
     }
 
 #ifdef _WIN32
-    (void)FreeLibrary((HMODULE)library->handle);
+    if (FreeLibrary((HMODULE)library->handle) != 0) library->handle = NULL;
 #else
-    (void)dlclose(library->handle);
+    if (dlclose(library->handle) == 0) library->handle = NULL;
 #endif
-    library->handle = NULL;
 }
 
 bool infiltratr_dynlib_symbol(const InfiltratrDynlib *library,
@@ -100,10 +99,9 @@ bool infiltratr_dynlib_symbol(const InfiltratrDynlib *library,
         memcpy(&symbol, &procedure, sizeof(symbol));
     }
 #else
+    (void)dlerror();
     symbol = dlsym(library->handle, name);
-    if (symbol == NULL) {
-        return false;
-    }
+    if (dlerror() != NULL) return false;
 #endif
 
     memcpy(destination, &symbol, sizeof(symbol));

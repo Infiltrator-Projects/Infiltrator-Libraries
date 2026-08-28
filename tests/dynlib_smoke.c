@@ -46,10 +46,12 @@ int main(void)
                                     sizeof(cosine)));
     assert(cosine != NULL);
     assert(fabs(cosine(0.0) - 1.0) < 1.0e-12);
+    double (*const resolved_cosine)(double) = cosine;
     assert(!infiltratr_dynlib_symbol(&library,
                                      "infiltratr_symbol_that_does_not_exist",
                                      &cosine,
                                      sizeof(cosine)));
+    assert(cosine == resolved_cosine);
 
     infiltratr_dynlib_close(&library);
     assert(!infiltratr_dynlib_is_open(&library));

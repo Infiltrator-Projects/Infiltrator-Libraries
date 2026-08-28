@@ -10,6 +10,9 @@
  * rather than as a successful partial operation. Invalid descriptors/buffers
  * set EINVAL. Positioned offsets are checked against the native signed off_t
  * range and set EOVERFLOW rather than silently narrowing a uint64_t offset.
+ * For nonzero positioned transfers, the complete requested byte range is
+ * validated before any I/O occurs, so an impossible tail cannot cause a
+ * predictable partial read or write before EOVERFLOW is reported.
  */
 #ifndef INFILTRATR_COMMON_POSIX_IO_H
 #define INFILTRATR_COMMON_POSIX_IO_H

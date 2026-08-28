@@ -42,7 +42,11 @@ bool infiltratr_dynlib_open(InfiltratrDynlib *library, const char *name);
 /** Return whether the object currently owns a native library handle. */
 bool infiltratr_dynlib_is_open(const InfiltratrDynlib *library);
 
-/** Close an owned library. NULL and already-closed objects are safe no-ops. */
+/**
+ * Close an owned library. NULL and already-closed objects are safe no-ops.
+ * The handle is cleared only when the native loader reports a successful
+ * unload; an unload failure therefore remains observable through is_open().
+ */
 void infiltratr_dynlib_close(InfiltratrDynlib *library);
 
 /**
@@ -50,7 +54,9 @@ void infiltratr_dynlib_close(InfiltratrDynlib *library);
  *
  * This avoids non-portable direct casts from `dlsym`/`GetProcAddress` results
  * to function pointers. `destination_size` must match the native symbol-pointer
- * representation size. Caller storage is left unchanged on failure.
+ * representation size. Caller storage is left unchanged on failure. On POSIX,
+ * loader errors are detected with dlerror(), so a successfully resolved symbol
+ * whose value is NULL is not confused with lookup failure.
  */
 bool infiltratr_dynlib_symbol(const InfiltratrDynlib *library,
                               const char *name,

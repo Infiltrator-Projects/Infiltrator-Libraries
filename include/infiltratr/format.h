@@ -74,7 +74,10 @@ char *infiltratr_format_network(long double bytes, bool use_bits,
 char *infiltratr_format_network_pair(long double send_bytes,
                                      long double receive_bytes, bool use_bits,
                                      char *buffer, size_t size);
-/** Render a positive decimal-Mb/s link speed; unavailable input becomes N/A. */
+/**
+ * Render a positive Mb/s link speed using Common's traditional 1024-based
+ * Kb/Mb/Gb prefix convention; unavailable input becomes N/A.
+ */
 char *infiltratr_format_link_speed_mbps(double megabits_per_second,
                                         char *buffer, size_t size);
 /** Render an optional percentage rounded to whole percent and clamped to 0..100. */

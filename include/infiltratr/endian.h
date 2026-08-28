@@ -38,9 +38,18 @@ static inline uint64_t infiltratr_bswap64(uint64_t value)
            infiltratr_bswap32((uint32_t)(value >> 32));
 }
 
-/* Compile-time host/endian conversion; input is evaluated exactly once. */
+/* Host/endian conversion; input is evaluated exactly once. */
 #if defined(_WIN32) || defined(__LITTLE_ENDIAN__) || \
-    (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+    (defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && \
+     __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
+#define INFILTRATR_ENDIAN_HOST_LITTLE 1
+#elif defined(__BIG_ENDIAN__) || \
+      (defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && \
+       __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#define INFILTRATR_ENDIAN_HOST_BIG 1
+#endif
+
+#if defined(INFILTRATR_ENDIAN_HOST_LITTLE)
 #define infiltratr_cpu_to_le16(value) ((uint16_t)(value))
 #define infiltratr_cpu_to_le32(value) ((uint32_t)(value))
 #define infiltratr_cpu_to_le64(value) ((uint64_t)(value))
@@ -53,7 +62,7 @@ static inline uint64_t infiltratr_bswap64(uint64_t value)
 #define infiltratr_be16_to_cpu(value) infiltratr_bswap16((uint16_t)(value))
 #define infiltratr_be32_to_cpu(value) infiltratr_bswap32((uint32_t)(value))
 #define infiltratr_be64_to_cpu(value) infiltratr_bswap64((uint64_t)(value))
-#else
+#elif defined(INFILTRATR_ENDIAN_HOST_BIG)
 #define infiltratr_cpu_to_le16(value) infiltratr_bswap16((uint16_t)(value))
 #define infiltratr_cpu_to_le32(value) infiltratr_bswap32((uint32_t)(value))
 #define infiltratr_cpu_to_le64(value) infiltratr_bswap64((uint64_t)(value))
@@ -66,6 +75,48 @@ static inline uint64_t infiltratr_bswap64(uint64_t value)
 #define infiltratr_be16_to_cpu(value) ((uint16_t)(value))
 #define infiltratr_be32_to_cpu(value) ((uint32_t)(value))
 #define infiltratr_be64_to_cpu(value) ((uint64_t)(value))
+#else
+static inline int infiltratr_endian_runtime_little(void)
+{
+    const uint16_t marker = UINT16_C(1);
+    return *(const unsigned char *)&marker == 1U;
+}
+static inline uint16_t infiltratr_endian_cpu_to_le16_fallback(uint16_t value)
+{
+    return infiltratr_endian_runtime_little() ? value : infiltratr_bswap16(value);
+}
+static inline uint32_t infiltratr_endian_cpu_to_le32_fallback(uint32_t value)
+{
+    return infiltratr_endian_runtime_little() ? value : infiltratr_bswap32(value);
+}
+static inline uint64_t infiltratr_endian_cpu_to_le64_fallback(uint64_t value)
+{
+    return infiltratr_endian_runtime_little() ? value : infiltratr_bswap64(value);
+}
+static inline uint16_t infiltratr_endian_cpu_to_be16_fallback(uint16_t value)
+{
+    return infiltratr_endian_runtime_little() ? infiltratr_bswap16(value) : value;
+}
+static inline uint32_t infiltratr_endian_cpu_to_be32_fallback(uint32_t value)
+{
+    return infiltratr_endian_runtime_little() ? infiltratr_bswap32(value) : value;
+}
+static inline uint64_t infiltratr_endian_cpu_to_be64_fallback(uint64_t value)
+{
+    return infiltratr_endian_runtime_little() ? infiltratr_bswap64(value) : value;
+}
+#define infiltratr_cpu_to_le16(value) infiltratr_endian_cpu_to_le16_fallback((uint16_t)(value))
+#define infiltratr_cpu_to_le32(value) infiltratr_endian_cpu_to_le32_fallback((uint32_t)(value))
+#define infiltratr_cpu_to_le64(value) infiltratr_endian_cpu_to_le64_fallback((uint64_t)(value))
+#define infiltratr_le16_to_cpu(value) infiltratr_endian_cpu_to_le16_fallback((uint16_t)(value))
+#define infiltratr_le32_to_cpu(value) infiltratr_endian_cpu_to_le32_fallback((uint32_t)(value))
+#define infiltratr_le64_to_cpu(value) infiltratr_endian_cpu_to_le64_fallback((uint64_t)(value))
+#define infiltratr_cpu_to_be16(value) infiltratr_endian_cpu_to_be16_fallback((uint16_t)(value))
+#define infiltratr_cpu_to_be32(value) infiltratr_endian_cpu_to_be32_fallback((uint32_t)(value))
+#define infiltratr_cpu_to_be64(value) infiltratr_endian_cpu_to_be64_fallback((uint64_t)(value))
+#define infiltratr_be16_to_cpu(value) infiltratr_endian_cpu_to_be16_fallback((uint16_t)(value))
+#define infiltratr_be32_to_cpu(value) infiltratr_endian_cpu_to_be32_fallback((uint32_t)(value))
+#define infiltratr_be64_to_cpu(value) infiltratr_endian_cpu_to_be64_fallback((uint64_t)(value))
 #endif
 
 /** Load unsigned little-endian integers from potentially unaligned bytes. */

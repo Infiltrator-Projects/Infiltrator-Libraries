@@ -33,21 +33,16 @@ static uint64_t offset_maximum(void)
     return (UINT64_C(1) << (bits - 1U)) - 1U;
 }
 
-static int positioned_request(size_t count, uint64_t offset, size_t *request)
+static int valid_positioned_range(size_t count, uint64_t offset)
 {
+    if (count == 0U) return 1;
+
     const uint64_t maximum = offset_maximum();
-    if (offset > maximum) {
+    if (offset > maximum ||
+        (uintmax_t)(count - 1U) > (uintmax_t)(maximum - offset)) {
         errno = EOVERFLOW;
         return 0;
     }
-
-    size_t chunk = transfer_chunk(count);
-    const uint64_t distance = maximum - offset;
-    if (distance != UINT64_MAX) {
-        const uint64_t available = distance + 1U;
-        if (available < (uint64_t)chunk) chunk = (size_t)available;
-    }
-    *request = chunk;
     return 1;
 }
 
@@ -96,11 +91,11 @@ int infiltratr_write_full(int descriptor, const void *buffer, size_t count)
 int infiltratr_pread_full(int descriptor, void *buffer, size_t count,
                           uint64_t offset)
 {
-    if (!valid_descriptor_buffer(descriptor, buffer, count)) return -1;
+    if (!valid_descriptor_buffer(descriptor, buffer, count) ||
+        !valid_positioned_range(count, offset)) return -1;
     uint8_t *cursor = (uint8_t *)buffer;
     while (count != 0U) {
-        size_t request = 0U;
-        if (!positioned_request(count, offset, &request)) return -1;
+        const size_t request = transfer_chunk(count);
 
         ssize_t amount;
         do {
@@ -129,11 +124,11 @@ int infiltratr_pread_full(int descriptor, void *buffer, size_t count,
 int infiltratr_pwrite_full(int descriptor, const void *buffer, size_t count,
                            uint64_t offset)
 {
-    if (!valid_descriptor_buffer(descriptor, buffer, count)) return -1;
+    if (!valid_descriptor_buffer(descriptor, buffer, count) ||
+        !valid_positioned_range(count, offset)) return -1;
     const uint8_t *cursor = (const uint8_t *)buffer;
     while (count != 0U) {
-        size_t request = 0U;
-        if (!positioned_request(count, offset, &request)) return -1;
+        const size_t request = transfer_chunk(count);
 
         ssize_t amount;
         do {
