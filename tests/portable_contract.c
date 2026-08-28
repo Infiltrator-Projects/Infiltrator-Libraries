@@ -231,7 +231,7 @@ static void test_scaling_and_formatting(void)
     assert(!infiltratr_format_scaled_quantity(1.0L, units,
                                                INFILTRATR_ARRAY_LENGTH(units),
                                                "", &fixed, tiny, sizeof(tiny)));
-    assert(tiny[sizeof(tiny) - 1U] == '\0');
+    assert(strcmp(tiny, "") == 0);
 
     InfiltratrScalarFormatOptions scalar = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
     scalar.unavailable_text = "missing";

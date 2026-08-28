@@ -24,6 +24,8 @@ int main(void)
                   "1.5 GB") == 0);
     assert(strcmp(infiltratr_format_disk_capacity(1536U, text, sizeof(text)),
                   "1.5 KB") == 0);
+    assert(strcmp(infiltratr_format_disk_capacity(UINT64_MAX, text, sizeof(text)),
+                  "16.0 EB") == 0);
     assert(strcmp(infiltratr_format_network(1024.0L, false, true,
                                             text, sizeof(text)),
                   "1.0 KB/s") == 0);
@@ -68,6 +70,15 @@ int main(void)
     assert(strcmp(infiltratr_format_duration_compact(true, 176460U, text,
                                                      sizeof(text)),
                   "2d 01h 01m") == 0);
+
+    char tiny[2] = {'x', 'x'};
+    assert(strcmp(infiltratr_format_percent(false, 0.0, tiny, sizeof(tiny)),
+                  "") == 0);
+    assert(strcmp(infiltratr_format_duration_clock(3661U, tiny, sizeof(tiny)),
+                  "") == 0);
+    assert(strcmp(infiltratr_format_network_pair(1024.0L, 2048.0L, false,
+                                                 tiny, sizeof(tiny)),
+                  "") == 0);
 
     return 0;
 }

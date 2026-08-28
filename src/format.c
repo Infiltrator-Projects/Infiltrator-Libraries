@@ -10,9 +10,20 @@
     (offsetof(InfiltratrScalarFormatOptions, unavailable_text) + \
      sizeof(((InfiltratrScalarFormatOptions *)0)->unavailable_text))
 
+static bool formatting_complete(char *buffer, size_t size, int written)
+{
+    if (!buffer || size == 0U) return false;
+    if (written < 0 || (size_t)written >= size) {
+        buffer[0] = '\0';
+        return false;
+    }
+    return true;
+}
+
 static char *unavailable(char *buffer, size_t size)
 {
-    if (buffer && size > 0U) (void)snprintf(buffer, size, "N/A");
+    if (!buffer || size == 0U) return buffer;
+    (void)formatting_complete(buffer, size, snprintf(buffer, size, "N/A"));
     return buffer;
 }
 
@@ -31,7 +42,7 @@ bool infiltratr_format_scalar(bool available, long double value,
     const char *missing = options->unavailable_text ? options->unavailable_text : "N/A";
     if (!available || !isfinite(value)) {
         const int written = snprintf(buffer, size, "%s", missing);
-        return written >= 0 && (size_t)written < size;
+        return formatting_complete(buffer, size, written);
     }
     if (options->clamp) {
         if (isnan(options->minimum) || isnan(options->maximum) ||
@@ -42,7 +53,7 @@ bool infiltratr_format_scalar(bool available, long double value,
     }
     const int written = snprintf(buffer, size, "%s%.*Lf%s", prefix,
                                  (int)options->decimal_places, value, suffix);
-    return written >= 0 && (size_t)written < size;
+    return formatting_complete(buffer, size, written);
 }
 
 static InfiltratrScaleOptions fixed_scale(size_t unit, unsigned int decimals)
@@ -74,8 +85,8 @@ char *infiltratr_format_disk_capacity(uint64_t bytes, char *buffer, size_t size)
 char *infiltratr_format_network(long double bytes, bool use_bits,
                                 bool per_second, char *buffer, size_t size)
 {
-    static const char *const byte_units[] = {"B", "KB", "MB", "GB", "TB"};
-    static const char *const bit_units[] = {"b", "Kb", "Mb", "Gb", "Tb"};
+    static const char *const byte_units[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
+    static const char *const bit_units[] = {"b", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb"};
     if (!buffer || size == 0U) return buffer;
     if (!isfinite(bytes) || bytes < 0.0L) bytes = 0.0L;
     InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
@@ -97,8 +108,8 @@ char *infiltratr_format_network_pair(long double send_bytes,
                                      long double receive_bytes, bool use_bits,
                                      char *buffer, size_t size)
 {
-    static const char *const byte_units[] = {"B", "KB", "MB", "GB", "TB"};
-    static const char *const bit_units[] = {"b", "Kb", "Mb", "Gb", "Tb"};
+    static const char *const byte_units[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
+    static const char *const bit_units[] = {"b", "Kb", "Mb", "Gb", "Tb", "Pb", "Eb"};
     if (!buffer || size == 0U) return buffer;
     if (!isfinite(send_bytes) || send_bytes < 0.0L) send_bytes = 0.0L;
     if (!isfinite(receive_bytes) || receive_bytes < 0.0L) receive_bytes = 0.0L;
@@ -132,15 +143,16 @@ char *infiltratr_format_network_pair(long double send_bytes,
                                     INFILTRATR_ARRAY_LENGTH(byte_units),
                                     &scaled_receive, &selected_unit);
     const char *const *units = use_bits ? bit_units : byte_units;
-    (void)snprintf(buffer, size, "S:%.1Lf R:%.1Lf %s/s", scaled_send,
-                   scaled_receive, units[unit]);
+    const int written = snprintf(buffer, size, "S:%.1Lf R:%.1Lf %s/s",
+                                 scaled_send, scaled_receive, units[unit]);
+    (void)formatting_complete(buffer, size, written);
     return buffer;
 }
 
 char *infiltratr_format_link_speed_mbps(double megabits_per_second,
                                         char *buffer, size_t size)
 {
-    static const char *const units[] = {"b/s", "Kb/s", "Mb/s", "Gb/s", "Tb/s"};
+    static const char *const units[] = {"b/s", "Kb/s", "Mb/s", "Gb/s", "Tb/s", "Pb/s", "Eb/s"};
     if (!buffer || size == 0U) return buffer;
     if (!isfinite(megabits_per_second) || megabits_per_second <= 0.0)
         return unavailable(buffer, size);
@@ -204,10 +216,15 @@ char *infiltratr_format_duration_clock(uint64_t seconds, char *buffer, size_t si
     const unsigned int minutes = (unsigned int)((seconds % 3600U) / 60U);
     const unsigned int remainder = (unsigned int)(seconds % 60U);
     if (days > 0U)
-        (void)snprintf(buffer, size, "%llud %02u:%02u:%02u",
-                       (unsigned long long)days, hours, minutes, remainder);
+        (void)formatting_complete(
+            buffer, size,
+            snprintf(buffer, size, "%llud %02u:%02u:%02u",
+                     (unsigned long long)days, hours, minutes, remainder));
     else
-        (void)snprintf(buffer, size, "%02u:%02u:%02u", hours, minutes, remainder);
+        (void)formatting_complete(
+            buffer, size,
+            snprintf(buffer, size, "%02u:%02u:%02u",
+                     hours, minutes, remainder));
     return buffer;
 }
 
@@ -221,11 +238,17 @@ char *infiltratr_format_duration_compact(bool available, uint64_t seconds,
     const unsigned int hours = (unsigned int)(seconds / 3600U);
     const unsigned int minutes = (unsigned int)((seconds % 3600U) / 60U);
     if (days > 0U)
-        (void)snprintf(buffer, size, "%llud %02uh %02um",
-                       (unsigned long long)days, hours, minutes);
+        (void)formatting_complete(
+            buffer, size,
+            snprintf(buffer, size, "%llud %02uh %02um",
+                     (unsigned long long)days, hours, minutes));
     else if (hours > 0U)
-        (void)snprintf(buffer, size, "%uh %02um", hours, minutes);
+        (void)formatting_complete(
+            buffer, size,
+            snprintf(buffer, size, "%uh %02um", hours, minutes));
     else
-        (void)snprintf(buffer, size, "%um", minutes);
+        (void)formatting_complete(
+            buffer, size,
+            snprintf(buffer, size, "%um", minutes));
     return buffer;
 }

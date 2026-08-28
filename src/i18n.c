@@ -212,12 +212,18 @@ static const char *find_argument(const InfiltratrI18nArgument *arguments,
 static void append_bytes(char *destination, size_t capacity, size_t *written,
                          const char *source, size_t length)
 {
-    if (!written || !source) return;
-    for (size_t i = 0U; i < length; ++i) {
-        if (destination && capacity > 0U && *written + 1U < capacity)
-            destination[*written] = source[i];
-        ++(*written);
+    if (!written || !source || *written == SIZE_MAX) return;
+
+    if (destination && capacity > 0U && *written < capacity - 1U) {
+        const size_t available = capacity - 1U - *written;
+        const size_t copy = length < available ? length : available;
+        memmove(destination + *written, source, copy);
     }
+
+    if (length > SIZE_MAX - *written)
+        *written = SIZE_MAX;
+    else
+        *written += length;
 }
 
 size_t infiltratr_i18n_format(char *destination, size_t capacity,

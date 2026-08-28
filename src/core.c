@@ -473,12 +473,16 @@ bool infiltratr_format_scaled_quantity(long double value,
     const char *actual_suffix = suffix ? suffix : "";
     const int written = snprintf(buffer, buffer_size, "%.*Lf %s%s",
                                  (int)decimal_places, scaled, units[unit], actual_suffix);
-    return written >= 0 && (size_t)written < buffer_size;
+    if (written < 0 || (size_t)written >= buffer_size) {
+        buffer[0] = '\0';
+        return false;
+    }
+    return true;
 }
 
 char *infiltratr_format_bytes(uint64_t bytes, char *buffer, size_t buffer_size)
 {
-    static const char *const units[] = {"B", "KB", "MB", "GB", "TB"};
+    static const char *const units[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
     const InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
     (void)infiltratr_format_scaled_quantity((long double)bytes, units,
                                              INFILTRATR_ARRAY_LENGTH(units),
@@ -490,7 +494,7 @@ char *infiltratr_format_rate(double bytes_per_second, char *buffer,
                              size_t buffer_size)
 {
     if (!isfinite(bytes_per_second) || bytes_per_second < 0.0) bytes_per_second = 0.0;
-    static const char *const units[] = {"B", "KB", "MB", "GB", "TB"};
+    static const char *const units[] = {"B", "KB", "MB", "GB", "TB", "PB", "EB"};
     const InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
     (void)infiltratr_format_scaled_quantity((long double)bytes_per_second, units,
                                              INFILTRATR_ARRAY_LENGTH(units),

@@ -82,7 +82,10 @@ const char *infiltratr_i18n_get(const InfiltratrI18n *context,
  *
  * The operation never allocates. The returned size is the number of bytes
  * required excluding NUL; callers can therefore detect truncation when the
- * result is greater than or equal to `capacity`.
+ * result is greater than or equal to `capacity`. If the mathematical result
+ * length exceeds SIZE_MAX, the return value saturates at SIZE_MAX rather than
+ * wrapping. Format strings and argument values must not overlap writable
+ * destination storage.
  */
 size_t infiltratr_i18n_format(char *destination, size_t capacity,
                               const char *format,
