@@ -5,7 +5,8 @@
  *
  * Unlike the whole-string parsers in core.h, token parsers stop at the first
  * byte that is not part of the number and return that position through the
- * caller's cursor. They consume no leading whitespace and never allocate.
+ * caller's cursor. Leading C-library whitespace is skipped and never becomes
+ * part of the token; parsing otherwise allocates nothing.
  */
 #ifndef INFILTRATR_COMMON_TOKEN_H
 #define INFILTRATR_COMMON_TOKEN_H
@@ -20,7 +21,8 @@ extern "C" {
 /**
  * Parse one unsigned token in base 0 or 2..36.
  *
- * Leading '+'/'-' signs are rejected. On success `*cursor` advances to the
+ * Leading C-library whitespace is skipped. '+'/'-' signs are rejected. On
+ * success `*cursor` advances to the
  * first unconsumed byte and `*value` receives the number. Cursor and value are
  * unchanged on invalid input or overflow.
  */
@@ -30,7 +32,8 @@ bool infiltratr_parse_u64_token(const char **cursor, unsigned int base,
 /**
  * Parse one signed token in base 0 or 2..36.
  *
- * An optional leading sign is accepted. On success `*cursor` advances to the
+ * Leading C-library whitespace is skipped and an optional sign is accepted.
+ * On success `*cursor` advances to the
  * first unconsumed byte and `*value` receives the number. Cursor and value are
  * unchanged on invalid input or overflow.
  */
