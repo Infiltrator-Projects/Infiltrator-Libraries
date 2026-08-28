@@ -6,7 +6,7 @@
 
 Infiltrator Libraries is the canonical shared-code repository for reusable first-party components used across the Infiltrator software family.
 
-**Current library version:** 1.15.2  
+**Current library version:** 1.15.3  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -24,6 +24,34 @@ Infiltratr Common
 ```
 
 Common owns portable mechanics and algorithms that have real use across the project family. Application behaviour, filesystem semantics, hardware policy, calendar rules, vehicle diagnostics and user interfaces remain in their owning repositories.
+
+## Common 1.15.3
+
+1.15.3 completes the post-1.15.2 reference-quality hardening pass without
+changing the public ABI:
+
+- published Common APIs are explicitly permanent once admitted; loss of a
+  current caller is not grounds for removal;
+- binary quantity parsing has no fixed token-length limit and remains exact
+  across the uint64_t result domain;
+- decimal-to-binary64 parsing is deterministically and correctly rounded,
+  independent of host long-double precision, locale and active FP rounding mode;
+- POSIX numeric/text readers remove fixed-size input/path limits and reject
+  embedded-NUL/truncated success cases;
+- formatting failure semantics are non-truncating, byte units cover the full
+  uint64_t range through EB, and i18n length overflow saturates at SIZE_MAX;
+- link-speed formatting now uses Common's intentional 1024-based Kb/Mb/Gb
+  convention consistently instead of mixing decimal-million input conversion
+  with binary scaling;
+- positioned pread/pwrite requests prevalidate the entire off_t range before any
+  I/O, preventing predictable partial transfers before EOVERFLOW;
+- POSIX dynamic symbol lookup now distinguishes loader errors from a valid NULL
+  symbol value, and library close state is cleared only after successful unload;
+- endian conversion no longer silently assumes an unrecognised host is
+  big-endian, using an explicit runtime fallback when compile-time byte order is
+  unavailable;
+- POSIX path-join semantics are documented and regression-tested as lexical
+  boundary joining rather than implicit path normalization.
 
 ## Common 1.15.2
 
