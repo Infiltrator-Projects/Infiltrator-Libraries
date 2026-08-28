@@ -78,7 +78,7 @@ void infiltratr_copy_string(char *destination, size_t size,
 
     size_t length = 0U;
     while (length + 1U < size && source[length] != '\0') length++;
-    memcpy(destination, source, length);
+    memmove(destination, source, length);
     destination[length] = '\0';
 }
 
