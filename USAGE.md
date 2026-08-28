@@ -78,6 +78,18 @@ The Windows build separates the static-library output from the DLL import librar
 - LINK: Common owns portable primitives/localisation engine/timing; OBD/UDS/ISO-TP and vehicle-diagnostic policy remain LINK-owned.
 - MBLINK/JAGLINK consume Common transitively through LINK where appropriate.
 
+## Public API permanence
+
+Once an operation is published as part of Common's public API, it remains part
+of the reference library. Loss of a current production caller is not grounds
+for removal: published operations may represent historical requirements and
+are maintained as stable reference implementations. Existing public operations
+must therefore continue to receive correctness fixes, complete contracts and
+regression coverage even when their current consumer count is zero.
+
+This permanence rule applies to accepted public API. It does not relax the
+admission standard for new operations.
+
 ## Rule for adding public API
 
 A new public operation must satisfy at least one of these conditions:
