@@ -84,9 +84,14 @@ static void test_long_first_u64_path(void)
         memset(component, (int)('a' + (int)depth), 80U);
         component[80] = (char)('0' + (int)depth);
         component[81] = '\0';
-        const int written = snprintf(paths[depth], sizeof(paths[depth]),
-                                     "%s/%s", paths[depth - 1U], component);
-        assert(written > 0 && (size_t)written < sizeof(paths[depth]));
+        const size_t parent_length = strlen(paths[depth - 1U]);
+        const size_t component_length = strlen(component);
+        assert(parent_length + 1U + component_length + 1U <=
+               sizeof(paths[depth]));
+        memcpy(paths[depth], paths[depth - 1U], parent_length);
+        paths[depth][parent_length] = '/';
+        memcpy(paths[depth] + parent_length + 1U, component,
+               component_length + 1U);
         assert(mkdir(paths[depth], 0700) == 0);
     }
     assert(strlen(paths[6]) > 512U);
