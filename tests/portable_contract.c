@@ -150,6 +150,33 @@ static void test_parsers(void)
     assert(!infiltratr_parse_double("1.0 trailing", &decimal));
     assert(decimal == 123.0);
 
+    assert(infiltratr_parse_double("41346.59693578e194", &decimal));
+    assert(decimal == 0x1.ba7fd277e456fp+659);
+    assert(infiltratr_parse_double(
+        "92684359178468.83560938576290468711402e-316", &decimal));
+    assert(decimal == 0x1.96c845caed0a3p-1004);
+    assert(infiltratr_parse_double("969e-230", &decimal));
+    assert(decimal == 0x1.d61f33d8086e5p-755);
+    assert(infiltratr_parse_double("611824598.18898e242", &decimal));
+    assert(decimal == 0x1.11739dcad5beap+833);
+    assert(infiltratr_parse_double("2.4703282292062328e-324", &decimal));
+    assert(decimal == DBL_TRUE_MIN);
+    decimal = 123.0;
+    assert(!infiltratr_parse_double("2.4703282292062327e-324", &decimal));
+    assert(decimal == 123.0);
+    assert(infiltratr_parse_double("1.7976931348623157e308", &decimal));
+    assert(decimal == DBL_MAX);
+    decimal = 123.0;
+    assert(!infiltratr_parse_double("1.7976931348623159e308", &decimal));
+    assert(decimal == 123.0);
+
+    char long_decimal[1200];
+    long_decimal[0] = '1';
+    memset(long_decimal + 1, '0', 1000U);
+    memcpy(long_decimal + 1001, "e-1000", sizeof("e-1000"));
+    assert(infiltratr_parse_double(long_decimal, &decimal));
+    assert(decimal == 1.0);
+
     char smallest_text[64];
     const int smallest_written = snprintf(smallest_text, sizeof(smallest_text),
                                            "%.17e", DBL_TRUE_MIN);

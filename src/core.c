@@ -200,68 +200,497 @@ static bool ascii_digit(char character)
     return character >= '0' && character <= '9';
 }
 
-static bool apply_decimal_exponent(long double *value, int64_t exponent)
+/*
+ * Correctly rounded binary64 conversion
+ * -------------------------------------
+ *
+ * A binary64 rounding midpoint is an odd integer times 2^-k with k <= 1075.
+ * Written exactly in decimal, such a midpoint has fewer than 770 significant
+ * digits: the odd integer contributes at most 17 decimal digits and 5^1075
+ * contributes fewer than 752. Keeping 800 significant input digits plus a
+ * sticky "discarded non-zero" bit is therefore sufficient to decide every
+ * binary64 rounding boundary exactly, while still accepting input strings of
+ * arbitrary length.
+ *
+ * The fixed big-integer workspace is also representation-derived rather than
+ * an input limit. 800 decimal digits need fewer than 3200 bits; the largest
+ * relevant power of five and binary scaling keep all intermediates below 4443
+ * bits. 160 32-bit limbs provide 5120 bits of checked workspace.
+ */
+#define INFILTRATR_DOUBLE_DECIMAL_DIGITS 800U
+#define INFILTRATR_DOUBLE_BIG_LIMBS 160U
+
+_Static_assert(FLT_RADIX == 2 && DBL_MANT_DIG == 53 &&
+               DBL_MAX_EXP == 1024 && DBL_MIN_EXP == -1021 &&
+               sizeof(double) == sizeof(uint64_t),
+               "infiltratr_parse_double requires IEEE-754 binary64 double");
+
+typedef struct {
+    uint32_t limbs[INFILTRATR_DOUBLE_BIG_LIMBS];
+    size_t length;
+} InfiltratrBigUInt;
+
+typedef struct {
+    bool negative;
+    size_t magnitude;
+} InfiltratrDecimalExponent;
+
+static void big_normalise(InfiltratrBigUInt *value)
 {
-    if (!value || !isfinite(*value) || *value == 0.0L) return false;
-    static const long double chunk = 1000000000000000000.0L;
-    while (exponent >= 18) {
-        if (*value > LDBL_MAX / chunk) return false;
-        *value *= chunk;
-        exponent -= 18;
+    while (value->length > 0U &&
+           value->limbs[value->length - 1U] == 0U)
+        value->length--;
+}
+
+static bool big_mul_add_small(InfiltratrBigUInt *value,
+                              uint32_t multiplier, uint32_t addend)
+{
+    uint64_t carry = addend;
+    for (size_t i = 0U; i < value->length; ++i) {
+        const uint64_t product =
+            (uint64_t)value->limbs[i] * multiplier + carry;
+        value->limbs[i] = (uint32_t)product;
+        carry = product >> 32;
     }
-    while (exponent <= -18) {
-        *value /= chunk;
-        if (*value == 0.0L) return false;
-        exponent += 18;
+
+    while (carry != 0U) {
+        if (value->length >= INFILTRATR_DOUBLE_BIG_LIMBS)
+            return false;
+        value->limbs[value->length++] = (uint32_t)carry;
+        carry >>= 32;
     }
-    long double factor = 1.0L;
-    if (exponent > 0) {
-        for (int64_t index = 0; index < exponent; index++) factor *= 10.0L;
-        if (*value > LDBL_MAX / factor) return false;
-        *value *= factor;
-    } else if (exponent < 0) {
-        for (int64_t index = 0; index > exponent; index--) factor *= 10.0L;
-        *value /= factor;
-        if (*value == 0.0L) return false;
+    return true;
+}
+
+static bool big_from_decimal_digits(InfiltratrBigUInt *value,
+                                    const uint8_t *digits, size_t count)
+{
+    memset(value, 0, sizeof(*value));
+    for (size_t i = 0U; i < count; ++i)
+        if (!big_mul_add_small(value, 10U, digits[i]))
+            return false;
+    return value->length != 0U;
+}
+
+static bool big_set_one(InfiltratrBigUInt *value)
+{
+    memset(value, 0, sizeof(*value));
+    value->limbs[0] = 1U;
+    value->length = 1U;
+    return true;
+}
+
+static bool big_multiply_small(InfiltratrBigUInt *value, uint32_t multiplier)
+{
+    return big_mul_add_small(value, multiplier, 0U);
+}
+
+static bool big_power_five(InfiltratrBigUInt *value, size_t exponent)
+{
+    (void)big_set_one(value);
+    for (size_t i = 0U; i < exponent; ++i)
+        if (!big_multiply_small(value, 5U))
+            return false;
+    return true;
+}
+
+static size_t big_bit_length(const InfiltratrBigUInt *value)
+{
+    if (!value || value->length == 0U) return 0U;
+
+    uint32_t top = value->limbs[value->length - 1U];
+    size_t bits = (value->length - 1U) * 32U;
+    while (top != 0U) {
+        bits++;
+        top >>= 1U;
     }
-    return isfinite(*value);
+    return bits;
+}
+
+static int big_compare(const InfiltratrBigUInt *left,
+                       const InfiltratrBigUInt *right)
+{
+    if (left->length != right->length)
+        return left->length < right->length ? -1 : 1;
+
+    for (size_t i = left->length; i-- > 0U;) {
+        if (left->limbs[i] != right->limbs[i])
+            return left->limbs[i] < right->limbs[i] ? -1 : 1;
+    }
+    return 0;
+}
+
+static bool big_shift_left(InfiltratrBigUInt *value, size_t bits)
+{
+    if (value->length == 0U || bits == 0U) return true;
+
+    const size_t words = bits / 32U;
+    const unsigned int remainder = (unsigned int)(bits % 32U);
+    const size_t old_length = value->length;
+    const size_t extra = remainder != 0U ? 1U : 0U;
+
+    if (words > INFILTRATR_DOUBLE_BIG_LIMBS - old_length ||
+        extra > INFILTRATR_DOUBLE_BIG_LIMBS - old_length - words)
+        return false;
+
+    memmove(value->limbs + words, value->limbs,
+            old_length * sizeof(value->limbs[0]));
+    memset(value->limbs, 0, words * sizeof(value->limbs[0]));
+    value->length = old_length + words;
+
+    if (remainder != 0U) {
+        uint32_t carry = 0U;
+        for (size_t i = words; i < words + old_length; ++i) {
+            const uint64_t shifted =
+                ((uint64_t)value->limbs[i] << remainder) | carry;
+            value->limbs[i] = (uint32_t)shifted;
+            carry = (uint32_t)(shifted >> 32);
+        }
+        if (carry != 0U)
+            value->limbs[value->length++] = carry;
+    }
+
+    return true;
+}
+
+static void big_shift_right_one(InfiltratrBigUInt *value)
+{
+    uint32_t carry = 0U;
+    for (size_t i = value->length; i-- > 0U;) {
+        const uint32_t next = value->limbs[i] & 1U;
+        value->limbs[i] = (value->limbs[i] >> 1U) | (carry << 31U);
+        carry = next;
+    }
+    big_normalise(value);
+}
+
+static void big_subtract(InfiltratrBigUInt *left,
+                         const InfiltratrBigUInt *right)
+{
+    uint64_t borrow = 0U;
+    for (size_t i = 0U; i < left->length; ++i) {
+        const uint64_t subtrahend =
+            (i < right->length ? (uint64_t)right->limbs[i] : 0U) + borrow;
+        const uint64_t minuend = left->limbs[i];
+        left->limbs[i] = (uint32_t)(minuend - subtrahend);
+        borrow = minuend < subtrahend ? 1U : 0U;
+    }
+    big_normalise(left);
+}
+
+static bool big_ratio_at_least_power_two(const InfiltratrBigUInt *numerator,
+                                         const InfiltratrBigUInt *denominator,
+                                         int64_t power)
+{
+    InfiltratrBigUInt shifted;
+
+    if (power >= 0) {
+        shifted = *denominator;
+        if (!big_shift_left(&shifted, (size_t)power)) return false;
+        return big_compare(numerator, &shifted) >= 0;
+    }
+
+    shifted = *numerator;
+    if (!big_shift_left(&shifted, (size_t)(-power))) return false;
+    return big_compare(&shifted, denominator) >= 0;
+}
+
+static bool big_divide_u64(const InfiltratrBigUInt *numerator,
+                           const InfiltratrBigUInt *denominator,
+                           uint64_t *quotient,
+                           InfiltratrBigUInt *remainder)
+{
+    if (!numerator || !denominator || denominator->length == 0U ||
+        !quotient || !remainder)
+        return false;
+
+    *remainder = *numerator;
+    *quotient = 0U;
+    if (big_compare(remainder, denominator) < 0)
+        return true;
+
+    const size_t numerator_bits = big_bit_length(remainder);
+    const size_t denominator_bits = big_bit_length(denominator);
+    const size_t shift = numerator_bits - denominator_bits;
+    if (shift >= 64U) return false;
+
+    InfiltratrBigUInt divisor = *denominator;
+    if (!big_shift_left(&divisor, shift)) return false;
+
+    for (size_t bit = shift;; --bit) {
+        if (big_compare(remainder, &divisor) >= 0) {
+            big_subtract(remainder, &divisor);
+            *quotient |= UINT64_C(1) << bit;
+        }
+        if (bit == 0U) break;
+        big_shift_right_one(&divisor);
+    }
+    return true;
+}
+
+static bool decimal_exponent_combine(bool explicit_negative,
+                                     size_t explicit_magnitude,
+                                     size_t fractional_digits,
+                                     size_t positive_adjustment,
+                                     InfiltratrDecimalExponent *result)
+{
+    if (!result) return false;
+
+    if (!explicit_negative) {
+        if (explicit_magnitude >= fractional_digits) {
+            const size_t base = explicit_magnitude - fractional_digits;
+            if (positive_adjustment > SIZE_MAX - base) return false;
+            result->negative = false;
+            result->magnitude = base + positive_adjustment;
+            return true;
+        }
+
+        const size_t negative = fractional_digits - explicit_magnitude;
+        if (positive_adjustment >= negative) {
+            result->negative = false;
+            result->magnitude = positive_adjustment - negative;
+        } else {
+            result->negative = true;
+            result->magnitude = negative - positive_adjustment;
+        }
+        return true;
+    }
+
+    if (positive_adjustment >= explicit_magnitude) {
+        const size_t positive = positive_adjustment - explicit_magnitude;
+        if (positive >= fractional_digits) {
+            result->negative = false;
+            result->magnitude = positive - fractional_digits;
+        } else {
+            result->negative = true;
+            result->magnitude = fractional_digits - positive;
+        }
+        return true;
+    }
+
+    const size_t negative = explicit_magnitude - positive_adjustment;
+    if (fractional_digits > SIZE_MAX - negative) return false;
+    result->negative = true;
+    result->magnitude = negative + fractional_digits;
+    return true;
+}
+
+static bool decimal_exponent_add_positive(
+    const InfiltratrDecimalExponent *value, size_t addend,
+    InfiltratrDecimalExponent *result)
+{
+    if (!value || !result) return false;
+
+    if (!value->negative) {
+        if (addend > SIZE_MAX - value->magnitude) return false;
+        result->negative = false;
+        result->magnitude = value->magnitude + addend;
+        return true;
+    }
+
+    if (addend >= value->magnitude) {
+        result->negative = false;
+        result->magnitude = addend - value->magnitude;
+    } else {
+        result->negative = true;
+        result->magnitude = value->magnitude - addend;
+    }
+    return true;
+}
+
+static bool parse_decimal_exponent(const char **cursor,
+                                   bool *negative,
+                                   size_t *magnitude,
+                                   bool *overflowed)
+{
+    if (!cursor || !*cursor || !negative || !magnitude || !overflowed)
+        return false;
+
+    const char *position = *cursor;
+    *negative = false;
+    *magnitude = 0U;
+    *overflowed = false;
+
+    if (*position != 'e' && *position != 'E')
+        return true;
+
+    position++;
+    if (*position == '+' || *position == '-') {
+        *negative = *position == '-';
+        position++;
+    }
+    if (!ascii_digit(*position)) return false;
+
+    while (ascii_digit(*position)) {
+        const size_t digit = (size_t)(*position - '0');
+        if (!*overflowed) {
+            if (*magnitude > (SIZE_MAX - digit) / 10U)
+                *overflowed = true;
+            else
+                *magnitude = *magnitude * 10U + digit;
+        }
+        position++;
+    }
+
+    *cursor = position;
+    return true;
+}
+
+static bool binary64_from_decimal(const uint8_t *digits, size_t digit_count,
+                                  bool sticky,
+                                  const InfiltratrDecimalExponent *decimal_exp,
+                                  bool negative, double *value)
+{
+    if (!digits || digit_count == 0U || !decimal_exp || !value)
+        return false;
+
+    InfiltratrDecimalExponent order;
+    if (!decimal_exponent_add_positive(decimal_exp, digit_count - 1U, &order))
+        return false;
+    if ((!order.negative && order.magnitude > 308U) ||
+        (order.negative && order.magnitude > 324U))
+        return false;
+
+    /*
+     * The decimal-order gate above proves the effective base-10 exponent is
+     * small enough for binary64 conversion: +308 at most, or no less than
+     * -(799 + 324) = -1123 with the retained 800-digit coefficient.
+     */
+    if (decimal_exp->magnitude > 1123U) return false;
+    const int64_t exponent10 = decimal_exp->negative
+        ? -(int64_t)decimal_exp->magnitude
+        : (int64_t)decimal_exp->magnitude;
+
+    InfiltratrBigUInt numerator;
+    InfiltratrBigUInt denominator;
+    if (!big_from_decimal_digits(&numerator, digits, digit_count))
+        return false;
+    (void)big_set_one(&denominator);
+
+    int64_t binary_shift = 0;
+    if (exponent10 >= 0) {
+        for (int64_t i = 0; i < exponent10; ++i)
+            if (!big_multiply_small(&numerator, 5U))
+                return false;
+        binary_shift = exponent10;
+    } else {
+        if (!big_power_five(&denominator, (size_t)(-exponent10)))
+            return false;
+        binary_shift = exponent10;
+    }
+
+    const size_t numerator_bits = big_bit_length(&numerator);
+    const size_t denominator_bits = big_bit_length(&denominator);
+    if (numerator_bits == 0U || denominator_bits == 0U ||
+        numerator_bits > (size_t)INT64_MAX ||
+        denominator_bits > (size_t)INT64_MAX)
+        return false;
+
+    const int64_t bit_difference =
+        (int64_t)numerator_bits - (int64_t)denominator_bits;
+    const bool at_candidate =
+        big_ratio_at_least_power_two(&numerator, &denominator,
+                                     bit_difference);
+    int64_t exponent2 =
+        (at_candidate ? bit_difference : bit_difference - 1) + binary_shift;
+
+    const bool normal = exponent2 >= -1022;
+    const int64_t scale_power = normal
+        ? binary_shift + 52 - exponent2
+        : binary_shift + 1074;
+
+    InfiltratrBigUInt scaled_numerator = numerator;
+    InfiltratrBigUInt scaled_denominator = denominator;
+    if (scale_power >= 0) {
+        if (!big_shift_left(&scaled_numerator, (size_t)scale_power))
+            return false;
+    } else if (!big_shift_left(&scaled_denominator,
+                               (size_t)(-scale_power))) {
+        return false;
+    }
+
+    uint64_t significand = 0U;
+    InfiltratrBigUInt remainder;
+    if (!big_divide_u64(&scaled_numerator, &scaled_denominator,
+                        &significand, &remainder))
+        return false;
+
+    InfiltratrBigUInt twice_remainder = remainder;
+    if (!big_multiply_small(&twice_remainder, 2U))
+        return false;
+    const int midpoint =
+        big_compare(&twice_remainder, &scaled_denominator);
+    if (midpoint > 0 ||
+        (midpoint == 0 && ((significand & 1U) != 0U || sticky))) {
+        if (significand == UINT64_MAX) return false;
+        significand++;
+    }
+
+    uint64_t bits = 0U;
+    if (normal) {
+        if (significand == (UINT64_C(1) << 53)) {
+            significand >>= 1U;
+            exponent2++;
+        }
+        if (exponent2 > 1023 ||
+            significand < (UINT64_C(1) << 52) ||
+            significand >= (UINT64_C(1) << 53))
+            return false;
+
+        bits = ((uint64_t)(exponent2 + 1023) << 52) |
+               (significand - (UINT64_C(1) << 52));
+    } else {
+        if (significand == 0U)
+            return false; /* Contract rejects underflow rounded to zero. */
+        if (significand == (UINT64_C(1) << 52)) {
+            bits = UINT64_C(1) << 52; /* Smallest normal value. */
+        } else {
+            if (significand >= (UINT64_C(1) << 52))
+                return false;
+            bits = significand;
+        }
+    }
+
+    if (negative) bits |= UINT64_C(1) << 63;
+    double converted;
+    memcpy(&converted, &bits, sizeof(converted));
+    if (!isfinite(converted) || converted == 0.0)
+        return false;
+    *value = converted;
+    return true;
 }
 
 bool infiltratr_parse_double(const char *text, double *value)
 {
     if (!text || !value) return false;
+
     const char *cursor = text;
     while (ascii_space(*cursor)) cursor++;
+
     bool negative = false;
     if (*cursor == '+' || *cursor == '-') {
         negative = *cursor == '-';
         cursor++;
     }
 
+    uint8_t digits[INFILTRATR_DOUBLE_DECIMAL_DIGITS];
+    size_t kept_digits = 0U;
+    size_t significant_digits = 0U;
+    size_t fractional_digits = 0U;
+    bool discarded_nonzero = false;
     bool saw_digit = false;
     bool saw_nonzero = false;
-    uint64_t significand = 0U;
-    unsigned int significant_digits = 0U;
-    int64_t decimal_exponent = 0;
-    int first_discarded_digit = -1;
-    bool discarded_nonzero = false;
 
     while (ascii_digit(*cursor)) {
-        const unsigned int digit = (unsigned int)(*cursor - '0');
+        const uint8_t digit = (uint8_t)(*cursor - '0');
         saw_digit = true;
-        if (!saw_nonzero && digit == 0U) {
-            cursor++;
-            continue;
-        }
-        saw_nonzero = true;
-        if (significant_digits < 19U) {
-            significand = significand * 10U + (uint64_t)digit;
+        if (!saw_nonzero && digit != 0U) saw_nonzero = true;
+        if (saw_nonzero) {
             significant_digits++;
-        } else {
-            if (first_discarded_digit < 0) first_discarded_digit = (int)digit;
-            else if (digit != 0U) discarded_nonzero = true;
-            if (decimal_exponent == INT64_MAX) return false;
-            decimal_exponent++;
+            if (kept_digits < INFILTRATR_DOUBLE_DECIMAL_DIGITS)
+                digits[kept_digits++] = digit;
+            else if (digit != 0U)
+                discarded_nonzero = true;
         }
         cursor++;
     }
@@ -269,71 +698,63 @@ bool infiltratr_parse_double(const char *text, double *value)
     if (*cursor == '.') {
         cursor++;
         while (ascii_digit(*cursor)) {
-            const unsigned int digit = (unsigned int)(*cursor - '0');
+            const uint8_t digit = (uint8_t)(*cursor - '0');
             saw_digit = true;
-            if (!saw_nonzero && digit == 0U) {
-                if (decimal_exponent == INT64_MIN) return false;
-                decimal_exponent--;
-                cursor++;
-                continue;
-            }
-            saw_nonzero = true;
-            if (significant_digits < 19U) {
-                significand = significand * 10U + (uint64_t)digit;
+            if (fractional_digits == SIZE_MAX) return false;
+            fractional_digits++;
+            if (!saw_nonzero && digit != 0U) saw_nonzero = true;
+            if (saw_nonzero) {
                 significant_digits++;
-                if (decimal_exponent == INT64_MIN) return false;
-                decimal_exponent--;
-            } else {
-                if (first_discarded_digit < 0) first_discarded_digit = (int)digit;
-                else if (digit != 0U) discarded_nonzero = true;
+                if (kept_digits < INFILTRATR_DOUBLE_DECIMAL_DIGITS)
+                    digits[kept_digits++] = digit;
+                else if (digit != 0U)
+                    discarded_nonzero = true;
             }
             cursor++;
         }
     }
 
     if (!saw_digit) return false;
-    int64_t explicit_exponent = 0;
+
     bool exponent_negative = false;
-    if (*cursor == 'e' || *cursor == 'E') {
-        cursor++;
-        if (*cursor == '+' || *cursor == '-') {
-            exponent_negative = *cursor == '-';
-            cursor++;
-        }
-        if (!ascii_digit(*cursor)) return false;
-        while (ascii_digit(*cursor)) {
-            const int digit = *cursor - '0';
-            if (explicit_exponent > (INT64_MAX - digit) / 10) return false;
-            explicit_exponent = explicit_exponent * 10 + digit;
-            cursor++;
-        }
-        if (exponent_negative) explicit_exponent = -explicit_exponent;
-    }
+    size_t exponent_magnitude = 0U;
+    bool exponent_overflowed = false;
+    if (!parse_decimal_exponent(&cursor, &exponent_negative,
+                                &exponent_magnitude,
+                                &exponent_overflowed))
+        return false;
 
     while (ascii_space(*cursor)) cursor++;
     if (*cursor != '\0') return false;
+
     if (!saw_nonzero) {
         *value = negative ? -0.0 : 0.0;
         return true;
     }
-    if ((explicit_exponent > 0 && decimal_exponent > INT64_MAX - explicit_exponent) ||
-        (explicit_exponent < 0 && decimal_exponent < INT64_MIN - explicit_exponent))
+    if (exponent_overflowed) return false;
+
+    const size_t discarded_digits = significant_digits - kept_digits;
+    size_t positive_adjustment = discarded_digits;
+
+    if (!discarded_nonzero) {
+        size_t trailing_zeroes = 0U;
+        while (kept_digits > 0U && digits[kept_digits - 1U] == 0U) {
+            kept_digits--;
+            trailing_zeroes++;
+        }
+        if (trailing_zeroes > SIZE_MAX - positive_adjustment)
+            return false;
+        positive_adjustment += trailing_zeroes;
+    }
+
+    InfiltratrDecimalExponent decimal_exp;
+    if (!decimal_exponent_combine(exponent_negative, exponent_magnitude,
+                                  fractional_digits, positive_adjustment,
+                                  &decimal_exp))
         return false;
-    decimal_exponent += explicit_exponent;
-    if (first_discarded_digit > 5 ||
-        (first_discarded_digit == 5 &&
-         (discarded_nonzero || (significand & 1U) != 0U)))
-        significand++;
-    if (decimal_exponent > 400 || decimal_exponent < -400) return false;
-    long double parsed = (long double)significand;
-    if (decimal_exponent != 0 && !apply_decimal_exponent(&parsed, decimal_exponent))
-        return false;
-    if (negative) parsed = -parsed;
-    if (!isfinite(parsed)) return false;
-    const double converted = (double)parsed;
-    if (!isfinite(converted) || (converted == 0.0 && parsed != 0.0L)) return false;
-    *value = converted;
-    return true;
+
+    return binary64_from_decimal(digits, kept_digits, discarded_nonzero,
+                                 &decimal_exp, negative, value);
 }
 
 bool infiltratr_parse_double_range(const char *text, double minimum,

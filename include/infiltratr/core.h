@@ -162,8 +162,11 @@ bool infiltratr_parse_i64_range(const char *text, unsigned int base,
  * The grammar accepts surrounding ASCII whitespace, optional sign, integer or
  * fractional digits and an optional decimal exponent. NaN/Inf spellings,
  * hexadecimal floats, trailing data, overflow and underflow to zero are
- * rejected. Significant digits beyond the internal 19-digit accumulator are
- * rounded to nearest with ties to even before conversion to finite `double`.
+ * rejected. Conversion to IEEE-754 binary64 is performed with exact integer
+ * arithmetic and round-to-nearest, ties-to-even semantics; it does not depend
+ * on process locale, host `long double` precision or the active floating-point
+ * rounding mode. Input length is not capped: digits beyond the representation-
+ * derived rounding guard are consumed and tracked with exact sticky semantics.
  * Caller output is unchanged on failure.
  */
 bool infiltratr_parse_double(const char *text, double *value);
