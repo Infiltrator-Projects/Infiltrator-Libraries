@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+#define _POSIX_C_SOURCE 200809L
 #include "infiltratr/posix_numeric.h"
 #include "infiltratr/core.h"
 #include "posix_read_internal.h"
