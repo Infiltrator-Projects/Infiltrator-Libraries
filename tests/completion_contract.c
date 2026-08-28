@@ -63,8 +63,24 @@ static void test_binary_quantity(void)
     assert(bytes == UINT64_C(1572864));
     assert(infiltratr_parse_binary_quantity_u64("8GB", &bytes));
     assert(bytes == UINT64_C(8589934592));
+    assert(infiltratr_parse_binary_quantity_u64("9007199254740993B", &bytes));
+    assert(bytes == UINT64_C(9007199254740993));
+    assert(infiltratr_parse_binary_quantity_u64("18446744073709551615B", &bytes));
+    assert(bytes == UINT64_MAX);
+    assert(infiltratr_parse_binary_quantity_u64("0.125 KiB", &bytes));
+    assert(bytes == UINT64_C(128));
+    assert(infiltratr_parse_binary_quantity_u64("1.953125 KiB", &bytes));
+    assert(bytes == UINT64_C(2000));
+    assert(infiltratr_parse_binary_quantity_u64("1e3 B", &bytes));
+    assert(bytes == UINT64_C(1000));
     bytes = 99U;
+    assert(!infiltratr_parse_binary_quantity_u64("18446744073709551616B", &bytes));
+    assert(bytes == 99U);
     assert(!infiltratr_parse_binary_quantity_u64("1.1B", &bytes));
+    assert(bytes == 99U);
+    assert(!infiltratr_parse_binary_quantity_u64("1e-3 KiB", &bytes));
+    assert(bytes == 99U);
+    assert(!infiltratr_parse_binary_quantity_u64("-0B", &bytes));
     assert(bytes == 99U);
 }
 
