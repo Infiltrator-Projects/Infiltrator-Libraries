@@ -73,6 +73,18 @@ static void test_binary_quantity(void)
     assert(bytes == UINT64_C(2000));
     assert(infiltratr_parse_binary_quantity_u64("1e3 B", &bytes));
     assert(bytes == UINT64_C(1000));
+
+    char long_exact[260];
+    long_exact[0] = '1';
+    memset(long_exact + 1, '0', 200U);
+    memcpy(long_exact + 201, "e-200B", 8U);
+    assert(infiltratr_parse_binary_quantity_u64(long_exact, &bytes));
+    assert(bytes == UINT64_C(1));
+
+    assert(infiltratr_parse_binary_quantity_u64(
+        "0e999999999999999999999999999999999999999999B", &bytes));
+    assert(bytes == UINT64_C(0));
+
     bytes = 99U;
     assert(!infiltratr_parse_binary_quantity_u64("18446744073709551616B", &bytes));
     assert(bytes == 99U);
@@ -81,6 +93,9 @@ static void test_binary_quantity(void)
     assert(!infiltratr_parse_binary_quantity_u64("1e-3 KiB", &bytes));
     assert(bytes == 99U);
     assert(!infiltratr_parse_binary_quantity_u64("-0B", &bytes));
+    assert(bytes == 99U);
+    assert(!infiltratr_parse_binary_quantity_u64(
+        "1e999999999999999999999999999999999999999999B", &bytes));
     assert(bytes == 99U);
 }
 

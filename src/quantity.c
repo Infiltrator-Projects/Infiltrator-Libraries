@@ -2,21 +2,29 @@
 #include "infiltratr/quantity.h"
 #include "infiltratr/arithmetic.h"
 
-#include <limits.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
-static int ascii_equal_ci(const char *left, const char *right)
+typedef struct {
+    uint8_t *digits; /* little-endian decimal digits */
+    size_t length;
+    size_t capacity;
+} DecimalInteger;
+
+static bool ascii_equal_ci_span(const char *text, size_t length,
+                                const char *candidate)
 {
-    while (*left && *right) {
-        unsigned char a = (unsigned char)*left++;
-        unsigned char b = (unsigned char)*right++;
+    size_t i = 0U;
+    for (; i < length && candidate[i] != '\0'; ++i) {
+        unsigned char a = (unsigned char)text[i];
+        unsigned char b = (unsigned char)candidate[i];
         if (a >= 'A' && a <= 'Z') a = (unsigned char)(a + ('a' - 'A'));
         if (b >= 'A' && b <= 'Z') b = (unsigned char)(b + ('a' - 'A'));
-        if (a != b) return 0;
+        if (a != b) return false;
     }
-    return *left == '\0' && *right == '\0';
+    return i == length && candidate[i] == '\0';
 }
 
 static bool ascii_space(unsigned char value)
@@ -36,15 +44,17 @@ static bool ascii_digit(unsigned char value)
     return value >= '0' && value <= '9';
 }
 
-static bool suffix_power(const char *suffix, unsigned int *power)
+static bool suffix_power(const char *suffix, size_t length,
+                         unsigned int *power)
 {
     static const char *const short_names[] = {"", "k", "m", "g", "t", "p", "e"};
     static const char *const byte_names[] = {"b", "kb", "mb", "gb", "tb", "pb", "eb"};
     static const char *const iec_names[] = {"b", "kib", "mib", "gib", "tib", "pib", "eib"};
+
     for (unsigned int i = 0U; i < 7U; ++i) {
-        if (ascii_equal_ci(suffix, short_names[i]) ||
-            ascii_equal_ci(suffix, byte_names[i]) ||
-            ascii_equal_ci(suffix, iec_names[i])) {
+        if (ascii_equal_ci_span(suffix, length, short_names[i]) ||
+            ascii_equal_ci_span(suffix, length, byte_names[i]) ||
+            ascii_equal_ci_span(suffix, length, iec_names[i])) {
             *power = i;
             return true;
         }
@@ -52,201 +62,305 @@ static bool suffix_power(const char *suffix, unsigned int *power)
     return false;
 }
 
-typedef struct {
-    char digits[128];
-    size_t length;
-    int64_t exponent10;
-} ExactDecimal;
-
-static bool parse_exact_decimal(const char *text, ExactDecimal *decimal)
+static void decimal_destroy(DecimalInteger *integer)
 {
-    if (!text || !decimal) return false;
+    if (!integer) return;
+    free(integer->digits);
+    integer->digits = NULL;
+    integer->length = 0U;
+    integer->capacity = 0U;
+}
 
-    const unsigned char *cursor = (const unsigned char *)text;
-    if (*cursor == '+')
-        cursor++;
-    else if (*cursor == '-')
+static bool decimal_reserve(DecimalInteger *integer, size_t required)
+{
+    return infiltratr_array_reserve((void **)&integer->digits,
+                                    &integer->capacity,
+                                    sizeof(integer->digits[0]),
+                                    required, 32U);
+}
+
+static bool decimal_append_forward(DecimalInteger *integer, unsigned int digit)
+{
+    if (integer->length == SIZE_MAX ||
+        !decimal_reserve(integer, integer->length + 1U))
         return false;
+    integer->digits[integer->length++] = (uint8_t)digit;
+    return true;
+}
 
-    char digits[128];
-    size_t digit_count = 0U;
-    size_t fractional_digits = 0U;
-    bool saw_digit = false;
-
-    while (ascii_digit(*cursor)) {
-        if (digit_count + 1U >= sizeof(digits)) return false;
-        digits[digit_count++] = (char)*cursor++;
-        saw_digit = true;
-    }
-    if (*cursor == '.') {
-        cursor++;
-        while (ascii_digit(*cursor)) {
-            if (digit_count + 1U >= sizeof(digits)) return false;
-            digits[digit_count++] = (char)*cursor++;
-            fractional_digits++;
-            saw_digit = true;
-        }
-    }
-    if (!saw_digit) return false;
-
-    int64_t explicit_exponent = 0;
-    bool exponent_negative = false;
-    if (*cursor == 'e' || *cursor == 'E') {
-        cursor++;
-        if (*cursor == '+' || *cursor == '-') {
-            exponent_negative = *cursor == '-';
-            cursor++;
-        }
-        if (!ascii_digit(*cursor)) return false;
-        while (ascii_digit(*cursor)) {
-            const int digit = (int)(*cursor - '0');
-            if (explicit_exponent > (INT64_MAX - digit) / 10) return false;
-            explicit_exponent = explicit_exponent * 10 + digit;
-            cursor++;
-        }
-        if (exponent_negative) explicit_exponent = -explicit_exponent;
-    }
-    if (*cursor != '\0') return false;
-    if (fractional_digits > (size_t)INT64_MAX) return false;
-    if (explicit_exponent < INT64_MIN + (int64_t)fractional_digits)
-        return false;
-
-    int64_t exponent10 = explicit_exponent - (int64_t)fractional_digits;
+static void decimal_normalise_to_little_endian(DecimalInteger *integer)
+{
     size_t first = 0U;
-    while (first < digit_count && digits[first] == '0') first++;
-    if (first == digit_count) {
-        decimal->digits[0] = '0';
-        decimal->digits[1] = '\0';
-        decimal->length = 1U;
-        decimal->exponent10 = 0;
-        return true;
+    while (first < integer->length && integer->digits[first] == 0U)
+        first++;
+
+    if (first != 0U) {
+        integer->length -= first;
+        if (integer->length != 0U)
+            memmove(integer->digits, integer->digits + first, integer->length);
     }
 
-    size_t last = digit_count;
-    while (last > first && digits[last - 1U] == '0') {
-        if (exponent10 == INT64_MAX) return false;
-        exponent10++;
-        last--;
+    for (size_t left = 0U, right = integer->length;
+         left < right && left < --right; ++left) {
+        const uint8_t temporary = integer->digits[left];
+        integer->digits[left] = integer->digits[right];
+        integer->digits[right] = temporary;
+    }
+}
+
+static bool decimal_multiply_small(DecimalInteger *integer,
+                                   unsigned int factor)
+{
+    unsigned int carry = 0U;
+    for (size_t i = 0U; i < integer->length; ++i) {
+        const unsigned int product =
+            (unsigned int)integer->digits[i] * factor + carry;
+        integer->digits[i] = (uint8_t)(product % 10U);
+        carry = product / 10U;
     }
 
-    decimal->length = last - first;
-    memcpy(decimal->digits, digits + first, decimal->length);
-    decimal->digits[decimal->length] = '\0';
-    decimal->exponent10 = exponent10;
+    while (carry != 0U) {
+        if (!decimal_append_forward(integer, carry % 10U))
+            return false;
+        carry /= 10U;
+    }
     return true;
 }
 
-static bool decimal_divide_small(ExactDecimal *decimal, unsigned int divisor)
+static bool decimal_to_u64(const DecimalInteger *integer,
+                           size_t low_digits_to_remove,
+                           uint64_t *value)
 {
-    unsigned int remainder = 0U;
-    size_t out = 0U;
+    if (low_digits_to_remove >= integer->length)
+        return false;
 
-    for (size_t i = 0U; i < decimal->length; ++i) {
-        const unsigned int value = remainder * 10U +
-            (unsigned int)(decimal->digits[i] - '0');
-        const unsigned int quotient = value / divisor;
-        remainder = value % divisor;
-        if (quotient != 0U || out != 0U)
-            decimal->digits[out++] = (char)('0' + quotient);
-    }
-    if (remainder != 0U) return false;
-    if (out == 0U) decimal->digits[out++] = '0';
-    decimal->digits[out] = '\0';
-    decimal->length = out;
-    return true;
-}
+    for (size_t i = 0U; i < low_digits_to_remove; ++i)
+        if (integer->digits[i] != 0U)
+            return false;
 
-static bool decimal_to_u64(const ExactDecimal *decimal, uint64_t *value)
-{
     uint64_t result = 0U;
-    for (size_t i = 0U; i < decimal->length; ++i) {
-        const uint64_t digit = (uint64_t)(decimal->digits[i] - '0');
-        if (result > (UINT64_MAX - digit) / 10U) return false;
+    for (size_t i = integer->length; i-- > low_digits_to_remove;) {
+        const uint64_t digit = (uint64_t)integer->digits[i];
+        if (result > (UINT64_MAX - digit) / 10U)
+            return false;
         result = result * 10U + digit;
     }
     *value = result;
     return true;
 }
 
-static bool multiply_power(uint64_t *value, uint64_t factor, uint64_t exponent)
+static bool parse_exponent(const unsigned char **cursor,
+                           const unsigned char *end,
+                           bool *negative, size_t *magnitude,
+                           bool *overflowed)
 {
-    uint64_t result = *value;
-    for (uint64_t i = 0U; i < exponent; ++i) {
-        if (!infiltratr_u64_multiply_checked(result, factor, &result))
-            return false;
+    *negative = false;
+    *magnitude = 0U;
+    *overflowed = false;
+
+    if (*cursor >= end || (**cursor != 'e' && **cursor != 'E'))
+        return true;
+
+    (*cursor)++;
+    if (*cursor < end && (**cursor == '+' || **cursor == '-')) {
+        *negative = **cursor == '-';
+        (*cursor)++;
     }
-    *value = result;
+    if (*cursor >= end || !ascii_digit(**cursor))
+        return false;
+
+    while (*cursor < end && ascii_digit(**cursor)) {
+        const size_t digit = (size_t)(**cursor - '0');
+        if (!*overflowed) {
+            if (*magnitude > (SIZE_MAX - digit) / 10U)
+                *overflowed = true;
+            else
+                *magnitude = *magnitude * 10U + digit;
+        }
+        (*cursor)++;
+    }
+    return true;
+}
+
+static bool parse_decimal_integer(const char *begin, const char *end,
+                                  DecimalInteger *integer,
+                                  size_t *fractional_digits,
+                                  bool *exponent_negative,
+                                  size_t *exponent_magnitude,
+                                  bool *exponent_overflowed)
+{
+    const unsigned char *cursor = (const unsigned char *)begin;
+    const unsigned char *limit = (const unsigned char *)end;
+
+    if (cursor < limit && *cursor == '+')
+        cursor++;
+    else if (cursor < limit && *cursor == '-')
+        return false;
+
+    bool saw_digit = false;
+    *fractional_digits = 0U;
+
+    while (cursor < limit && ascii_digit(*cursor)) {
+        if (!decimal_append_forward(integer, (unsigned int)(*cursor - '0')))
+            return false;
+        cursor++;
+        saw_digit = true;
+    }
+
+    if (cursor < limit && *cursor == '.') {
+        cursor++;
+        while (cursor < limit && ascii_digit(*cursor)) {
+            if (!decimal_append_forward(integer, (unsigned int)(*cursor - '0')))
+                return false;
+            if (*fractional_digits == SIZE_MAX)
+                return false;
+            (*fractional_digits)++;
+            cursor++;
+            saw_digit = true;
+        }
+    }
+
+    if (!saw_digit)
+        return false;
+
+    if (!parse_exponent(&cursor, limit, exponent_negative,
+                        exponent_magnitude, exponent_overflowed))
+        return false;
+    if (cursor != limit)
+        return false;
+
+    decimal_normalise_to_little_endian(integer);
+    return true;
+}
+
+static bool decimal_shift(bool exponent_negative, size_t exponent_magnitude,
+                          size_t fractional_digits,
+                          bool *negative, size_t *magnitude)
+{
+    if (exponent_negative) {
+        if (exponent_magnitude > SIZE_MAX - fractional_digits)
+            return false;
+        *negative = true;
+        *magnitude = fractional_digits + exponent_magnitude;
+        return true;
+    }
+
+    if (exponent_magnitude >= fractional_digits) {
+        *negative = false;
+        *magnitude = exponent_magnitude - fractional_digits;
+    } else {
+        *negative = true;
+        *magnitude = fractional_digits - exponent_magnitude;
+    }
     return true;
 }
 
 bool infiltratr_parse_binary_quantity_u64(const char *text, uint64_t *bytes)
 {
     if (!text || !bytes) return false;
-    while (*text && ascii_space((unsigned char)*text)) text++;
+
+    while (*text && ascii_space((unsigned char)*text))
+        text++;
+
     const char *end = text + strlen(text);
-    while (end > text && ascii_space((unsigned char)end[-1])) end--;
-    if (end == text || (size_t)(end - text) >= 160U) return false;
+    while (end > text && ascii_space((unsigned char)end[-1]))
+        end--;
+    if (end == text)
+        return false;
 
     const char *suffix_start = end;
-    while (suffix_start > text && ascii_alpha((unsigned char)suffix_start[-1]))
+    while (suffix_start > text &&
+           ascii_alpha((unsigned char)suffix_start[-1]))
         suffix_start--;
 
-    char suffix[8];
-    const size_t suffix_length = (size_t)(end - suffix_start);
-    if (suffix_length >= sizeof(suffix)) return false;
-    memcpy(suffix, suffix_start, suffix_length);
-    suffix[suffix_length] = '\0';
-
     unsigned int power = 0U;
-    if (!suffix_power(suffix, &power)) return false;
+    if (!suffix_power(suffix_start, (size_t)(end - suffix_start), &power))
+        return false;
 
     const char *number_end = suffix_start;
     while (number_end > text && ascii_space((unsigned char)number_end[-1]))
         number_end--;
-    const size_t number_length = (size_t)(number_end - text);
-    if (number_length == 0U || number_length >= 128U) return false;
+    if (number_end == text)
+        return false;
 
-    char number[128];
-    memcpy(number, text, number_length);
-    number[number_length] = '\0';
+    DecimalInteger integer = {0};
+    size_t fractional_digits = 0U;
+    size_t exponent_magnitude = 0U;
+    bool exponent_negative = false;
+    bool exponent_overflowed = false;
 
-    ExactDecimal decimal;
-    if (!parse_exact_decimal(number, &decimal)) return false;
-    if (decimal.length == 1U && decimal.digits[0] == '0') {
+    const bool parsed = parse_decimal_integer(text, number_end, &integer,
+                                              &fractional_digits,
+                                              &exponent_negative,
+                                              &exponent_magnitude,
+                                              &exponent_overflowed);
+    if (!parsed) {
+        decimal_destroy(&integer);
+        return false;
+    }
+
+    if (integer.length == 0U) {
+        decimal_destroy(&integer);
         *bytes = 0U;
         return true;
     }
 
-    const uint64_t binary_power = (uint64_t)power * 10U;
-    uint64_t result = 0U;
-
-    if (decimal.exponent10 >= 0) {
-        if (decimal.exponent10 > 19) return false;
-        if (!decimal_to_u64(&decimal, &result) ||
-            !multiply_power(&result, 10U, (uint64_t)decimal.exponent10) ||
-            !multiply_power(&result, 2U, binary_power))
-            return false;
-    } else {
-        if (decimal.exponent10 == INT64_MIN) return false;
-        const uint64_t denominator_power =
-            (uint64_t)(-decimal.exponent10);
-
-        /* A non-zero <128-digit decimal cannot contain 5^513 as a factor. */
-        if (denominator_power > 512U) return false;
-        for (uint64_t i = 0U; i < denominator_power; ++i)
-            if (!decimal_divide_small(&decimal, 5U)) return false;
-
-        const uint64_t twos_to_divide = denominator_power > binary_power
-            ? denominator_power - binary_power : 0U;
-        for (uint64_t i = 0U; i < twos_to_divide; ++i)
-            if (!decimal_divide_small(&decimal, 2U)) return false;
-
-        if (!decimal_to_u64(&decimal, &result)) return false;
-        const uint64_t twos_to_multiply = binary_power > denominator_power
-            ? binary_power - denominator_power : 0U;
-        if (!multiply_power(&result, 2U, twos_to_multiply)) return false;
+    /*
+     * Any exponent magnitude larger than size_t cannot be cancelled by the
+     * finite input's fractional digit count. For a non-zero value a positive
+     * exponent therefore exceeds uint64_t, while a negative exponent remains
+     * below one even after the largest supported binary suffix (2^60).
+     */
+    if (exponent_overflowed) {
+        decimal_destroy(&integer);
+        return false;
     }
 
+    for (unsigned int i = 0U; i < power; ++i) {
+        if (!decimal_multiply_small(&integer, 1024U)) {
+            decimal_destroy(&integer);
+            return false;
+        }
+    }
+
+    bool shift_negative = false;
+    size_t shift_magnitude = 0U;
+    if (!decimal_shift(exponent_negative, exponent_magnitude,
+                       fractional_digits, &shift_negative,
+                       &shift_magnitude)) {
+        decimal_destroy(&integer);
+        return false;
+    }
+
+    uint64_t result = 0U;
+    if (shift_negative) {
+        if (!decimal_to_u64(&integer, shift_magnitude, &result)) {
+            decimal_destroy(&integer);
+            return false;
+        }
+    } else {
+        if (!decimal_to_u64(&integer, 0U, &result)) {
+            decimal_destroy(&integer);
+            return false;
+        }
+
+        /*
+         * A non-zero uint64_t cannot survive multiplication by 10^20.
+         * This is a result-range consequence, not an input-length limit.
+         */
+        if (shift_magnitude > 19U) {
+            decimal_destroy(&integer);
+            return false;
+        }
+        for (size_t i = 0U; i < shift_magnitude; ++i) {
+            if (!infiltratr_u64_multiply_checked(result, 10U, &result)) {
+                decimal_destroy(&integer);
+                return false;
+            }
+        }
+    }
+
+    decimal_destroy(&integer);
     *bytes = result;
     return true;
 }
