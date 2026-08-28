@@ -30,9 +30,12 @@ typedef struct {
 #define INFILTRATR_DYNLIB_INIT { .handle = NULL }
 
 /**
- * Open one native dynamic library by platform-native file name.
+ * Open one native dynamic library by UTF-8 file name.
  *
- * The object must not already own a library. On failure it remains closed.
+ * POSIX forwards the UTF-8 byte sequence to the native loader. Windows
+ * validates UTF-8, converts it to UTF-16 and calls LoadLibraryW, avoiding the
+ * process ANSI code page. The object must not already own a library. On
+ * failure it remains closed.
  */
 bool infiltratr_dynlib_open(InfiltratrDynlib *library, const char *name);
 
