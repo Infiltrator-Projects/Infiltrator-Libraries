@@ -9,10 +9,30 @@
  */
 #include "infiltratr/dynlib.h"
 
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #ifdef _WIN32
 #include <windows.h>
+
+static wchar_t *utf8_library_name(const char *name)
+{
+    const int characters = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,
+                                                name, -1, NULL, 0);
+    if (characters <= 0 ||
+        (size_t)characters > SIZE_MAX / sizeof(wchar_t))
+        return NULL;
+
+    wchar_t *wide = malloc((size_t)characters * sizeof(*wide));
+    if (!wide) return NULL;
+    if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, name, -1,
+                            wide, characters) != characters) {
+        free(wide);
+        return NULL;
+    }
+    return wide;
+}
 #else
 #include <dlfcn.h>
 #endif
@@ -25,7 +45,10 @@ bool infiltratr_dynlib_open(InfiltratrDynlib *library, const char *name)
     }
 
 #ifdef _WIN32
-    library->handle = (void *)LoadLibraryA(name);
+    wchar_t *wide = utf8_library_name(name);
+    if (!wide) return false;
+    library->handle = (void *)LoadLibraryW(wide);
+    free(wide);
 #else
     library->handle = dlopen(name, RTLD_NOW | RTLD_LOCAL);
 #endif
