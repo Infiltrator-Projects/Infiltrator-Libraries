@@ -8,11 +8,21 @@
 #endif
 #include <assert.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
+
+static uint64_t native_offset_maximum(void)
+{
+    const size_t bits = sizeof(off_t) * CHAR_BIT;
+    if (bits > 64U) return UINT64_MAX;
+    if (bits == 64U) return (uint64_t)INT64_MAX;
+    return (UINT64_C(1) << (bits - 1U)) - 1U;
+}
 
 int main(void)
 {
@@ -46,14 +56,18 @@ int main(void)
     char short_read[4] = {0};
     assert(infiltratr_pread_full(descriptor, short_read, sizeof(short_read), 15U) == -1);
     assert(errno == EIO);
-    errno = 0;
-    assert(infiltratr_pread_full(descriptor, readback, 1U,
-                                 UINT64_C(0x8000000000000000)) == -1);
-    assert(errno == EOVERFLOW);
-    errno = 0;
-    assert(infiltratr_pwrite_full(descriptor, payload, 1U,
-                                  UINT64_C(0x8000000000000000)) == -1);
-    assert(errno == EOVERFLOW);
+    const uint64_t maximum_offset = native_offset_maximum();
+    if (maximum_offset < UINT64_MAX) {
+        const uint64_t invalid_offset = maximum_offset + 1U;
+        errno = 0;
+        assert(infiltratr_pread_full(descriptor, readback, 1U,
+                                     invalid_offset) == -1);
+        assert(errno == EOVERFLOW);
+        errno = 0;
+        assert(infiltratr_pwrite_full(descriptor, payload, 1U,
+                                      invalid_offset) == -1);
+        assert(errno == EOVERFLOW);
+    }
     errno = 0;
     assert(infiltratr_pread_full(descriptor, NULL, 1U, 0U) == -1);
     assert(errno == EINVAL);
