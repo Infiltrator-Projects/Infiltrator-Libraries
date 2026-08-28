@@ -119,7 +119,7 @@ bool infiltratr_project_info_is_valid(const InfiltratrProjectInfo *info);
 int infiltratr_project_info_print(FILE *stream,
                                   const InfiltratrProjectInfo *info);
 
-/** Bounded copy that treats NULL source as empty and always NUL-terminates valid storage. */
+/** Overlap-safe bounded copy that treats NULL source as empty and always NUL-terminates valid storage. */
 void infiltratr_copy_string(char *destination, size_t size,
                             const char *source);
 /** Trim leading/trailing C-library whitespace from a mutable string in place. */
