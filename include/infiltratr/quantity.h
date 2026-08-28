@@ -14,9 +14,12 @@ extern "C" {
  * Parse a non-negative binary quantity into whole bytes.
  *
  * Accepted suffixes are B, K/KB/KiB through E/EB/EiB, case-insensitively.
- * No suffix means bytes. Fractional input is accepted only when scaling yields
- * an exact whole-byte result. Surrounding ASCII whitespace is allowed.
- * Caller output is unchanged on failure.
+ * No suffix means bytes. An optional leading '+' is accepted; negative input
+ * is rejected. Decimal and exponent syntax is evaluated with exact integer/
+ * rational arithmetic rather than through floating point. Fractional input is
+ * accepted only when binary scaling yields an exact whole-byte result.
+ * Surrounding ASCII whitespace is allowed. Caller output is unchanged on
+ * failure.
  */
 bool infiltratr_parse_binary_quantity_u64(const char *text, uint64_t *bytes);
 
