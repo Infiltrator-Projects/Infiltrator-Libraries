@@ -323,6 +323,31 @@ static void test_atomic_replacement(void)
     assert(rmdir(directory) == 0);
 }
 
+static void test_durable_unlink(void)
+{
+    assert(infiltratr_unlink_durable(NULL, false) == EINVAL);
+    assert(infiltratr_unlink_durable("", false) == EINVAL);
+
+    char directory[] = "infiltratr-durable-unlink-XXXXXX";
+    assert(mkdtemp(directory));
+    char path[256];
+    assert(snprintf(path, sizeof(path), "%s/recovery.state", directory) > 0);
+
+    FILE *file = fopen(path, "wb");
+    assert(file);
+    assert(fputs("pending\n", file) >= 0);
+    assert(fclose(file) == 0);
+
+    assert(infiltratr_unlink_durable(path, false) == 0);
+    errno = 0;
+    assert(access(path, F_OK) != 0);
+    assert(errno == ENOENT);
+
+    assert(infiltratr_unlink_durable(path, false) == ENOENT);
+    assert(infiltratr_unlink_durable(path, true) == 0);
+    assert(rmdir(directory) == 0);
+}
+
 static void test_results_and_clock(void)
 {
     assert(strcmp(infiltratr_io_result_name(INFILTRATR_IO_OK), "ok") == 0);
@@ -346,6 +371,7 @@ int main(void)
     test_text_io();
     test_typed_io();
     test_atomic_replacement();
+    test_durable_unlink();
     test_results_and_clock();
 
     puts("Infiltratr Common POSIX API contract tests passed.");

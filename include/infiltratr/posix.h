@@ -149,6 +149,20 @@ int infiltratr_atomic_file_write_bytes(const char *path,
                                        InfiltratrAtomicFileMode mode,
                                        const void *data, size_t length);
 
+/**
+ * Remove one POSIX directory entry and durably publish that removal.
+ *
+ * The parent directory is resolved before unlinking so allocation/path errors
+ * cannot occur after the namespace change. If `missing_ok` is true, an absent
+ * path is treated as success and no directory sync is required. Otherwise an
+ * absent path returns ENOENT.
+ *
+ * A zero return means both unlink and parent-directory fsync completed. If the
+ * directory sync fails, the unlink may already have happened; the sync error is
+ * returned so callers can retain/reconstruct recovery state as appropriate.
+ */
+int infiltratr_unlink_durable(const char *path, bool missing_ok);
+
 bool infiltratr_monotonic_nanoseconds(uint64_t *nanoseconds);
 
 double infiltratr_monotonic_seconds(void);

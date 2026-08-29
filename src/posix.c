@@ -457,6 +457,25 @@ int infiltratr_atomic_file_write_bytes(const char *path,
     return infiltratr_atomic_file_write(path, mode, atomic_write_bytes, &bytes);
 }
 
+int infiltratr_unlink_durable(const char *path, bool missing_ok)
+{
+    if (!path || !*path) return EINVAL;
+
+    char *parent = atomic_parent_directory(path);
+    if (!parent) return errno ? errno : ENOMEM;
+
+    if (unlink(path) != 0) {
+        const int failure = errno;
+        free(parent);
+        if (failure == ENOENT && missing_ok) return 0;
+        return failure;
+    }
+
+    const int failure = atomic_sync_directory(parent);
+    free(parent);
+    return failure;
+}
+
 bool infiltratr_monotonic_nanoseconds(uint64_t *nanoseconds)
 {
     if (!nanoseconds) return false;

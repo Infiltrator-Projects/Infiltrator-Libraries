@@ -6,7 +6,7 @@
 
 Infiltrator Libraries is the canonical shared-code repository for reusable first-party components used across the Infiltrator software family.
 
-**Current library version:** 1.15.3  
+**Current library version:** 1.15.4  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -24,6 +24,16 @@ Infiltratr Common
 ```
 
 Common owns portable mechanics and algorithms that have real use across the project family. Application behaviour, filesystem semantics, hardware policy, calendar rules, vehicle diagnostics and user interfaces remain in their owning repositories.
+
+## Common 1.15.4
+
+1.15.4 adds the durable namespace-removal counterpart to Common's existing
+atomic replacement primitive. `infiltratr_unlink_durable()` resolves the parent
+before unlinking, provides explicit missing-file semantics, fsyncs the parent
+directory after a successful removal, and reports directory-sync failure without
+pretending the already-issued unlink can be rolled back. Defragger can therefore
+remove completed recovery journals through one tested durability contract rather
+than duplicating unlink-plus-directory-fsync sequences across filesystem engines.
 
 ## Common 1.15.3
 
