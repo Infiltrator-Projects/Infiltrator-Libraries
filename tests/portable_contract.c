@@ -26,7 +26,7 @@ static InfiltratrProjectInfo valid_project_info(void)
         .source_id = "contract-test-1.0.0",
         .build_profile = "test",
         .author = "Shannon Smith",
-        .website = "https://github.com/The-First-Infiltrator/Infiltrator-Libraries",
+        .website = "https://github.com/Infiltrator-Projects/Infiltrator-Libraries",
         .license_id = "GPL-3.0-or-later",
         .comments = "Portable public API contract regression suite",
         .icon_name = "contract-test",

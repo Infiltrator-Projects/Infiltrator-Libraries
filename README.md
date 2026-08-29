@@ -2,7 +2,7 @@
 
 # Infiltrator Libraries
 
-[![Common CI](https://github.com/The-First-Infiltrator/Infiltrator-Libraries/actions/workflows/ci.yml/badge.svg)](https://github.com/The-First-Infiltrator/Infiltrator-Libraries/actions/workflows/ci.yml)
+[![Common CI](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/actions/workflows/ci.yml/badge.svg)](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/actions/workflows/ci.yml)
 
 Infiltrator Libraries is the canonical shared-code repository for reusable first-party components used across the Infiltrator software family.
 
