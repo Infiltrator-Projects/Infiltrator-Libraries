@@ -196,6 +196,20 @@ static void test_arithmetic(void)
     assert(infiltratr_clamp_double(-1.0, 0.0, 10.0) == 0.0);
     assert(infiltratr_clamp_double(11.0, 0.0, 10.0) == 10.0);
     assert(infiltratr_clamp_double(5.0, 10.0, 0.0) == 5.0);
+    int64_t signed_result = 42;
+    assert(infiltratr_i64_add_checked(20, 22, &signed_result));
+    assert(signed_result == 42);
+    signed_result = 42;
+    assert(!infiltratr_i64_add_checked(INT64_MAX, 1, &signed_result));
+    assert(signed_result == 42);
+    assert(infiltratr_i64_multiply_checked(-7, 6, &signed_result));
+    assert(signed_result == -42);
+    signed_result = 42;
+    assert(!infiltratr_i64_multiply_checked(INT64_MIN, -1, &signed_result));
+    assert(signed_result == 42);
+    assert(infiltratr_i64_add_saturating(INT64_MAX, 1) == INT64_MAX);
+    assert(infiltratr_i64_add_saturating(INT64_MIN, -1) == INT64_MIN);
+
     uint64_t result = 42U;
     assert(!infiltratr_u64_add_checked(UINT64_MAX, 1U, &result));
     assert(result == 42U);
