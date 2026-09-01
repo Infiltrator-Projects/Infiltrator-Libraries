@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /** @file portable_contract.c @brief Boundary and failure-state portable API coverage. */
+#include "infiltratr/arithmetic.h"
 #include "infiltratr/core.h"
 #include "infiltratr/format.h"
 
