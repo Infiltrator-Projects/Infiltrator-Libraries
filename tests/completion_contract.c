@@ -30,7 +30,21 @@ static void test_endian_load_store(void)
 
 static void test_checked_arithmetic(void)
 {
+    int64_t signed_result = 77;
     uint64_t result = 77U;
+
+    assert(infiltratr_i64_add_checked(10, -3, &signed_result) &&
+           signed_result == 7);
+    signed_result = 77;
+    assert(!infiltratr_i64_add_checked(INT64_MAX, 1, &signed_result) &&
+           signed_result == 77);
+    assert(infiltratr_i64_multiply_checked(-12, 12, &signed_result) &&
+           signed_result == -144);
+    signed_result = 77;
+    assert(!infiltratr_i64_multiply_checked(INT64_MIN, -1, &signed_result) &&
+           signed_result == 77);
+    assert(infiltratr_i64_add_saturating(INT64_MAX, 1) == INT64_MAX);
+
     assert(infiltratr_u64_subtract_checked(10U, 3U, &result) && result == 7U);
     result = 77U;
     assert(!infiltratr_u64_subtract_checked(3U, 10U, &result) && result == 77U);
