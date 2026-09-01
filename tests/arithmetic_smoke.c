@@ -46,8 +46,32 @@ static void test_floor_divmod(void)
     assert(remainder == 6);
 }
 
-static void test_saturating_subtract(void)
+static void test_signed_checked_and_saturating(void)
 {
+    int64_t result = 77;
+
+    assert(infiltratr_i64_add_checked(40, 2, &result) && result == 42);
+    result = 77;
+    assert(!infiltratr_i64_add_checked(INT64_MAX, 1, &result));
+    assert(result == 77);
+    assert(!infiltratr_i64_add_checked(INT64_MIN, -1, &result));
+    assert(result == 77);
+    assert(!infiltratr_i64_add_checked(1, 1, NULL));
+
+    assert(infiltratr_i64_multiply_checked(7, -6, &result) && result == -42);
+    result = 77;
+    assert(!infiltratr_i64_multiply_checked(INT64_MAX, 2, &result));
+    assert(result == 77);
+    assert(!infiltratr_i64_multiply_checked(INT64_MIN, -1, &result));
+    assert(result == 77);
+    assert(infiltratr_i64_multiply_checked(INT64_MIN, 1, &result));
+    assert(result == INT64_MIN);
+    assert(!infiltratr_i64_multiply_checked(1, 1, NULL));
+
+    assert(infiltratr_i64_add_saturating(10, 3) == 13);
+    assert(infiltratr_i64_add_saturating(INT64_MAX, 1) == INT64_MAX);
+    assert(infiltratr_i64_add_saturating(INT64_MIN, -1) == INT64_MIN);
+
     assert(infiltratr_i64_subtract_saturating(10, 3) == 7);
     assert(infiltratr_i64_subtract_saturating(-10, -3) == -7);
     assert(infiltratr_i64_subtract_saturating(INT64_MIN, 1) == INT64_MIN);
@@ -121,7 +145,7 @@ static void test_array_reserve(void)
 int main(void)
 {
     test_floor_divmod();
-    test_saturating_subtract();
+    test_signed_checked_and_saturating();
     test_checked_sizes();
     test_array_reserve();
     puts("Infiltratr Common arithmetic tests passed.");
