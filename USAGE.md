@@ -19,6 +19,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Strict binary quantity parsing | Replaces repeated K/M/G-style quantity parsing such as System Monitor cache-size input | READY |
 | Checked and saturating arithmetic | System Monitor, Defragger, LINK, InfiltratorFS | ACTIVE |
 | Checked unsigned subtract/multiply | Completes active checked-u64 family | READY |
+| Checked signed add/multiply and saturating add | Completes the active signed arithmetic family; Calendar Plus hardens wide chronology/navigation intermediates | ACTIVE |
 | Checked `size_t` arithmetic / array reservation | System Monitor | ACTIVE |
 | Little-endian conversion | InfiltratorFS, Defragger | ACTIVE |
 | Big-endian conversion and byte load/store | Replaces repeated filesystem BE16/BE32 decoding in Defragger; completes endian family | READY |
