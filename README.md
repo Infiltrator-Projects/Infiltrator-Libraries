@@ -6,7 +6,7 @@
 
 Infiltrator Libraries is the canonical shared-code repository for reusable first-party components used across the Infiltrator software family.
 
-**Current library version:** 1.15.4  
+**Current library version:** 1.15.5  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -24,6 +24,14 @@ Infiltratr Common
 ```
 
 Common owns portable mechanics and algorithms that have real use across the project family. Application behaviour, filesystem semantics, hardware policy, calendar rules, vehicle diagnostics and user interfaces remain in their owning repositories.
+
+## Common 1.15.5
+
+1.15.5 completes Common's signed 64-bit checked-arithmetic family for consumers
+that accept wide integer domains. It adds checked signed addition and
+multiplication plus saturating signed addition, with unchanged-output failure
+semantics for checked operations. Calendar Plus can now harden extreme
+chronology/navigation intermediates without carrying private overflow logic.
 
 ## Common 1.15.4
 
