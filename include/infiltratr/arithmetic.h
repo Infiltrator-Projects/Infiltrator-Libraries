@@ -28,6 +28,13 @@ extern "C" {
 bool infiltratr_i64_floor_divmod(int64_t value, int64_t divisor,
                                  int64_t *quotient, int64_t *remainder);
 
+/** Add signed integers, rejecting overflow or a NULL result. */
+bool infiltratr_i64_add_checked(int64_t left, int64_t right, int64_t *result);
+/** Multiply signed integers, rejecting overflow or a NULL result. */
+bool infiltratr_i64_multiply_checked(int64_t left, int64_t right,
+                                     int64_t *result);
+/** Add signed integers and clamp overflow to INT64_MIN/INT64_MAX. */
+int64_t infiltratr_i64_add_saturating(int64_t left, int64_t right);
 /** Subtract signed integers and clamp overflow to INT64_MIN/INT64_MAX. */
 int64_t infiltratr_i64_subtract_saturating(int64_t left, int64_t right);
 
