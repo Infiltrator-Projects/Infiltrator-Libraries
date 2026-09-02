@@ -6,7 +6,7 @@
 
 Infiltrator Libraries is the canonical shared-code repository for reusable first-party components used across the Infiltrator software family.
 
-**Current library version:** 1.15.5  
+**Current library version:** 1.15.6  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
