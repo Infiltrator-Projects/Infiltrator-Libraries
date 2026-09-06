@@ -20,10 +20,13 @@ Infiltratr Common
       ├─ InfiltratorFS
       └─ LINK
            ├─ MBLINK
-           └─ JAGLINK
+           ├─ JAGLINK
+           ├─ BMWLINK
+           ├─ AUDILINK
+           └─ FORDLINK
 ```
 
-Common owns portable mechanics and algorithms that have real use across the project family. Application behaviour, filesystem semantics, hardware policy, calendar rules, vehicle diagnostics and user interfaces remain in their owning repositories.
+Common owns portable mechanics and algorithms that have real use across the project family. Product-neutral automotive diagnostic and shared application behaviour belongs in LINK; manufacturer-specific vehicle knowledge, branding and product-specific behaviour remain in MBLINK, JAGLINK, BMWLINK, AUDILINK and FORDLINK. Filesystem semantics, calendar rules and other domain-specific behaviour remain in their owning repositories rather than moving into Common merely because they are reusable within one product family.
 
 ## Common 1.15.5
 
