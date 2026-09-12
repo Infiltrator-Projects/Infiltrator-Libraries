@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file timing.h
- * @brief Portable elapsed and periodic timing policy primitives.
+ * @brief Portable elapsed, periodic and fixed-step timing policy primitives.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
@@ -29,6 +29,95 @@ extern "C" {
  * @return true when work is due or the baseline should be re-established.
  */
 bool infiltratr_interval_due(double now, double last, double interval);
+
+/**
+ * Exact rational fixed-step scheduler state.
+ *
+ * The scheduler consumes an integer monotonic tick counter and converts elapsed
+ * ticks into simulation steps without a floating-point accumulator. For a
+ * nanosecond clock running a 60 Hz simulation, for example, configure
+ * ticks_per_second=1000000000 and steps_per_second=60.
+ *
+ * The fractional phase is retained exactly as a numerator over
+ * ticks_per_second, so rates such as 60 Hz do not accumulate rounding drift.
+ * Consumers should treat the fields as read-only and mutate the scheduler only
+ * through the functions below.
+ */
+typedef struct InfiltratrFixedStepScheduler {
+    uint64_t ticks_per_second;
+    uint64_t steps_per_second;
+    uint64_t max_elapsed_ticks;
+    uint64_t max_steps_per_update;
+    uint64_t previous_tick;
+    uint64_t phase_numerator;
+    bool initialized;
+} InfiltratrFixedStepScheduler;
+
+/** Result from one fixed-step scheduler advance. */
+typedef struct InfiltratrFixedStepResult {
+    uint64_t steps_to_run;
+    uint64_t dropped_steps;
+    uint64_t clamped_ticks;
+    uint64_t phase_numerator;
+    bool clock_reset;
+} InfiltratrFixedStepResult;
+
+/**
+ * Configure an exact fixed-step scheduler.
+ *
+ * `ticks_per_second` describes the caller's monotonic clock. `steps_per_second`
+ * is the desired simulation cadence. A simulation rate higher than the clock
+ * resolution is rejected because such boundaries cannot be represented by the
+ * supplied clock. `max_elapsed_ticks` clamps a single delayed frame and
+ * `max_steps_per_update` bounds catch-up work to prevent a spiral of death.
+ *
+ * Configuration clears the previous baseline and fractional phase.
+ *
+ * @return false for NULL state, zero values, or steps_per_second greater than
+ *         ticks_per_second. Caller state is unchanged on failure.
+ */
+bool infiltratr_fixed_step_configure(InfiltratrFixedStepScheduler *scheduler,
+                                     uint64_t ticks_per_second,
+                                     uint64_t steps_per_second,
+                                     uint64_t max_elapsed_ticks,
+                                     uint64_t max_steps_per_update);
+
+/**
+ * Reset a configured scheduler to a known monotonic baseline.
+ *
+ * Fractional phase is discarded. This is useful after pause/resume or an
+ * intentional timeline discontinuity.
+ */
+bool infiltratr_fixed_step_reset(InfiltratrFixedStepScheduler *scheduler,
+                                 uint64_t now_tick);
+
+/**
+ * Advance a fixed-step scheduler to `now_tick`.
+ *
+ * The first sample establishes a baseline and returns zero steps. Normal
+ * samples convert elapsed ticks to whole simulation steps using exact integer
+ * rational arithmetic. Long frames are first clamped by `max_elapsed_ticks`,
+ * then catch-up is limited by `max_steps_per_update`; skipped whole steps are
+ * reported in `dropped_steps`. Fractional phase is preserved.
+ *
+ * If the monotonic source moves backwards, the scheduler automatically resets
+ * its baseline and phase, returns zero steps, and sets `clock_reset=true`.
+ *
+ * @return false for invalid/unconfigured state, NULL result, or an
+ *         unrepresentable arithmetic result. Result is unchanged on failure.
+ */
+bool infiltratr_fixed_step_advance(InfiltratrFixedStepScheduler *scheduler,
+                                   uint64_t now_tick,
+                                   InfiltratrFixedStepResult *result);
+
+/**
+ * Return the interpolation alpha in [0,1) for the current fractional phase.
+ *
+ * Alpha is derived only for rendering/interpolation convenience; scheduling
+ * itself remains exact integer arithmetic.
+ */
+bool infiltratr_fixed_step_alpha(const InfiltratrFixedStepScheduler *scheduler,
+                                 long double *alpha);
 
 /**
  * Calculate the positive distance to the next repeating boundary.
