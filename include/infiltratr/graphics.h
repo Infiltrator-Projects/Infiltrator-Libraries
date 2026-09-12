@@ -30,6 +30,13 @@ int infiltratr_surface_init(InfiltratrSurface *surface, size_t width, size_t hei
 int infiltratr_surface_resize(InfiltratrSurface *surface, size_t width, size_t height);
 void infiltratr_surface_release(InfiltratrSurface *surface);
 int infiltratr_surface_copy(InfiltratrSurface *destination, const InfiltratrSurface *source);
+int infiltratr_surface_copy_region(InfiltratrSurface *destination,
+                                   const InfiltratrSurface *source,
+                                   int source_x, int source_y,
+                                   int width, int height);
+int infiltratr_surface_copy_luma_tinted(InfiltratrSurface *destination,
+                                        const InfiltratrSurface *source,
+                                        InfiltratrColor tint);
 
 void infiltratr_surface_clear(InfiltratrSurface *surface, InfiltratrColor color);
 void infiltratr_surface_set_pixel(InfiltratrSurface *surface, int x, int y, InfiltratrColor color);
@@ -40,10 +47,21 @@ void infiltratr_surface_blend_rect(InfiltratrSurface *surface, int x, int y, int
                                    InfiltratrColor color);
 void infiltratr_surface_blit(InfiltratrSurface *destination, const InfiltratrSurface *source,
                              int destination_x, int destination_y);
+void infiltratr_surface_blit_region(InfiltratrSurface *destination,
+                                    const InfiltratrSurface *source,
+                                    int source_x, int source_y,
+                                    int source_width, int source_height,
+                                    int destination_x, int destination_y);
 void infiltratr_surface_blit_scaled_nearest(InfiltratrSurface *destination,
                                             const InfiltratrSurface *source,
                                             int destination_x, int destination_y,
                                             int destination_width, int destination_height);
+void infiltratr_surface_blit_region_scaled_nearest(InfiltratrSurface *destination,
+                                                   const InfiltratrSurface *source,
+                                                   int source_x, int source_y,
+                                                   int source_width, int source_height,
+                                                   int destination_x, int destination_y,
+                                                   int destination_width, int destination_height);
 void infiltratr_surface_blit_rotated(InfiltratrSurface *destination,
                                      const InfiltratrSurface *source,
                                      int center_x, int center_y,

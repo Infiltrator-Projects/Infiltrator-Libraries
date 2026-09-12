@@ -66,6 +66,47 @@ int infiltratr_surface_copy(InfiltratrSurface *destination, const InfiltratrSurf
     return 1;
 }
 
+int infiltratr_surface_copy_region(InfiltratrSurface *destination,
+                                   const InfiltratrSurface *source,
+                                   int source_x, int source_y,
+                                   int width, int height) {
+    int y;
+    InfiltratrColor transparent = {0, 0, 0, 0};
+    if (!destination || !source || !source->pixels || width <= 0 || height <= 0) return 0;
+    if (!infiltratr_surface_resize(destination, (size_t)width, (size_t)height)) return 0;
+    infiltratr_surface_clear(destination, transparent);
+    for (y = 0; y < height; ++y) {
+        const int sy = source_y + y;
+        int x;
+        if (sy < 0 || (size_t)sy >= source->height) continue;
+        for (x = 0; x < width; ++x) {
+            const int sx = source_x + x;
+            if (sx < 0 || (size_t)sx >= source->width) continue;
+            destination->pixels[(size_t)y * destination->width + (size_t)x] =
+                source->pixels[(size_t)sy * source->width + (size_t)sx];
+        }
+    }
+    return 1;
+}
+
+int infiltratr_surface_copy_luma_tinted(InfiltratrSurface *destination,
+                                        const InfiltratrSurface *source,
+                                        InfiltratrColor tint) {
+    size_t i;
+    if (!destination || !source || !source->pixels || source->pixel_count == 0) return 0;
+    if (!infiltratr_surface_resize(destination, source->width, source->height)) return 0;
+    for (i = 0; i < source->pixel_count; ++i) {
+        InfiltratrColor c = infiltratr_color_unpack(source->pixels[i]);
+        const unsigned luma = ((unsigned)c.r * 54U + (unsigned)c.g * 183U + (unsigned)c.b * 19U + 128U) >> 8U;
+        c.r = (uint8_t)((luma * (unsigned)tint.r + 127U) / 255U);
+        c.g = (uint8_t)((luma * (unsigned)tint.g + 127U) / 255U);
+        c.b = (uint8_t)((luma * (unsigned)tint.b + 127U) / 255U);
+        c.a = (uint8_t)(((unsigned)c.a * (unsigned)tint.a + 127U) / 255U);
+        destination->pixels[i] = infiltratr_color_pack(c);
+    }
+    return 1;
+}
+
 void infiltratr_surface_clear(InfiltratrSurface *surface, InfiltratrColor color) {
     size_t i;
     uint32_t pixel;
@@ -159,13 +200,29 @@ static void blend_pixel(InfiltratrSurface *destination, int x, int y, Infiltratr
 
 void infiltratr_surface_blit(InfiltratrSurface *destination, const InfiltratrSurface *source,
                              int destination_x, int destination_y) {
-    size_t sy;
-    if (!destination || !destination->pixels || !source || !source->pixels) return;
-    for (sy = 0; sy < source->height; ++sy) {
-        size_t sx;
-        for (sx = 0; sx < source->width; ++sx) {
-            blend_pixel(destination, destination_x + (int)sx, destination_y + (int)sy,
-                        infiltratr_color_unpack(source->pixels[sy * source->width + sx]));
+    infiltratr_surface_blit_region(destination, source, 0, 0,
+                                   source ? (int)source->width : 0,
+                                   source ? (int)source->height : 0,
+                                   destination_x, destination_y);
+}
+
+void infiltratr_surface_blit_region(InfiltratrSurface *destination,
+                                    const InfiltratrSurface *source,
+                                    int source_x, int source_y,
+                                    int source_width, int source_height,
+                                    int destination_x, int destination_y) {
+    int y;
+    if (!destination || !destination->pixels || !source || !source->pixels ||
+        source_width <= 0 || source_height <= 0) return;
+    for (y = 0; y < source_height; ++y) {
+        const int sy = source_y + y;
+        int x;
+        if (sy < 0 || (size_t)sy >= source->height) continue;
+        for (x = 0; x < source_width; ++x) {
+            const int sx = source_x + x;
+            if (sx < 0 || (size_t)sx >= source->width) continue;
+            blend_pixel(destination, destination_x + x, destination_y + y,
+                        infiltratr_color_unpack(source->pixels[(size_t)sy * source->width + (size_t)sx]));
         }
     }
 }
@@ -174,16 +231,31 @@ void infiltratr_surface_blit_scaled_nearest(InfiltratrSurface *destination,
                                             const InfiltratrSurface *source,
                                             int destination_x, int destination_y,
                                             int destination_width, int destination_height) {
+    infiltratr_surface_blit_region_scaled_nearest(destination, source, 0, 0,
+                                                  source ? (int)source->width : 0,
+                                                  source ? (int)source->height : 0,
+                                                  destination_x, destination_y,
+                                                  destination_width, destination_height);
+}
+
+void infiltratr_surface_blit_region_scaled_nearest(InfiltratrSurface *destination,
+                                                   const InfiltratrSurface *source,
+                                                   int source_x, int source_y,
+                                                   int source_width, int source_height,
+                                                   int destination_x, int destination_y,
+                                                   int destination_width, int destination_height) {
     int y;
     if (!destination || !destination->pixels || !source || !source->pixels ||
-        destination_width <= 0 || destination_height <= 0) return;
+        source_width <= 0 || source_height <= 0 || destination_width <= 0 || destination_height <= 0) return;
     for (y = 0; y < destination_height; ++y) {
-        const size_t sy = ((size_t)y * source->height) / (size_t)destination_height;
+        const int sy = source_y + (int)(((size_t)y * (size_t)source_height) / (size_t)destination_height);
         int x;
+        if (sy < 0 || (size_t)sy >= source->height) continue;
         for (x = 0; x < destination_width; ++x) {
-            const size_t sx = ((size_t)x * source->width) / (size_t)destination_width;
+            const int sx = source_x + (int)(((size_t)x * (size_t)source_width) / (size_t)destination_width);
+            if (sx < 0 || (size_t)sx >= source->width) continue;
             blend_pixel(destination, destination_x + x, destination_y + y,
-                        infiltratr_color_unpack(source->pixels[sy * source->width + sx]));
+                        infiltratr_color_unpack(source->pixels[(size_t)sy * source->width + (size_t)sx]));
         }
     }
 }
@@ -194,10 +266,10 @@ void infiltratr_surface_blit_rotated(InfiltratrSurface *destination,
                                      double angle_radians) {
     const double cosine = cos(angle_radians);
     const double sine = sin(angle_radians);
-    const double source_cx = ((double)source->width - 1.0) * 0.5;
-    const double source_cy = ((double)source->height - 1.0) * 0.5;
-    const int radius_x = (int)((source->width + 1U) / 2U);
-    const int radius_y = (int)((source->height + 1U) / 2U);
+    const double source_cx = source ? ((double)source->width - 1.0) * 0.5 : 0.0;
+    const double source_cy = source ? ((double)source->height - 1.0) * 0.5 : 0.0;
+    const int radius_x = source ? (int)((source->width + 1U) / 2U) : 0;
+    const int radius_y = source ? (int)((source->height + 1U) / 2U) : 0;
     int y;
     if (!destination || !destination->pixels || !source || !source->pixels) return;
     for (y = center_y - radius_y; y <= center_y + radius_y; ++y) {
