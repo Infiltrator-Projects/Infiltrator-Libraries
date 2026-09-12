@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file timing.c
- * @brief Portable elapsed and periodic timing policy implementation.
+ * @brief Portable elapsed, periodic and fixed-step timing policy implementation.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 2026 Shannon Smith
@@ -98,6 +98,140 @@ bool infiltratr_interval_due(double now, double last, double interval)
            now - last >= interval;
 }
 
+bool infiltratr_fixed_step_configure(InfiltratrFixedStepScheduler *scheduler,
+                                     uint64_t ticks_per_second,
+                                     uint64_t steps_per_second,
+                                     uint64_t max_elapsed_ticks,
+                                     uint64_t max_steps_per_update)
+{
+    InfiltratrFixedStepScheduler configured;
+
+    if (scheduler == NULL || ticks_per_second == 0U || steps_per_second == 0U ||
+        max_elapsed_ticks == 0U || max_steps_per_update == 0U ||
+        steps_per_second > ticks_per_second) {
+        return false;
+    }
+
+    configured.ticks_per_second = ticks_per_second;
+    configured.steps_per_second = steps_per_second;
+    configured.max_elapsed_ticks = max_elapsed_ticks;
+    configured.max_steps_per_update = max_steps_per_update;
+    configured.previous_tick = 0U;
+    configured.phase_numerator = 0U;
+    configured.initialized = false;
+    *scheduler = configured;
+    return true;
+}
+
+bool infiltratr_fixed_step_reset(InfiltratrFixedStepScheduler *scheduler,
+                                 uint64_t now_tick)
+{
+    if (scheduler == NULL || scheduler->ticks_per_second == 0U ||
+        scheduler->steps_per_second == 0U || scheduler->max_elapsed_ticks == 0U ||
+        scheduler->max_steps_per_update == 0U ||
+        scheduler->steps_per_second > scheduler->ticks_per_second) {
+        return false;
+    }
+
+    scheduler->previous_tick = now_tick;
+    scheduler->phase_numerator = 0U;
+    scheduler->initialized = true;
+    return true;
+}
+
+bool infiltratr_fixed_step_advance(InfiltratrFixedStepScheduler *scheduler,
+                                   uint64_t now_tick,
+                                   InfiltratrFixedStepResult *result)
+{
+    InfiltratrFixedStepResult next = {0U, 0U, 0U, 0U, false};
+    uint64_t elapsed;
+    uint64_t used_elapsed;
+    uint64_t whole_steps = 0U;
+    uint64_t elapsed_phase = 0U;
+    uint64_t carry = 0U;
+    uint64_t due_steps;
+    uint64_t new_phase;
+
+    if (scheduler == NULL || result == NULL || scheduler->ticks_per_second == 0U ||
+        scheduler->steps_per_second == 0U || scheduler->max_elapsed_ticks == 0U ||
+        scheduler->max_steps_per_update == 0U ||
+        scheduler->steps_per_second > scheduler->ticks_per_second ||
+        scheduler->phase_numerator >= scheduler->ticks_per_second) {
+        return false;
+    }
+
+    if (!scheduler->initialized) {
+        scheduler->previous_tick = now_tick;
+        scheduler->phase_numerator = 0U;
+        scheduler->initialized = true;
+        *result = next;
+        return true;
+    }
+
+    if (now_tick < scheduler->previous_tick) {
+        scheduler->previous_tick = now_tick;
+        scheduler->phase_numerator = 0U;
+        next.clock_reset = true;
+        *result = next;
+        return true;
+    }
+
+    elapsed = now_tick - scheduler->previous_tick;
+    scheduler->previous_tick = now_tick;
+    used_elapsed = elapsed;
+    if (used_elapsed > scheduler->max_elapsed_ticks) {
+        next.clamped_ticks = used_elapsed - scheduler->max_elapsed_ticks;
+        used_elapsed = scheduler->max_elapsed_ticks;
+    }
+
+    if (!u64_product_divmod(used_elapsed,
+                            scheduler->steps_per_second,
+                            scheduler->ticks_per_second,
+                            &whole_steps,
+                            &elapsed_phase)) {
+        return false;
+    }
+
+    if (elapsed_phase != 0U &&
+        scheduler->phase_numerator >= scheduler->ticks_per_second - elapsed_phase) {
+        new_phase = scheduler->phase_numerator -
+                    (scheduler->ticks_per_second - elapsed_phase);
+        carry = 1U;
+    } else {
+        new_phase = scheduler->phase_numerator + elapsed_phase;
+    }
+
+    if (whole_steps == UINT64_MAX && carry != 0U) {
+        return false;
+    }
+    due_steps = whole_steps + carry;
+
+    if (due_steps > scheduler->max_steps_per_update) {
+        next.steps_to_run = scheduler->max_steps_per_update;
+        next.dropped_steps = due_steps - scheduler->max_steps_per_update;
+    } else {
+        next.steps_to_run = due_steps;
+    }
+
+    scheduler->phase_numerator = new_phase;
+    next.phase_numerator = new_phase;
+    *result = next;
+    return true;
+}
+
+bool infiltratr_fixed_step_alpha(const InfiltratrFixedStepScheduler *scheduler,
+                                 long double *alpha)
+{
+    if (scheduler == NULL || alpha == NULL || scheduler->ticks_per_second == 0U ||
+        scheduler->phase_numerator >= scheduler->ticks_per_second) {
+        return false;
+    }
+
+    *alpha = (long double)scheduler->phase_numerator /
+             (long double)scheduler->ticks_per_second;
+    return true;
+}
+
 bool infiltratr_period_remaining(long double position, long double period,
                                  long double *remaining)
 {
@@ -155,11 +289,6 @@ bool infiltratr_cycle_partition_u64(uint64_t position,
         return false;
     }
 
-    /*
-     * Because phase < cycle_length, the quotient is strictly less than
-     * partition_count and therefore always representable in uint64_t. The
-     * helper still detects overflow so its invariant remains self-contained.
-     */
     if (!u64_product_divmod(phase, partition_count, cycle_length,
                             &index, &scaled_remainder)) {
         return false;
