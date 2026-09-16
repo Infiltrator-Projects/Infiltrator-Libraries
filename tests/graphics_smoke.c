@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <infiltratr/graphics.h>
 
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <assert.h>
 
 int main(void) {
