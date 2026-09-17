@@ -24,13 +24,15 @@ Applications must provide a normal platform fallback when those faces are unavai
 
 The common visual language is a graphite/silver foundation: near-black application background, layered dark panels/cards, restrained silver borders, light foreground text and muted secondary text. Controls use the same typography and geometry across products.
 
+`infiltrator-web-v1.css` is the canonical web adapter for these neutral roles. It exposes stable CSS custom properties for the shared palette, typography roles, radii and spacing. It contains no product page layout, no manufacturer identity and no proprietary font binaries. Web consumers load the adapter first and layer genuine local identity afterwards.
+
 Product repositories continue to own identity. Manufacturer colours, product accents, icons, logos, illustrations, vehicle gauges and domain-specific components are not part of the shared contract. A product may override the neutral accent while retaining the common typography, structural palette and component metrics.
 
 ## Ownership
 
 This directory is a design contract, not part of the Infiltratr Common C ABI. Runtime algorithms and broadly reusable C mechanics remain in Common. LINK remains the source of truth for shared vehicle-diagnostics behaviour and shared LINK-family application shells.
 
-When a platform cannot consume the JSON directly, its adapter should mirror these named roles rather than invent a new typography or structural palette. Product-specific source should contain only genuine identity overrides.
+When a platform cannot consume the JSON directly, its adapter should mirror these named roles rather than invent a new typography or structural palette. The web adapter is maintained alongside the JSON and regression-checked against its named values so the two cannot silently diverge. Product-specific source should contain only genuine identity overrides.
 
 ## Change rule
 
