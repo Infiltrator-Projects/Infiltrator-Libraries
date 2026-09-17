@@ -28,6 +28,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Generic quantity scaling | Formatting foundation | FOUNDATION |
 | Shared metric/duration formatting | System Monitor | ACTIVE |
 | Allocation-free i18n lookup/interpolation | LINK family | ACTIVE |
+| HTML text, JSON string and URI-component output encoding | ssmithnet.net, Infiltrator Repository | READY |
 
 ## ABI contract
 
@@ -47,6 +48,8 @@ Common owns generic file/path/clock mechanics used by Linux applications:
 - monotonic nanosecond/second clocks;
 - exact EINTR-safe sequential descriptor reads/writes;
 - exact EINTR-safe positioned pread/pwrite.
+
+Native generators and publishers must use these primitives instead of carrying private whole-file writers when the Common contract fits. Product-specific transaction policy remains local.
 
 The signed i64 reader is a READY completion of the existing typed-reader family. Filesystem status translation, block-device discovery, locking, randomness and durability policy specific to a storage engine remain application-owned.
 
@@ -78,6 +81,8 @@ The Windows build separates the static-library output from the DLL import librar
 - InfiltratorFS: Common owns endian/UTF-8/checked arithmetic/exact POSIX I/O; allocation, CoW, checkpoints, recovery and filesystem semantics remain InfiltratorFS-owned.
 - LINK: Common owns portable primitives/localisation engine/timing; OBD/UDS/ISO-TP and vehicle-diagnostic policy remain LINK-owned.
 - MBLINK/JAGLINK consume Common transitively through LINK where appropriate.
+- ssmithnet.net: Common owns neutral design tokens, the web-token adapter, generic output escaping, generic durable publication and Pages deployment plumbing; personal content, page composition, local material/colour treatment, graphics and site information architecture remain ssmithnet.net-owned.
+- Infiltrator Repository: Common owns neutral design tokens, the web-token adapter, generic output escaping, generic durable publication and Pages deployment plumbing; APT/Debian semantics, GitHub release discovery, retention, signing, mirroring, catalogue semantics and repository status presentation remain repository-owned.
 
 ## Public API permanence
 
@@ -101,3 +106,11 @@ A new public operation must satisfy at least one of these conditions:
 4. application-private production code can be replaced immediately.
 
 Once Common accepts an algorithmic responsibility, it must define complete input, boundary and failure semantics. Speculative utility APIs with no production justification stay out of Common.
+
+## Shared web and Pages ownership
+
+The canonical neutral web adapter is `design/infiltrator-web-v1.css`. It is derived from the named roles in `design/infiltrator-design-v1.json`; consumers may layer local CSS after it, but they must not silently redefine shared palette, typography-role, radius or spacing tokens under different values.
+
+The repository also provides `.github/actions/deploy-pages/action.yml` as the canonical product-neutral Pages publication sequence. It accepts a caller-built static directory and owns only configuration, artifact upload and deployment. Build inputs, generators, tests, scheduling, release policy and the contents of the static directory remain consumer-owned.
+
+These non-C assets are versioned with Common but are not part of the C ABI or SONAME contract. Consumers pin an exact reviewed Common revision/release just as native consumers do.
