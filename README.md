@@ -6,7 +6,7 @@
 
 Infiltrator Libraries is the canonical shared-code repository for reusable first-party components used across the Infiltrator software family.
 
-**Current library version:** 1.17.0  
+**Current library version:** 1.18.0  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -31,6 +31,15 @@ Infiltratr Common
 Common owns portable mechanics and algorithms that have real use across the project family. Product-neutral automotive diagnostic and shared application behaviour belongs in LINK; manufacturer-specific vehicle knowledge, branding and product-specific behaviour remain in MBLINK, JAGLINK, BMWLINK, AUDILINK and FORDLINK. Filesystem semantics, calendar rules and other domain-specific behaviour remain in their owning repositories rather than moving into Common merely because they are reusable within one product family.
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
+
+## Common 1.18.0
+
+1.18.0 extends Common into the shared static-web boundary without moving product
+semantics into the library. It adds dependency-free HTML/JSON/URI output
+encoders, the canonical web design-token adapter, and a reusable GitHub Pages
+artifact/deployment action. Native generators can combine these portable
+encoders with Common's existing durable POSIX atomic-file publication instead
+of carrying private copies.
 
 ## Common 1.15.5
 
