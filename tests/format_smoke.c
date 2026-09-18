@@ -26,19 +26,19 @@ int main(void)
                   "1.5 KB") == 0);
     assert(strcmp(infiltratr_format_disk_capacity(UINT64_MAX, text, sizeof(text)),
                   "16.0 EB") == 0);
-    assert(strcmp(infiltratr_format_network(1024.0L, false, true,
+    assert(strcmp(infiltratr_format_network(1000.0L, false, true,
                                             text, sizeof(text)),
                   "1.0 KB/s") == 0);
-    assert(strcmp(infiltratr_format_network(128.0L, true, true,
+    assert(strcmp(infiltratr_format_network(125.0L, true, true,
                                             text, sizeof(text)),
                   "1.0 Kb/s") == 0);
-    assert(strcmp(infiltratr_format_network_pair(1024.0L, 2048.0L, false,
+    assert(strcmp(infiltratr_format_network_pair(1000.0L, 2000.0L, false,
                                                  text, sizeof(text)),
                   "S:1.0 R:2.0 KB/s") == 0);
     assert(strcmp(infiltratr_format_link_speed_mbps(1000.0, text, sizeof(text)),
-                  "1000.00 Mb/s") == 0);
-    assert(strcmp(infiltratr_format_link_speed_mbps(1024.0, text, sizeof(text)),
                   "1.00 Gb/s") == 0);
+    assert(strcmp(infiltratr_format_link_speed_mbps(1024.0, text, sizeof(text)),
+                  "1.02 Gb/s") == 0);
     assert(strcmp(infiltratr_format_link_speed_mbps(0.0, text, sizeof(text)),
                   "N/A") == 0);
     assert(strcmp(infiltratr_format_percent(true, 52.4, text, sizeof(text)),
@@ -78,7 +78,7 @@ int main(void)
                   "") == 0);
     assert(strcmp(infiltratr_format_duration_clock(3661U, tiny, sizeof(tiny)),
                   "") == 0);
-    assert(strcmp(infiltratr_format_network_pair(1024.0L, 2048.0L, false,
+    assert(strcmp(infiltratr_format_network_pair(1000.0L, 2000.0L, false,
                                                  tiny, sizeof(tiny)),
                   "") == 0);
 

@@ -67,16 +67,16 @@ bool infiltratr_format_scalar(bool available, long double value,
 char *infiltratr_format_memory_gb(uint64_t bytes, char *buffer, size_t size);
 /** Render storage bytes with Common's normal binary auto-scaling policy. */
 char *infiltratr_format_disk_capacity(uint64_t bytes, char *buffer, size_t size);
-/** Render byte/bit quantity or rate, forcing at least the kilo-scale display. */
+/** Render byte/bit quantity or rate with decimal 1000-based network scaling. */
 char *infiltratr_format_network(long double bytes, bool use_bits,
                                 bool per_second, char *buffer, size_t size);
-/** Render send/receive rates using one shared scale selected from the larger value. */
+/** Render send/receive rates with one shared decimal network scale selected from the larger value. */
 char *infiltratr_format_network_pair(long double send_bytes,
                                      long double receive_bytes, bool use_bits,
                                      char *buffer, size_t size);
 /**
- * Render a positive Mb/s link speed using Common's traditional 1024-based
- * Kb/Mb/Gb prefix convention; unavailable input becomes N/A.
+ * Render a positive Mb/s link speed using decimal 1000-based Kb/Mb/Gb
+ * network scaling; unavailable input becomes N/A.
  */
 char *infiltratr_format_link_speed_mbps(double megabits_per_second,
                                         char *buffer, size_t size);

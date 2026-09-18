@@ -90,6 +90,7 @@ char *infiltratr_format_network(long double bytes, bool use_bits,
     if (!buffer || size == 0U) return buffer;
     if (!isfinite(bytes) || bytes < 0.0L) bytes = 0.0L;
     InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
+    options.divisor = 1000.0L;
     options.minimum_unit = 1U;
     options.decimal_places = 1U;
     options.integer_threshold = 0.0L;
@@ -117,6 +118,7 @@ char *infiltratr_format_network_pair(long double send_bytes,
     long double receive = use_bits ? receive_bytes * 8.0L : receive_bytes;
     const long double maximum = fmaxl(send, receive);
     InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
+    options.divisor = 1000.0L;
     options.minimum_unit = 1U;
     options.decimal_places = 1U;
     options.integer_threshold = 0.0L;
@@ -157,12 +159,13 @@ char *infiltratr_format_link_speed_mbps(double megabits_per_second,
     if (!isfinite(megabits_per_second) || megabits_per_second <= 0.0)
         return unavailable(buffer, size);
     InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;
+    options.divisor = 1000.0L;
     options.minimum_unit = 1U;
     options.decimal_places = 2U;
     options.integer_threshold = 0.0L;
     options.integer_at_minimum_unit = false;
     const long double bits_per_second =
-        (long double)megabits_per_second * 1024.0L * 1024.0L;
+        (long double)megabits_per_second * 1000.0L * 1000.0L;
     (void)infiltratr_format_scaled_quantity(bits_per_second, units,
                                              INFILTRATR_ARRAY_LENGTH(units),
                                              "", &options, buffer, size);
