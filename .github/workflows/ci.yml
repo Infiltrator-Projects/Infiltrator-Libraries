@@ -39,6 +39,9 @@ jobs:
           jq --version
           bash tests/check_design.sh
 
+      - name: Verify source licence markers
+        run: bash tests/check_spdx.sh
+
   strict-build:
     name: ${{ matrix.compiler }} strict build
     runs-on: ubuntu-latest

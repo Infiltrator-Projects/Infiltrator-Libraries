@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 name: Deploy static GitHub Pages artifact
 description: Configure Pages, upload one caller-built static directory, and deploy it.
 inputs:
