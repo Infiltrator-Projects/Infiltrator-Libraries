@@ -31,9 +31,21 @@ jobs:
           if grep -Eq '^  pull_request:|^  merge_group:' .github/workflows/ci.yml; then exit 1; fi
 
   design-contract:
-    runs-on: ubuntu-latest
+    name: Local design contract
+    runs-on: [self-hosted, Linux, X64, linux-native]
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verify local design dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for command_name in jq bash grep; do
+            command -v "$command_name" >/dev/null 2>&1 || {
+              echo "Self-hosted runner is missing $command_name." >&2
+              exit 1
+            }
+          done
       - name: Verify canonical web adapter
         run: |
           jq --version
@@ -43,14 +55,26 @@ jobs:
         run: bash tests/check_spdx.sh
 
   strict-build:
-    name: ${{ matrix.compiler }} strict build
-    runs-on: ubuntu-latest
+    name: Local ${{ matrix.compiler }} strict build
+    runs-on: [self-hosted, Linux, X64, linux-native]
+    timeout-minutes: 30
     strategy:
       fail-fast: false
+      max-parallel: 2
       matrix:
         compiler: [gcc, clang]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verify local build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for command_name in "${{ matrix.compiler }}" make cmake ctest; do
+            command -v "$command_name" >/dev/null 2>&1 || {
+              echo "Self-hosted runner is missing $command_name." >&2
+              exit 1
+            }
+          done
       - name: Full Make and CMake verification
         run: |
           make clean
@@ -68,10 +92,21 @@ jobs:
           ./cmake-consumer-build/infiltratr-common-consumer
 
   sanitizers:
-    name: Clang ASan + UBSan
-    runs-on: ubuntu-latest
+    name: Local Clang ASan + UBSan
+    runs-on: [self-hosted, Linux, X64, linux-native]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verify local sanitizer dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          for command_name in clang make; do
+            command -v "$command_name" >/dev/null 2>&1 || {
+              echo "Self-hosted runner is missing $command_name." >&2
+              exit 1
+            }
+          done
       - name: Run sanitizers
         env:
           ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
@@ -79,6 +114,16 @@ jobs:
         run: |
           make clean
           make CC=clang CFLAGS="-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer" check
+
+  hosted-portable-smoke:
+    name: Hosted Linux portable smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Independent clean-host portable verification
+        run: make CC=gcc portable-check
+
 
   windows-package:
     name: Windows MSVC CMake
