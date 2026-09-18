@@ -47,7 +47,13 @@ for key in small_radius control_radius card_radius panel_radius compact_spacing 
   check_string ".metrics.$key" "--infiltratr-$css_key: " 'px;'
 done
 
-grep -Fq '.background_rgb = 0xF4F5F7U' "$root/src/design.c"
-grep -Fq '.background_rgb = 0x050608U' "$root/src/design.c"
+for mode in day night; do
+  for key in "${theme_keys[@]}"; do
+    value=$(jq -er ".theme.palettes.$mode.$key" "$json")
+    hex=${value#\#}
+    field=${key}_rgb
+    grep -Fq -- ".$field = 0x${hex}U" "$root/src/design.c"
+  done
+done
 grep -Fq 'INFILTRATR_THEME_SYSTEM' "$root/include/infiltratr/design.h"
 echo "PASS: JSON, C and web design adapters match the canonical theme contract"
