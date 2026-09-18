@@ -210,6 +210,10 @@ static void test_arithmetic(void)
     assert(signed_result == 42);
     assert(infiltratr_i64_add_saturating(INT64_MAX, 1) == INT64_MAX);
     assert(infiltratr_i64_add_saturating(INT64_MIN, -1) == INT64_MIN);
+    assert(infiltratr_i64_multiply_saturating(INT64_MAX, 2) == INT64_MAX);
+    assert(infiltratr_i64_multiply_saturating(INT64_MIN, -1) == INT64_MAX);
+    assert(infiltratr_i64_multiply_saturating(INT64_MIN, 2) == INT64_MIN);
+    assert(infiltratr_i64_multiply_saturating(-7, 6) == -42);
 
     uint64_t result = 42U;
     assert(!infiltratr_u64_add_checked(UINT64_MAX, 1U, &result));

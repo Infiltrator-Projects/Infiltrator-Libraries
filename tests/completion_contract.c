@@ -44,6 +44,9 @@ static void test_checked_arithmetic(void)
     assert(!infiltratr_i64_multiply_checked(INT64_MIN, -1, &signed_result) &&
            signed_result == 77);
     assert(infiltratr_i64_add_saturating(INT64_MAX, 1) == INT64_MAX);
+    assert(infiltratr_i64_multiply_saturating(INT64_MAX, 2) == INT64_MAX);
+    assert(infiltratr_i64_multiply_saturating(INT64_MIN, -1) == INT64_MAX);
+    assert(infiltratr_i64_multiply_saturating(INT64_MIN, 2) == INT64_MIN);
 
     assert(infiltratr_u64_subtract_checked(10U, 3U, &result) && result == 7U);
     result = 77U;

@@ -80,6 +80,13 @@ static void test_signed_checked_and_saturating(void)
            INT64_MIN + 1);
     assert(infiltratr_i64_subtract_saturating(INT64_MAX, 1) ==
            INT64_MAX - 1);
+
+    assert(infiltratr_i64_multiply_saturating(7, -6) == -42);
+    assert(infiltratr_i64_multiply_saturating(0, INT64_MIN) == 0);
+    assert(infiltratr_i64_multiply_saturating(INT64_MAX, 2) == INT64_MAX);
+    assert(infiltratr_i64_multiply_saturating(INT64_MIN, -1) == INT64_MAX);
+    assert(infiltratr_i64_multiply_saturating(INT64_MIN, 2) == INT64_MIN);
+    assert(infiltratr_i64_multiply_saturating(-2, INT64_MAX) == INT64_MIN);
 }
 
 static void test_checked_sizes(void)

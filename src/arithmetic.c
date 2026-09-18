@@ -67,6 +67,13 @@ int64_t infiltratr_i64_subtract_saturating(int64_t left, int64_t right)
     return left - right;
 }
 
+int64_t infiltratr_i64_multiply_saturating(int64_t left, int64_t right)
+{
+    int64_t result = 0;
+    if (infiltratr_i64_multiply_checked(left, right, &result)) return result;
+    return ((left < 0) != (right < 0)) ? INT64_MIN : INT64_MAX;
+}
+
 bool infiltratr_u64_subtract_checked(uint64_t left, uint64_t right,
                                      uint64_t *result)
 {

@@ -37,6 +37,8 @@ bool infiltratr_i64_multiply_checked(int64_t left, int64_t right,
 int64_t infiltratr_i64_add_saturating(int64_t left, int64_t right);
 /** Subtract signed integers and clamp overflow to INT64_MIN/INT64_MAX. */
 int64_t infiltratr_i64_subtract_saturating(int64_t left, int64_t right);
+/** Multiply signed integers and clamp overflow to INT64_MIN/INT64_MAX. */
+int64_t infiltratr_i64_multiply_saturating(int64_t left, int64_t right);
 
 /** Subtract unsigned integers, rejecting underflow or a NULL result. */
 bool infiltratr_u64_subtract_checked(uint64_t left, uint64_t right,
