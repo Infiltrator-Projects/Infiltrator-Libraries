@@ -19,12 +19,27 @@ check_string '.typography.ui_regular_weight' '--infiltratr-font-ui-regular-weigh
 check_string '.typography.ui_bold_weight' '--infiltratr-font-ui-bold-weight: ' ';'
 check_string '.typography.brand_weight' '--infiltratr-font-brand-weight: ' ';'
 
-for key in background panel card surface input border text title muted subtle \
-  button_background button_foreground selection_background selection_foreground \
-  neutral_accent success warning fault info; do
-  css_key=${key//_/-}
-  check_string ".palette.$key" "--infiltratr-$css_key: " ';'
+legacy_keys=(background panel card surface input border text title muted subtle
+  button_background button_foreground selection_background selection_foreground
+  neutral_accent success warning fault info)
+theme_keys=("${legacy_keys[@]}" operation card_hover surface_hover operation_hover equals_hover)
+
+for key in "${legacy_keys[@]}"; do
+  test "$(jq -er ".palette.$key" "$json")" = "$(jq -er ".theme.palettes.night.$key" "$json")"
 done
+
+for mode in night day; do
+  for key in "${theme_keys[@]}"; do
+    css_key=${key//_/-}
+    value=$(jq -er ".theme.palettes.$mode.$key" "$json")
+    grep -Fq -- "--infiltratr-$css_key: $value;" "$css"
+  done
+done
+
+grep -Fq ':root[data-infiltratr-theme="day"]' "$css"
+grep -Fq ':root[data-infiltratr-theme="night"]' "$css"
+grep -Fq ':root[data-infiltratr-theme="system"]' "$css"
+grep -Fq '@media (prefers-color-scheme: light)' "$css"
 
 for key in small_radius control_radius card_radius panel_radius compact_spacing \
   control_spacing section_spacing content_padding screen_padding; do
@@ -32,4 +47,7 @@ for key in small_radius control_radius card_radius panel_radius compact_spacing 
   check_string ".metrics.$key" "--infiltratr-$css_key: " 'px;'
 done
 
-echo "PASS: web CSS adapter matches canonical design JSON"
+grep -Fq '.background_rgb = 0xF4F5F7U' "$root/src/design.c"
+grep -Fq '.background_rgb = 0x050608U' "$root/src/design.c"
+grep -Fq 'INFILTRATR_THEME_SYSTEM' "$root/include/infiltratr/design.h"
+echo "PASS: JSON, C and web design adapters match the canonical theme contract"

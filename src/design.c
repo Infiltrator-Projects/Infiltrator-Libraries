@@ -1,0 +1,99 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+#include "infiltratr/design.h"
+
+static const InfiltratrThemePalette day_palette = {
+    .struct_size = sizeof(InfiltratrThemePalette),
+    .abi_version = INFILTRATR_THEME_PALETTE_ABI,
+    .background_rgb = 0xF4F5F7U,
+    .panel_rgb = 0xFFFFFFU,
+    .card_rgb = 0xF8F9FAU,
+    .surface_rgb = 0xECEFF2U,
+    .input_rgb = 0xFFFFFFU,
+    .border_rgb = 0xC7CDD3U,
+    .text_rgb = 0x20252BU,
+    .title_rgb = 0x111418U,
+    .muted_rgb = 0x59636CU,
+    .subtle_rgb = 0x737D86U,
+    .button_background_rgb = 0x20252BU,
+    .button_foreground_rgb = 0xFFFFFFU,
+    .selection_background_rgb = 0xDDE2E7U,
+    .selection_foreground_rgb = 0x111418U,
+    .neutral_accent_rgb = 0x6F7881U,
+    .success_rgb = 0x3A8A58U,
+    .warning_rgb = 0x9A6500U,
+    .fault_rgb = 0xB54848U,
+    .info_rgb = 0x467AA3U,
+    .operation_rgb = 0xE8ECEFU,
+    .card_hover_rgb = 0xEEF1F3U,
+    .surface_hover_rgb = 0xF1F3F5U,
+    .operation_hover_rgb = 0xDDE2E7U,
+    .equals_hover_rgb = 0x343B42U
+};
+
+static const InfiltratrThemePalette night_palette = {
+    .struct_size = sizeof(InfiltratrThemePalette),
+    .abi_version = INFILTRATR_THEME_PALETTE_ABI,
+    .background_rgb = 0x050608U,
+    .panel_rgb = 0x101318U,
+    .card_rgb = 0x171B20U,
+    .surface_rgb = 0x0D1014U,
+    .input_rgb = 0x0E1115U,
+    .border_rgb = 0x353A40U,
+    .text_rgb = 0xE8ECEFU,
+    .title_rgb = 0xEEF1F3U,
+    .muted_rgb = 0xAEB6BDU,
+    .subtle_rgb = 0x899198U,
+    .button_background_rgb = 0xD7DDE2U,
+    .button_foreground_rgb = 0x111418U,
+    .selection_background_rgb = 0x2B3137U,
+    .selection_foreground_rgb = 0xEEF1F3U,
+    .neutral_accent_rgb = 0xBEC7CFU,
+    .success_rgb = 0x63AB7CU,
+    .warning_rgb = 0xD19E47U,
+    .fault_rgb = 0xC96B6BU,
+    .info_rgb = 0x7FA7C9U,
+    .operation_rgb = 0x20252BU,
+    .card_hover_rgb = 0x22272DU,
+    .surface_hover_rgb = 0x171B20U,
+    .operation_hover_rgb = 0x2B3137U,
+    .equals_hover_rgb = 0xEEF1F3U
+};
+
+const char *infiltratr_theme_mode_name(InfiltratrThemeMode mode)
+{
+    switch (mode) {
+    case INFILTRATR_THEME_SYSTEM:
+        return "System";
+    case INFILTRATR_THEME_DAY:
+        return "Day";
+    case INFILTRATR_THEME_NIGHT:
+        return "Night";
+    default:
+        return "System";
+    }
+}
+
+InfiltratrThemeMode infiltratr_theme_mode_next(InfiltratrThemeMode mode)
+{
+    switch (mode) {
+    case INFILTRATR_THEME_SYSTEM:
+        return INFILTRATR_THEME_DAY;
+    case INFILTRATR_THEME_DAY:
+        return INFILTRATR_THEME_NIGHT;
+    case INFILTRATR_THEME_NIGHT:
+    default:
+        return INFILTRATR_THEME_SYSTEM;
+    }
+}
+
+const InfiltratrThemePalette *infiltratr_theme_resolve(
+    InfiltratrThemeMode mode, bool system_is_dark)
+{
+    if (mode == INFILTRATR_THEME_DAY) {
+        return &day_palette;
+    }
+    if (mode == INFILTRATR_THEME_NIGHT) {
+        return &night_palette;
+    }
+    return system_is_dark ? &night_palette : &day_palette;
+}

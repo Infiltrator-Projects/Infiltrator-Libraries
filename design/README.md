@@ -22,20 +22,20 @@ Applications must provide a normal platform fallback when those faces are unavai
 
 ## Shared structure
 
-The common visual language is a graphite/silver foundation: near-black application background, layered dark panels/cards, restrained silver borders, light foreground text and muted secondary text. Controls use the same typography and geometry across products.
+The common visual language now has two explicit Infiltrator palettes: **Night**, the established graphite/silver foundation, and **Day**, its light counterpart. Both expose the same semantic roles so controls, states and hierarchy remain recognisably Infiltrator without forcing one luminance. **System** is not a third palette: it is a policy telling the platform adapter to follow the operating system's current light/dark preference.
 
-`infiltrator-web-v1.css` is the canonical web adapter for these neutral roles. It exposes stable CSS custom properties for the shared palette, typography roles, radii and spacing. It contains no product page layout, no manufacturer identity and no proprietary font binaries. Web consumers load the adapter first and layer genuine local identity afterwards.
+`infiltrator-web-v1.css` is the canonical web adapter for these neutral roles. Existing consumers keep the historical Night values at `:root`; theme-aware consumers set `data-infiltratr-theme="system|day|night"` on the root element. System mode uses `prefers-color-scheme`. The C adapter in `include/infiltratr/design.h` exposes the same Day/Night semantic tokens to native C/C++ consumers while leaving operating-system theme detection to the platform layer.
 
 Product repositories continue to own identity. Manufacturer colours, product accents, icons, logos, illustrations, vehicle gauges and domain-specific components are not part of the shared contract. A product may override the neutral accent while retaining the common typography, structural palette and component metrics.
 
 ## Ownership
 
-This directory is a design contract, not part of the Infiltratr Common C ABI. Runtime algorithms and broadly reusable C mechanics remain in Common. LINK remains the source of truth for shared vehicle-diagnostics behaviour and shared LINK-family application shells.
+The JSON remains the canonical design source. A deliberately small, product-neutral C adapter is published by Common so native consumers do not need private copies of palette constants; it does not own toolkit integration or product-specific styling. Runtime algorithms and broadly reusable C mechanics remain in Common. LINK remains the source of truth for shared vehicle-diagnostics behaviour and shared LINK-family application shells.
 
 When a platform cannot consume the JSON directly, its adapter should mirror these named roles rather than invent a new typography or structural palette. The web adapter is maintained alongside the JSON and regression-checked against its named values so the two cannot silently diverge. Product-specific source should contain only genuine identity overrides.
 
 ## Change rule
 
-A design-token change is made here first and then propagated to graphical consumers. Consumer-specific exceptions must be intentional and documented; silent drift is a bug.
+A design-token change is made here first. The JSON, C adapter and web adapter are regression-checked against one another before consumers move. Consumer-specific exceptions must be intentional and documented; silent drift is a bug. Platform CSS may differ in selector syntax and widget mechanics, but semantic roles and canonical colour values should not.
 
 SPDX-License-Identifier: GPL-3.0-or-later
