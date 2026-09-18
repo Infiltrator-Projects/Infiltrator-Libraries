@@ -11,6 +11,8 @@ int main(void) {
     InfiltratrSurface b = {0};
     InfiltratrSurface region = {0};
     InfiltratrSurface tinted = {0};
+    InfiltratrSurface smooth_source = {0};
+    InfiltratrSurface smooth_target = {0};
     InfiltratrColor red = {255, 0, 0, 255};
     InfiltratrColor blue_half = {0, 0, 255, 128};
     InfiltratrColor c;
@@ -52,9 +54,34 @@ int main(void) {
     assert(infiltratr_surface_copy(&a, &b));
     assert(a.width == 8 && a.height == 8 && a.pixel_count == 64);
 
+    /*
+     * Bilinear filtering is evaluated in premultiplied-alpha space. The
+     * transparent blue neighbours must not introduce a blue fringe around the
+     * opaque red corner, and blitting onto transparent storage must preserve
+     * the interpolated alpha rather than forcing the pixel opaque.
+     */
+    assert(infiltratr_surface_init(&smooth_source, 2, 2));
+    assert(infiltratr_surface_init(&smooth_target, 3, 3));
+    infiltratr_surface_clear(&smooth_source, (InfiltratrColor){0, 0, 255, 0});
+    infiltratr_surface_clear(&smooth_target, (InfiltratrColor){0, 0, 0, 0});
+    infiltratr_surface_set_pixel(&smooth_source, 0, 0, red);
+    infiltratr_surface_blit_scaled_bilinear(&smooth_target, &smooth_source,
+                                            0, 0, 3, 3);
+    c = infiltratr_surface_get_pixel(&smooth_target, 1, 1);
+    assert(c.r == 255 && c.g == 0 && c.b == 0);
+    assert(c.a >= 63 && c.a <= 64);
+
+    infiltratr_surface_clear(&smooth_target, (InfiltratrColor){0, 0, 0, 0});
+    infiltratr_surface_blit_region_scaled_bilinear(
+        &smooth_target, &smooth_source, 0, 0, 2, 2, 0, 0, 3, 3);
+    c = infiltratr_surface_get_pixel(&smooth_target, 1, 1);
+    assert(c.r == 255 && c.b == 0 && c.a >= 63 && c.a <= 64);
+
     infiltratr_surface_release(&a);
     infiltratr_surface_release(&b);
     infiltratr_surface_release(&region);
     infiltratr_surface_release(&tinted);
+    infiltratr_surface_release(&smooth_source);
+    infiltratr_surface_release(&smooth_target);
     return 0;
 }

@@ -148,9 +148,31 @@ void infiltratr_surface_fill_rect(InfiltratrSurface *surface, int x, int y, int 
     }
 }
 
-static uint8_t blend_channel(uint8_t source, uint8_t destination, unsigned alpha) {
-    const unsigned inverse = 255U - alpha;
-    return (uint8_t)(((unsigned)source * alpha + (unsigned)destination * inverse + 127U) / 255U);
+static InfiltratrColor composite_source_over(InfiltratrColor source,
+                                              InfiltratrColor destination) {
+    const unsigned source_alpha = source.a;
+    const unsigned destination_alpha = destination.a;
+    const unsigned inverse = 255U - source_alpha;
+    const unsigned alpha_scaled =
+        source_alpha * 255U + destination_alpha * inverse;
+    InfiltratrColor output = {0, 0, 0, 0};
+
+    if (alpha_scaled == 0U) return output;
+
+    output.a = (uint8_t)((alpha_scaled + 127U) / 255U);
+    output.r = (uint8_t)(
+        ((unsigned)source.r * source_alpha * 255U +
+         (unsigned)destination.r * destination_alpha * inverse +
+         alpha_scaled / 2U) / alpha_scaled);
+    output.g = (uint8_t)(
+        ((unsigned)source.g * source_alpha * 255U +
+         (unsigned)destination.g * destination_alpha * inverse +
+         alpha_scaled / 2U) / alpha_scaled);
+    output.b = (uint8_t)(
+        ((unsigned)source.b * source_alpha * 255U +
+         (unsigned)destination.b * destination_alpha * inverse +
+         alpha_scaled / 2U) / alpha_scaled);
+    return output;
 }
 
 void infiltratr_surface_blend_rect(InfiltratrSurface *surface, int x, int y, int width, int height,
@@ -172,12 +194,8 @@ void infiltratr_surface_blend_rect(InfiltratrSurface *surface, int x, int y, int
         int xx;
         uint32_t *row = surface->pixels + (size_t)yy * surface->width;
         for (xx = x0; xx < x1; ++xx) {
-            InfiltratrColor destination = infiltratr_color_unpack(row[xx]);
-            destination.r = blend_channel(color.r, destination.r, color.a);
-            destination.g = blend_channel(color.g, destination.g, color.a);
-            destination.b = blend_channel(color.b, destination.b, color.a);
-            destination.a = 255;
-            row[xx] = infiltratr_color_pack(destination);
+            const InfiltratrColor destination = infiltratr_color_unpack(row[xx]);
+            row[xx] = infiltratr_color_pack(composite_source_over(color, destination));
         }
     }
 }
@@ -191,11 +209,8 @@ static void blend_pixel(InfiltratrSurface *destination, int x, int y, Infiltratr
         return;
     }
     existing = infiltratr_surface_get_pixel(destination, x, y);
-    existing.r = blend_channel(source.r, existing.r, source.a);
-    existing.g = blend_channel(source.g, existing.g, source.a);
-    existing.b = blend_channel(source.b, existing.b, source.a);
-    existing.a = 255;
-    destination->pixels[(size_t)y * destination->width + (size_t)x] = infiltratr_color_pack(existing);
+    destination->pixels[(size_t)y * destination->width + (size_t)x] =
+        infiltratr_color_pack(composite_source_over(source, existing));
 }
 
 void infiltratr_surface_blit(InfiltratrSurface *destination, const InfiltratrSurface *source,
@@ -256,6 +271,104 @@ void infiltratr_surface_blit_region_scaled_nearest(InfiltratrSurface *destinatio
             if (sx < 0 || (size_t)sx >= source->width) continue;
             blend_pixel(destination, destination_x + x, destination_y + y,
                         infiltratr_color_unpack(source->pixels[(size_t)sy * source->width + (size_t)sx]));
+        }
+    }
+}
+
+static InfiltratrColor sample_surface_i64(const InfiltratrSurface *source,
+                                          int64_t x, int64_t y) {
+    InfiltratrColor transparent = {0, 0, 0, 0};
+    if (!source || !source->pixels || x < 0 || y < 0) return transparent;
+    if ((uint64_t)x >= (uint64_t)source->width ||
+        (uint64_t)y >= (uint64_t)source->height) return transparent;
+    return infiltratr_color_unpack(
+        source->pixels[(size_t)y * source->width + (size_t)x]);
+}
+
+static uint8_t rounded_u8(double value) {
+    if (!(value > 0.0)) return 0U;
+    if (value >= 255.0) return 255U;
+    return (uint8_t)floor(value + 0.5);
+}
+
+static InfiltratrColor bilinear_sample(const InfiltratrSurface *source,
+                                       double source_x, double source_y) {
+    const int64_t x0 = (int64_t)floor(source_x);
+    const int64_t y0 = (int64_t)floor(source_y);
+    const int64_t x1 = x0 + 1;
+    const int64_t y1 = y0 + 1;
+    const double fx = source_x - floor(source_x);
+    const double fy = source_y - floor(source_y);
+    const double weights[4] = {
+        (1.0 - fx) * (1.0 - fy),
+        fx * (1.0 - fy),
+        (1.0 - fx) * fy,
+        fx * fy
+    };
+    const InfiltratrColor samples[4] = {
+        sample_surface_i64(source, x0, y0),
+        sample_surface_i64(source, x1, y0),
+        sample_surface_i64(source, x0, y1),
+        sample_surface_i64(source, x1, y1)
+    };
+    double alpha = 0.0;
+    double red_alpha = 0.0;
+    double green_alpha = 0.0;
+    double blue_alpha = 0.0;
+    int i;
+    InfiltratrColor result = {0, 0, 0, 0};
+
+    for (i = 0; i < 4; ++i) {
+        const double weighted_alpha = weights[i] * (double)samples[i].a;
+        alpha += weighted_alpha;
+        red_alpha += weighted_alpha * (double)samples[i].r;
+        green_alpha += weighted_alpha * (double)samples[i].g;
+        blue_alpha += weighted_alpha * (double)samples[i].b;
+    }
+    if (!(alpha > 0.0)) return result;
+
+    result.a = rounded_u8(alpha);
+    result.r = rounded_u8(red_alpha / alpha);
+    result.g = rounded_u8(green_alpha / alpha);
+    result.b = rounded_u8(blue_alpha / alpha);
+    return result;
+}
+
+void infiltratr_surface_blit_scaled_bilinear(InfiltratrSurface *destination,
+                                             const InfiltratrSurface *source,
+                                             int destination_x, int destination_y,
+                                             int destination_width, int destination_height) {
+    infiltratr_surface_blit_region_scaled_bilinear(
+        destination, source, 0, 0,
+        source ? (int)source->width : 0,
+        source ? (int)source->height : 0,
+        destination_x, destination_y, destination_width, destination_height);
+}
+
+void infiltratr_surface_blit_region_scaled_bilinear(InfiltratrSurface *destination,
+                                                    const InfiltratrSurface *source,
+                                                    int source_x, int source_y,
+                                                    int source_width, int source_height,
+                                                    int destination_x, int destination_y,
+                                                    int destination_width, int destination_height) {
+    int y;
+    if (!destination || !destination->pixels || !source || !source->pixels ||
+        source_width <= 0 || source_height <= 0 ||
+        destination_width <= 0 || destination_height <= 0) return;
+
+    for (y = 0; y < destination_height; ++y) {
+        const double fy = destination_height == 1 ? 0.0 :
+            (double)y * (double)(source_height - 1) /
+            (double)(destination_height - 1);
+        int x;
+        for (x = 0; x < destination_width; ++x) {
+            const double fx = destination_width == 1 ? 0.0 :
+                (double)x * (double)(source_width - 1) /
+                (double)(destination_width - 1);
+            const InfiltratrColor sample =
+                bilinear_sample(source, (double)source_x + fx,
+                                (double)source_y + fy);
+            blend_pixel(destination, destination_x + x, destination_y + y, sample);
         }
     }
 }

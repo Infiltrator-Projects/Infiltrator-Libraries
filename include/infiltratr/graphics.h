@@ -62,6 +62,30 @@ void infiltratr_surface_blit_region_scaled_nearest(InfiltratrSurface *destinatio
                                                    int source_width, int source_height,
                                                    int destination_x, int destination_y,
                                                    int destination_width, int destination_height);
+
+/**
+ * Scale an entire source surface with alpha-aware bilinear filtering and
+ * source-over composition. Colour interpolation is performed in premultiplied
+ * alpha space so transparent edge pixels cannot bleed arbitrary RGB into the
+ * visible result.
+ */
+void infiltratr_surface_blit_scaled_bilinear(InfiltratrSurface *destination,
+                                             const InfiltratrSurface *source,
+                                             int destination_x, int destination_y,
+                                             int destination_width, int destination_height);
+
+/**
+ * Scale a source region with alpha-aware bilinear filtering and source-over
+ * composition. Samples outside the source surface are transparent, matching
+ * the clipping semantics of the other surface blitters.
+ */
+void infiltratr_surface_blit_region_scaled_bilinear(InfiltratrSurface *destination,
+                                                    const InfiltratrSurface *source,
+                                                    int source_x, int source_y,
+                                                    int source_width, int source_height,
+                                                    int destination_x, int destination_y,
+                                                    int destination_width, int destination_height);
+
 void infiltratr_surface_blit_rotated(InfiltratrSurface *destination,
                                      const InfiltratrSurface *source,
                                      int center_x, int center_y,

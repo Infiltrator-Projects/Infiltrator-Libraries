@@ -24,7 +24,8 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Little-endian conversion | InfiltratorFS, Defragger | ACTIVE |
 | Big-endian conversion and byte load/store | Replaces repeated filesystem BE16/BE32 decoding in Defragger; completes endian family | READY |
 | Strict UTF-8 validation | InfiltratorFS | ACTIVE |
-| Exact timing / periodic cadence | Calendar Plus, System Monitor, LINK | ACTIVE |
+| Exact timing / periodic cadence | Calendar Plus, System Monitor, LINK, Backyard Racer | ACTIVE |
+| Software surfaces, alpha compositing and nearest/bilinear scaling | Backyard Racer; shared framebuffer foundation | ACTIVE |
 | Generic quantity scaling | Formatting foundation | FOUNDATION |
 | Shared metric/duration formatting | System Monitor | ACTIVE |
 | Allocation-free i18n lookup/interpolation | LINK family | ACTIVE |
@@ -80,6 +81,7 @@ The Windows build separates the static-library output from the DLL import librar
 - Defragger: Common owns general arithmetic, byte order, exact I/O and generic durable file publication/removal; filesystem safety, on-disk validation, recovery record contents and relocation transactions remain Defragger-owned.
 - InfiltratorFS: Common owns endian/UTF-8/checked arithmetic/exact POSIX I/O; allocation, CoW, checkpoints, recovery and filesystem semantics remain InfiltratorFS-owned.
 - LINK: Common owns portable primitives/localisation engine/timing; OBD/UDS/ISO-TP and vehicle-diagnostic policy remain LINK-owned.
+- Backyard Racer: Common owns software-surface mechanics, alpha composition, image scaling, exact fixed-step scheduling and generic POSIX durability/clock primitives; game simulation, vehicle data, authored assets, screen composition and presentation identity remain Backyard Racer-owned.
 - MBLINK/JAGLINK consume Common transitively through LINK where appropriate.
 - ssmithnet.net: Common owns neutral design tokens, the web-token adapter, generic output escaping, generic durable publication and Pages deployment plumbing; personal content, page composition, local material/colour treatment, graphics and site information architecture remain ssmithnet.net-owned.
 - Infiltrator Repository: Common owns neutral design tokens, the web-token adapter, generic output escaping, generic durable publication and Pages deployment plumbing; APT/Debian semantics, GitHub release discovery, retention, signing, mirroring, catalogue semantics and repository status presentation remain repository-owned.
