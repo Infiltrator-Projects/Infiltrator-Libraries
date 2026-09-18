@@ -1,10 +1,10 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 
-# Infiltrator Libraries
+# Common
 
 [![Common CI](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/actions/workflows/ci.yml/badge.svg)](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/actions/workflows/ci.yml)
 
-Infiltrator Libraries is the canonical shared-code repository for reusable first-party components used across the Infiltrator software family.
+Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
 **Current library version:** 1.19.2  
 **Language:** C11  
@@ -13,7 +13,7 @@ Infiltrator Libraries is the canonical shared-code repository for reusable first
 ## Role
 
 ```text
-Infiltratr Common
+Common
       ├─ Calendar Plus
       ├─ System Monitor
       ├─ Defragger
@@ -42,7 +42,7 @@ rounding.
 
 ## Common 1.19.1
 
-1.19.1 centralises the Infiltrator appearance contract. Common now defines
+1.19.1 centralises the shared appearance contract. Common now defines
 System/Day/Night theme policy, canonical semantic Day and Night palettes, a
 portable C adapter for native consumers, and a web adapter that follows the
 same values. System remains platform-authoritative rather than becoming a
@@ -214,4 +214,4 @@ This repository is the authoritative copy of Infiltratr Common. Consumers pin an
 
 Copyright © 2026 Shannon Smith.
 
-Infiltratr Common is licensed under GNU GPL-3.0-or-later. See `LICENSE`.
+Common is licensed under GNU GPL-3.0-or-later. See `LICENSE`.
