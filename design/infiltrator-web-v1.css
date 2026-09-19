@@ -11,7 +11,7 @@
   --infiltratr-font-ui-regular-weight: 400;
   --infiltratr-font-ui-bold-weight: 700;
   --infiltratr-font-brand-weight: 400;
-  --infiltratr-background: #050608;
+  --infiltratr-background: #2B2B30;
   --infiltratr-panel: #101318;
   --infiltratr-card: #171B20;
   --infiltratr-surface: #0D1014;
@@ -74,7 +74,7 @@
 }
 
 :root[data-infiltratr-theme="system"] {
-  --infiltratr-background: #050608;
+  --infiltratr-background: #2B2B30;
   --infiltratr-panel: #101318;
   --infiltratr-card: #171B20;
   --infiltratr-surface: #0D1014;
