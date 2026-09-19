@@ -18,7 +18,7 @@ int main(void)
     if (day->abi_version != INFILTRATR_THEME_PALETTE_ABI) return 2;
     if (night->abi_version != INFILTRATR_THEME_PALETTE_ABI) return 3;
     if (day->background_rgb != 0xFFFFFFU) return 4;
-    if (night->background_rgb != 0x2B2B30U) return 5;
+    if (night->background_rgb != 0x050608U) return 5;
     if (day->button_background_rgb != 0x20252BU) return 6;
     if (night->button_background_rgb != 0xD7DDE2U) return 7;
     if (day->neutral_accent_rgb != 0x00ADEFU) return 11;
@@ -43,5 +43,20 @@ int main(void)
     if (strcmp(type->brand_regular_filename, "mb_corpo_a_cond_regular.ttf") != 0 ||
         strcmp(type->ui_bold_filename, "mb_corpo_s_bold.ttf") != 0 ||
         strcmp(type->ui_regular_filename, "mb_corpo_s_regular.ttf") != 0) return 20;
+    if (night->titlebar_rgb != 0x202125U) return 21;
+    if (night->connection_rgb != 0x0E1115U) return 22;
+    if (night->connection_border_rgb != 0x31363BU) return 23;
+    if (night->heading_rgb != 0xE7EBEEU) return 24;
+    if (night->summary_rgb != 0x98A1A9U) return 25;
+    if (night->kicker_rgb != 0x8C949BU) return 26;
+    if (night->detail_label_rgb != 0x7E858CU) return 27;
+    if (night->note_rgb != 0x9CA4ABU) return 28;
+    if (night->status_border_rgb != 0x3B4147U) return 29;
+    if (night->accent_foreground_rgb != 0x031018U) return 30;
+    if (night->accent_hover_rgb != 0x25B8F0U) return 31;
+    if (night->selected_summary_rgb != 0x79CAE8U) return 32;
+    if (night->warning_muted_rgb != 0xC69A4CU) return 33;
+    if (night->warning_border_rgb != 0x72572FU) return 34;
+    if (night->success_border_rgb != 0x365F45U) return 35;
     return 0;
 }
