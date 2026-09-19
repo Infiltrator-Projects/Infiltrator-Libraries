@@ -25,7 +25,7 @@
   --infiltratr-button-foreground: #111418;
   --infiltratr-selection-background: #2B3137;
   --infiltratr-selection-foreground: #EEF1F3;
-  --infiltratr-neutral-accent: #BEC7CF;
+  --infiltratr-neutral-accent: #00ADEF;
   --infiltratr-success: #63AB7C;
   --infiltratr-warning: #D19E47;
   --infiltratr-fault: #C96B6B;
@@ -47,7 +47,7 @@
 }
 
 :root[data-infiltratr-theme="day"] {
-  --infiltratr-background: #F4F5F7;
+  --infiltratr-background: #FFFFFF;
   --infiltratr-panel: #FFFFFF;
   --infiltratr-card: #F8F9FA;
   --infiltratr-surface: #ECEFF2;
@@ -61,7 +61,7 @@
   --infiltratr-button-foreground: #FFFFFF;
   --infiltratr-selection-background: #DDE2E7;
   --infiltratr-selection-foreground: #111418;
-  --infiltratr-neutral-accent: #6F7881;
+  --infiltratr-neutral-accent: #00ADEF;
   --infiltratr-success: #3A8A58;
   --infiltratr-warning: #9A6500;
   --infiltratr-fault: #B54848;
@@ -88,7 +88,7 @@
   --infiltratr-button-foreground: #111418;
   --infiltratr-selection-background: #2B3137;
   --infiltratr-selection-foreground: #EEF1F3;
-  --infiltratr-neutral-accent: #BEC7CF;
+  --infiltratr-neutral-accent: #00ADEF;
   --infiltratr-success: #63AB7C;
   --infiltratr-warning: #D19E47;
   --infiltratr-fault: #C96B6B;
@@ -102,7 +102,7 @@
 
 @media (prefers-color-scheme: light) {
   :root[data-infiltratr-theme="system"] {
-    --infiltratr-background: #F4F5F7;
+    --infiltratr-background: #FFFFFF;
     --infiltratr-panel: #FFFFFF;
     --infiltratr-card: #F8F9FA;
     --infiltratr-surface: #ECEFF2;
@@ -116,7 +116,7 @@
     --infiltratr-button-foreground: #FFFFFF;
     --infiltratr-selection-background: #DDE2E7;
     --infiltratr-selection-foreground: #111418;
-    --infiltratr-neutral-accent: #6F7881;
+    --infiltratr-neutral-accent: #00ADEF;
     --infiltratr-success: #3A8A58;
     --infiltratr-warning: #9A6500;
     --infiltratr-fault: #B54848;
