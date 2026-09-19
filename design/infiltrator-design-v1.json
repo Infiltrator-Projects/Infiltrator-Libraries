@@ -67,7 +67,7 @@
     }
   },
   "palette": {
-    "background": "#050608",
+    "background": "#2B2B30",
     "panel": "#101318",
     "card": "#171B20",
     "surface": "#0D1014",
@@ -147,7 +147,7 @@
         "equals_hover": "#343B42"
       },
       "night": {
-        "background": "#050608",
+        "background": "#2B2B30",
         "panel": "#101318",
         "card": "#171B20",
         "surface": "#0D1014",
