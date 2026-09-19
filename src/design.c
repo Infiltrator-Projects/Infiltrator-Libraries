@@ -57,13 +57,28 @@ static const InfiltratrThemePalette day_palette = {
     .card_hover_rgb = 0xEEF1F3U,
     .surface_hover_rgb = 0xF1F3F5U,
     .operation_hover_rgb = 0xDDE2E7U,
-    .equals_hover_rgb = 0x343B42U
+    .equals_hover_rgb = 0x343B42U,
+    .titlebar_rgb = 0xECEFF2U,
+    .connection_rgb = 0xF8F9FAU,
+    .connection_border_rgb = 0xC7CDD3U,
+    .heading_rgb = 0x111418U,
+    .summary_rgb = 0x59636CU,
+    .kicker_rgb = 0x737D86U,
+    .detail_label_rgb = 0x737D86U,
+    .note_rgb = 0x59636CU,
+    .status_border_rgb = 0xC7CDD3U,
+    .accent_foreground_rgb = 0x031018U,
+    .accent_hover_rgb = 0x25B8F0U,
+    .selected_summary_rgb = 0x467AA3U,
+    .warning_muted_rgb = 0x9A6500U,
+    .warning_border_rgb = 0x9A6500U,
+    .success_border_rgb = 0x3A8A58U
 };
 
 static const InfiltratrThemePalette night_palette = {
     .struct_size = sizeof(InfiltratrThemePalette),
     .abi_version = INFILTRATR_THEME_PALETTE_ABI,
-    .background_rgb = 0x2B2B30U,
+    .background_rgb = 0x050608U,
     .panel_rgb = 0x101318U,
     .card_rgb = 0x171B20U,
     .surface_rgb = 0x0D1014U,
@@ -86,7 +101,22 @@ static const InfiltratrThemePalette night_palette = {
     .card_hover_rgb = 0x22272DU,
     .surface_hover_rgb = 0x171B20U,
     .operation_hover_rgb = 0x2B3137U,
-    .equals_hover_rgb = 0xEEF1F3U
+    .equals_hover_rgb = 0xEEF1F3U,
+    .titlebar_rgb = 0x202125U,
+    .connection_rgb = 0x0E1115U,
+    .connection_border_rgb = 0x31363BU,
+    .heading_rgb = 0xE7EBEEU,
+    .summary_rgb = 0x98A1A9U,
+    .kicker_rgb = 0x8C949BU,
+    .detail_label_rgb = 0x7E858CU,
+    .note_rgb = 0x9CA4ABU,
+    .status_border_rgb = 0x3B4147U,
+    .accent_foreground_rgb = 0x031018U,
+    .accent_hover_rgb = 0x25B8F0U,
+    .selected_summary_rgb = 0x79CAE8U,
+    .warning_muted_rgb = 0xC69A4CU,
+    .warning_border_rgb = 0x72572FU,
+    .success_border_rgb = 0x365F45U
 };
 
 const char *infiltratr_theme_mode_name(InfiltratrThemeMode mode)
