@@ -33,7 +33,7 @@
 extern "C" {
 #endif
 
-#define INFILTRATR_COMMON_VERSION "1.19.4"
+#define INFILTRATR_COMMON_VERSION "1.19.5"
 #define INFILTRATR_PROJECT_INFO_ABI 1U
 #define INFILTRATR_SCALE_OPTIONS_ABI 1U
 #define INFILTRATR_ARRAY_LENGTH(array) (sizeof(array) / sizeof((array)[0]))
@@ -118,6 +118,16 @@ bool infiltratr_project_info_is_valid(const InfiltratrProjectInfo *info);
  */
 int infiltratr_project_info_print(FILE *stream,
                                   const InfiltratrProjectInfo *info);
+
+/**
+ * Return the canonical human-readable label for a shared build profile.
+ *
+ * Canonical profiles are `generic`, `native`, `cmake`, `source` and
+ * `development`. Unknown, NULL and empty profiles deliberately map to the
+ * development label so presentation code never invents a second profile
+ * vocabulary.
+ */
+const char *infiltratr_build_profile_label(const char *profile);
 
 /** Overlap-safe bounded copy that treats NULL source as empty and always NUL-terminates valid storage. */
 void infiltratr_copy_string(char *destination, size_t size,

@@ -30,6 +30,21 @@ typedef struct {
 #define INFILTRATR_DYNLIB_INIT { .handle = NULL }
 
 /**
+ * One symbol-binding request for infiltratr_dynlib_bind_symbols().
+ *
+ * destination points to caller-owned function/data-pointer storage and
+ * destination_size must equal the native symbol-pointer representation size.
+ * Missing optional symbols are committed as NULL only when the whole binding
+ * set otherwise succeeds.
+ */
+typedef struct {
+    const char *name;
+    void *destination;
+    size_t destination_size;
+    bool required;
+} InfiltratrDynlibBinding;
+
+/**
  * Open one native dynamic library by UTF-8 file name.
  *
  * POSIX forwards the UTF-8 byte sequence to the native loader. Windows
@@ -62,6 +77,19 @@ bool infiltratr_dynlib_symbol(const InfiltratrDynlib *library,
                               const char *name,
                               void *destination,
                               size_t destination_size);
+
+/**
+ * Resolve a table of required/optional symbols as one atomic caller update.
+ *
+ * Binding records are validated before any caller destination is modified.
+ * If a required symbol cannot be resolved, false is returned and every
+ * destination retains its original value. On success, resolved symbols are
+ * written to their destinations and missing optional symbols become NULL.
+ * A zero binding_count is a successful no-op.
+ */
+bool infiltratr_dynlib_bind_symbols(const InfiltratrDynlib *library,
+                                    const InfiltratrDynlibBinding *bindings,
+                                    size_t binding_count);
 
 #ifdef __cplusplus
 }

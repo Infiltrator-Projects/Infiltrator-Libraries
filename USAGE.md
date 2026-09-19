@@ -10,7 +10,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 
 | Capability | Principal consumers / reason | Status |
 | --- | --- | --- |
-| Project identity and metadata | System Monitor, Calendar Plus, LINK, InfiltratorFS | ACTIVE |
+| Project identity, metadata and canonical build-profile labels | System Monitor, Calendar Plus, LINK, InfiltratorFS | ACTIVE |
 | Bounded strings and trimming | System Monitor, Calendar Plus, Defragger, LINK | ACTIVE |
 | Strict signed/unsigned whole-value parsing and ranges | System Monitor, Defragger, LINK | ACTIVE |
 | Unsigned cursor token parsing | System Monitor procfs/sysfs parsing | ACTIVE |
@@ -39,7 +39,7 @@ Public ABI-bearing structures use `struct_size` and `abi_version`. The implement
 
 ## Dynamic-library adapter
 
-`dynlib.c` owns portable module lifetime and symbol lookup over POSIX `dlopen`/`dlsym`/`dlclose` and Win32 `LoadLibrary`/`GetProcAddress`/`FreeLibrary`. Library names, version probing and required-symbol policy remain application-owned. Windows is now compiled and exercised directly in Common CI.
+`dynlib.c` owns portable module lifetime, individual symbol lookup and atomic required/optional symbol-table binding over POSIX `dlopen`/`dlsym`/`dlclose` and Win32 `LoadLibrary`/`GetProcAddress`/`FreeLibrary`. Library names and version-probing policy remain application-owned. Consumers may declare which table entries are required without reimplementing the binding loop. Windows is compiled and exercised directly in Common CI.
 
 ## POSIX provider
 
@@ -79,7 +79,7 @@ The Windows build separates the static-library output from the DLL import librar
 ## Consumer boundaries
 
 - System Monitor: Common owns general C primitives, formatting, timing, dynamic loading and POSIX mechanics; hardware/UI policy remains System Monitor-owned.
-- Calendar Plus: Common owns generic strings/parsing/arithmetic/timing/dynamic loading; chronology, astronomy and calendar/event semantics remain Calendar-owned.
+- Calendar Plus: Common owns generic strings/parsing/arithmetic/timing, canonical build-profile labels and dynamic-library binding; chronology, astronomy, ICU version probing and calendar/event semantics remain Calendar-owned.
 - Defragger: Common owns general arithmetic, byte order, exact I/O and generic durable file publication/removal; filesystem safety, on-disk validation, recovery record contents and relocation transactions remain Defragger-owned.
 - InfiltratorFS: Common owns endian/UTF-8/checked arithmetic/exact POSIX I/O; allocation, CoW, checkpoints, recovery and filesystem semantics remain InfiltratorFS-owned.
 - LINK: Common owns portable primitives/localisation engine/timing; OBD/UDS/ISO-TP and vehicle-diagnostic policy remain LINK-owned.

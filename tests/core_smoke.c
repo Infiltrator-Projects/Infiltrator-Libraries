@@ -39,6 +39,20 @@ int main(void)
     assert(infiltratr_string_starts_with("calendar-plus", "calendar"));
     assert(infiltratr_string_ends_with("calendar-plus", "plus"));
     assert(!infiltratr_string_ends_with("calendar", "plus"));
+    assert(strcmp(infiltratr_build_profile_label("native"),
+                  "Native / local machine compile") == 0);
+    assert(strcmp(infiltratr_build_profile_label("generic"),
+                  "Generic / APT package") == 0);
+    assert(strcmp(infiltratr_build_profile_label("cmake"),
+                  "Source / CMake build") == 0);
+    assert(strcmp(infiltratr_build_profile_label("source"),
+                  "Source / development build") == 0);
+    assert(strcmp(infiltratr_build_profile_label("development"),
+                  "Source / development build") == 0);
+    assert(strcmp(infiltratr_build_profile_label("unknown"),
+                  "Source / development build") == 0);
+    assert(strcmp(infiltratr_build_profile_label(NULL),
+                  "Source / development build") == 0);
 
     uint64_t parsed = 0U;
     assert(infiltratr_parse_u64("0x2a", 0U, &parsed));

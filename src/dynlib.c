@@ -107,3 +107,44 @@ bool infiltratr_dynlib_symbol(const InfiltratrDynlib *library,
     memcpy(destination, &symbol, sizeof(symbol));
     return true;
 }
+
+bool infiltratr_dynlib_bind_symbols(const InfiltratrDynlib *library,
+                                    const InfiltratrDynlibBinding *bindings,
+                                    size_t binding_count)
+{
+    void **resolved;
+
+    if (binding_count == 0U) return true;
+    if (!infiltratr_dynlib_is_open(library) || bindings == NULL ||
+        binding_count > SIZE_MAX / sizeof(*resolved))
+        return false;
+
+    resolved = calloc(binding_count, sizeof(*resolved));
+    if (resolved == NULL) return false;
+
+    for (size_t index = 0U; index < binding_count; ++index) {
+        const InfiltratrDynlibBinding *binding = &bindings[index];
+
+        if (binding->name == NULL || binding->name[0] == '\0' ||
+            binding->destination == NULL ||
+            binding->destination_size != sizeof(resolved[index])) {
+            free(resolved);
+            return false;
+        }
+
+        if (!infiltratr_dynlib_symbol(library, binding->name,
+                                      &resolved[index],
+                                      sizeof(resolved[index])) &&
+            binding->required) {
+            free(resolved);
+            return false;
+        }
+    }
+
+    for (size_t index = 0U; index < binding_count; ++index)
+        memcpy(bindings[index].destination, &resolved[index],
+               sizeof(resolved[index]));
+
+    free(resolved);
+    return true;
+}

@@ -70,6 +70,17 @@ int infiltratr_project_info_print(FILE *stream,
     return ferror(stream) == 0 ? 0 : -1;
 }
 
+const char *infiltratr_build_profile_label(const char *profile)
+{
+    if (infiltratr_string_equal(profile, "native"))
+        return "Native / local machine compile";
+    if (infiltratr_string_equal(profile, "generic"))
+        return "Generic / APT package";
+    if (infiltratr_string_equal(profile, "cmake"))
+        return "Source / CMake build";
+    return "Source / development build";
+}
+
 void infiltratr_copy_string(char *destination, size_t size,
                             const char *source)
 {

@@ -53,6 +53,34 @@ int main(void)
                                      sizeof(cosine)));
     assert(cosine == resolved_cosine);
 
+    double (*bound_cosine)(double) = NULL;
+    double (*optional_missing)(double) = resolved_cosine;
+    const InfiltratrDynlibBinding successful_bindings[] = {
+        { symbol_name, &bound_cosine, sizeof(bound_cosine), true },
+        { "infiltratr_optional_symbol_that_does_not_exist",
+          &optional_missing, sizeof(optional_missing), false }
+    };
+    assert(infiltratr_dynlib_bind_symbols(
+        &library, successful_bindings,
+        sizeof(successful_bindings) / sizeof(successful_bindings[0])));
+    assert(bound_cosine != NULL);
+    assert(fabs(bound_cosine(0.0) - 1.0) < 1.0e-12);
+    assert(optional_missing == NULL);
+
+    double (*atomic_first)(double) = resolved_cosine;
+    double (*atomic_required_missing)(double) = resolved_cosine;
+    const InfiltratrDynlibBinding failing_bindings[] = {
+        { symbol_name, &atomic_first, sizeof(atomic_first), true },
+        { "infiltratr_required_symbol_that_does_not_exist",
+          &atomic_required_missing, sizeof(atomic_required_missing), true }
+    };
+    assert(!infiltratr_dynlib_bind_symbols(
+        &library, failing_bindings,
+        sizeof(failing_bindings) / sizeof(failing_bindings[0])));
+    assert(atomic_first == resolved_cosine);
+    assert(atomic_required_missing == resolved_cosine);
+    assert(infiltratr_dynlib_bind_symbols(&library, NULL, 0U));
+
     infiltratr_dynlib_close(&library);
     assert(!infiltratr_dynlib_is_open(&library));
     infiltratr_dynlib_close(&library);
