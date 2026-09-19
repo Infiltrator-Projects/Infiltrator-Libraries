@@ -22,7 +22,7 @@ check_string '.typography.brand_weight' '--infiltratr-font-brand-weight: ' ';'
 legacy_keys=(background panel card surface input border text title muted subtle
   button_background button_foreground selection_background selection_foreground
   neutral_accent success warning fault info)
-theme_keys=("${legacy_keys[@]}" operation card_hover surface_hover operation_hover equals_hover)
+theme_keys=("${legacy_keys[@]}" operation card_hover surface_hover operation_hover equals_hover titlebar connection connection_border heading summary kicker detail_label note status_border accent_foreground accent_hover selected_summary warning_muted warning_border success_border)
 
 for key in "${legacy_keys[@]}"; do
   test "$(jq -er ".palette.$key" "$json")" = "$(jq -er ".theme.palettes.night.$key" "$json")"
