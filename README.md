@@ -12,7 +12,7 @@ Common is the canonical shared-code repository for reusable first-party componen
 
 ## Engineering ethos
 
-What happens when shared infrastructure is treated as an engineering product rather than a dumping ground for copied helpers? Common is where reusable contracts become first-party code: parsing, arithmetic, I/O, presentation primitives and other mechanics that have proved they belong to more than one project.
+What happens when shared infrastructure is built from first principles and treated as an engineering product rather than a dumping ground for copied helpers? Common is where reusable contracts become first-party code: parsing, arithmetic, I/O, presentation primitives and other mechanics that have proved they belong to more than one project.
 
 Common is deliberately conservative about ownership. A capability moves here only when the shared contract is at least as strong as the best implementation already present in a consumer. Project-specific semantics stay with their project, and an external dependency is not adopted merely to avoid writing code when owning the behaviour gives a clearer, more stable contract. Consumers pin exact reviewed Common revisions so a later upstream change cannot silently redefine their behaviour.
 
