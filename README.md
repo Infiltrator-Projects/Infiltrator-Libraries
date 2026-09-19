@@ -46,7 +46,7 @@ Common also owns cross-project presentation/build primitives when they have the 
 used by the desktop family: `#2B2B30`. The JSON design contract, native C
 palette, web adapter and regression tests now agree on that value. The remaining
 Night semantic roles stay unchanged, so this is a focused correction to the
-application canvas rather than a redesign of controls, borders or status colours.
+application canvas rather than a redesign of controls, borders or status colours. This is now the canonical Night canvas for every consumer that follows Common directly.
 
 ## Common 1.19.8
 
