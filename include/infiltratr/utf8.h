@@ -4,7 +4,7 @@
  * @brief Allocation-free strict UTF-8 validation.
  *
  * @author Shannon Smith
- * @copyright Copyright (c) 2026 Shannon Smith
+ * @copyright Copyright (c) 2000-2026 Shannon Smith
  * @license GPL-3.0-or-later
  */
 #ifndef INFILTRATR_COMMON_UTF8_H

@@ -4,7 +4,7 @@
  * @brief Standalone regression coverage for Infiltratr Common.
  *
  * @author Shannon Smith
- * @copyright Copyright (c) 2026 Shannon Smith
+ * @copyright Copyright (c) 2000-2026 Shannon Smith
  * @license GPL-3.0-or-later
  */
 #define _POSIX_C_SOURCE 200809L
@@ -179,7 +179,7 @@ int main(void)
         .license_id = "GPL-3.0-or-later",
         .comments = "Shared library test",
         .icon_name = "test-program",
-        .copyright_text = "Copyright (c) 2026 Shannon Smith"
+        .copyright_text = "Copyright (c) 2000-2026 Shannon Smith"
     };
     assert(infiltratr_project_info_is_valid(&info));
     FILE *metadata = tmpfile();

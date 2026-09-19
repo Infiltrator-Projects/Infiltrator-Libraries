@@ -2,7 +2,7 @@
 
 # Common
 
-**Project copyright:** © 2000–2026 Shannon Smith
+**Project copyright:** © 2000-2026 Shannon Smith
 
 [![Common CI](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/actions/workflows/ci.yml/badge.svg)](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/actions/workflows/ci.yml)
 
@@ -282,6 +282,6 @@ This repository is the authoritative copy of Infiltratr Common. Consumers pin an
 
 ## Licence
 
-Copyright © 2026 Shannon Smith.
+Copyright © 2000-2026 Shannon Smith.
 
 Common is licensed under GNU GPL-3.0-or-later. See `LICENSE`.
