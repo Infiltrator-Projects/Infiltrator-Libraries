@@ -87,6 +87,20 @@ InfiltratrIoResult infiltratr_read_text_file_ex(const char *path,
                                                 size_t *length);
 
 /**
+ * Read one complete file into newly allocated NUL-terminated storage.
+ *
+ * The complete byte stream is retained with no fixed application-side size
+ * limit. Embedded NUL bytes are preserved and included in `length`; callers
+ * that require C text must reject them according to their own grammar. On
+ * success the caller owns `*text` and must release it with free(). Empty files
+ * return INFILTRATR_IO_EMPTY with `*text == NULL`. Output pointers are reset
+ * before I/O begins.
+ */
+InfiltratrIoResult infiltratr_read_text_file_alloc(const char *path,
+                                                   char **text,
+                                                   size_t *length);
+
+/**
  * Read and parse one complete unsigned decimal file value.
  *
  * The implementation reads to EOF with dynamically grown temporary storage;

@@ -63,6 +63,19 @@ bool infiltratr_format_scalar(bool available, long double value,
                               const InfiltratrScalarFormatOptions *options,
                               char *buffer, size_t size);
 
+/**
+ * Render one finite binary64 value as locale-independent fixed-point ASCII.
+ *
+ * Exactly `decimal_places` digits are emitted after a literal '.' when the
+ * precision is non-zero. The function never consults the process locale and is
+ * therefore suitable for machine-readable preferences, history and CSV data.
+ * Negative zero is rendered as zero. Precision is limited to 0..9 and values
+ * whose whole magnitude exceeds UINT64_MAX are rejected. On failure valid
+ * output storage is cleared.
+ */
+bool infiltratr_format_fixed_ascii(double value, unsigned int decimal_places,
+                                   char *buffer, size_t size);
+
 /** Render bytes as a fixed one-decimal binary-scaled GB value. */
 char *infiltratr_format_memory_gb(uint64_t bytes, char *buffer, size_t size);
 /** Render storage bytes with Common's normal binary auto-scaling policy. */

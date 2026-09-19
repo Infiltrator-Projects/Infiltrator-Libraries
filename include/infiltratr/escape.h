@@ -24,6 +24,20 @@ bool infiltratr_escape_json(const char *input, char *output, size_t size,
 bool infiltratr_escape_uri_component(const char *input, char *output, size_t size,
                                      size_t *required_size);
 
+/**
+ * Encode one complete, always-quoted CSV field for spreadsheet-safe export.
+ *
+ * Double quotes are doubled. TAB becomes one space; other C0 controls and DEL
+ * are removed so one logical record cannot inject a physical CSV record break.
+ * Bytes >= 0x80 are preserved. When `spreadsheet_safe` is true, a leading
+ * apostrophe is inserted if the first non-whitespace/control byte is one of
+ * '=', '+', '-' or '@', preventing common spreadsheet formula interpretation.
+ * `required_size` includes the terminating NUL.
+ */
+bool infiltratr_escape_csv_field(const char *input, bool spreadsheet_safe,
+                                 char *output, size_t size,
+                                 size_t *required_size);
+
 #ifdef __cplusplus
 }
 #endif

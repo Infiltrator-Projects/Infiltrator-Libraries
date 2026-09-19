@@ -169,6 +169,33 @@ static void test_text_io(void)
     assert(strcmp(read_buffer, "") == 0);
     assert(unlink(truncated_name) == 0);
 
+    char allocated_name[] = "infiltratr-contract-allocated-XXXXXX";
+    const int allocated_fd = mkstemp(allocated_name);
+    assert(allocated_fd >= 0);
+    char large_text[12000];
+    memset(large_text, 'q', sizeof(large_text));
+    large_text[sizeof(large_text) - 1U] = '\n';
+    write_all(allocated_fd, large_text, sizeof(large_text));
+    assert(close(allocated_fd) == 0);
+    char *allocated = (char *)0x1;
+    length = 99U;
+    assert(infiltratr_read_text_file_alloc(allocated_name, &allocated, &length) ==
+           INFILTRATR_IO_OK);
+    assert(allocated != NULL);
+    assert(length == sizeof(large_text));
+    assert(memcmp(allocated, large_text, sizeof(large_text)) == 0);
+    assert(allocated[length] == '\0');
+    free(allocated);
+    assert(unlink(allocated_name) == 0);
+
+    allocated = (char *)0x1;
+    length = 99U;
+    assert(infiltratr_read_text_file_alloc("does-not-exist-infiltratr",
+                                           &allocated, &length) ==
+           INFILTRATR_IO_NOT_FOUND);
+    assert(allocated == NULL);
+    assert(length == 0U);
+
     length = 99U;
     assert(infiltratr_read_text_file_ex("does-not-exist-infiltratr", read_buffer,
                                         sizeof(read_buffer), &length) ==

@@ -56,6 +56,42 @@ bool infiltratr_format_scalar(bool available, long double value,
     return formatting_complete(buffer, size, written);
 }
 
+bool infiltratr_format_fixed_ascii(double value, unsigned int decimal_places,
+                                   char *buffer, size_t size)
+{
+    if (buffer && size > 0U) buffer[0] = '\0';
+    if (!buffer || size == 0U || !isfinite(value) || decimal_places > 9U)
+        return false;
+
+    uint64_t scale = 1U;
+    for (unsigned int index = 0U; index < decimal_places; index++)
+        scale *= 10U;
+
+    const bool negative = signbit(value) && value != 0.0;
+    const long double magnitude = fabsl((long double)value);
+    const long double whole_value = floorl(magnitude);
+    if (whole_value > (long double)UINT64_MAX) return false;
+
+    uint64_t whole = (uint64_t)whole_value;
+    const uint64_t fraction =
+        (uint64_t)llroundl((magnitude - whole_value) * (long double)scale);
+    uint64_t rendered_fraction = fraction;
+    if (fraction >= scale) {
+        if (whole == UINT64_MAX) return false;
+        whole++;
+        rendered_fraction = 0U;
+    }
+
+    const int written = decimal_places > 0U
+        ? snprintf(buffer, size, "%s%llu.%0*llu",
+                   negative ? "-" : "",
+                   (unsigned long long)whole, (int)decimal_places,
+                   (unsigned long long)rendered_fraction)
+        : snprintf(buffer, size, "%s%llu",
+                   negative ? "-" : "", (unsigned long long)whole);
+    return formatting_complete(buffer, size, written);
+}
+
 static InfiltratrScaleOptions fixed_scale(size_t unit, unsigned int decimals)
 {
     InfiltratrScaleOptions options = INFILTRATR_SCALE_OPTIONS_INIT;

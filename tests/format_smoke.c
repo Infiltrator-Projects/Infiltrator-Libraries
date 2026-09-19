@@ -54,6 +54,19 @@ int main(void)
     assert(strcmp(infiltratr_format_watts(true, NAN, text, sizeof(text)),
                   "N/A") == 0);
 
+    assert(infiltratr_format_fixed_ascii(12.375, 3U, text, sizeof(text)));
+    assert(strcmp(text, "12.375") == 0);
+    assert(infiltratr_format_fixed_ascii(-0.0, 3U, text, sizeof(text)));
+    assert(strcmp(text, "0.000") == 0);
+    assert(infiltratr_format_fixed_ascii(-1.25, 2U, text, sizeof(text)));
+    assert(strcmp(text, "-1.25") == 0);
+    assert(infiltratr_format_fixed_ascii(9.9996, 3U, text, sizeof(text)));
+    assert(strcmp(text, "10.000") == 0);
+    assert(!infiltratr_format_fixed_ascii(NAN, 3U, text, sizeof(text)));
+    assert(strcmp(text, "") == 0);
+    assert(!infiltratr_format_fixed_ascii(1.0, 10U, text, sizeof(text)));
+    assert(strcmp(text, "") == 0);
+
     assert(strcmp(infiltratr_format_duration_clock(0U, text, sizeof(text)),
                   "00:00:00") == 0);
     assert(strcmp(infiltratr_format_duration_clock(3661U, text, sizeof(text)),

@@ -38,6 +38,25 @@ int main(void)
     assert(required == 0U);
     assert(!infiltratr_escape_json("x", NULL, 1U, &required));
 
+    char csv[128];
+    assert(infiltratr_escape_csv_field("normal \"text\"", true,
+                                       csv, sizeof(csv), &required));
+    assert(strcmp(csv, "\"normal \"\"text\"\"\"") == 0);
+    assert(required == strlen(csv) + 1U);
+    assert(infiltratr_escape_csv_field("  =SUM(A1:A2)", true,
+                                       csv, sizeof(csv), &required));
+    assert(strcmp(csv, "\"'  =SUM(A1:A2)\"") == 0);
+    assert(infiltratr_escape_csv_field("a\tb\nc\r\x01d", false,
+                                       csv, sizeof(csv), &required));
+    assert(strcmp(csv, "\"a bcd\"") == 0);
+    char csv_tiny[4] = "xxx";
+    assert(!infiltratr_escape_csv_field("hello", true, csv_tiny,
+                                        sizeof(csv_tiny), &required));
+    assert(csv_tiny[0] == '\0');
+    assert(required == 8U);
+    assert(!infiltratr_escape_csv_field(NULL, true, csv, sizeof(csv),
+                                        &required));
+
     puts("Infiltratr Common escape contract tests passed.");
     return 0;
 }

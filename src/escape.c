@@ -169,3 +169,62 @@ bool infiltratr_escape_uri_component(const char *input, char *output, size_t siz
 {
     return transform(INFILTRATR_ESCAPE_MODE_URI, input, output, size, required_size);
 }
+
+static bool csv_formula_candidate(const char *input)
+{
+    const unsigned char *cursor = (const unsigned char *)input;
+    while (*cursor) {
+        if (*cursor == ' ' || *cursor == '\t' || *cursor == '\r' ||
+            *cursor == '\n' || *cursor < 32U || *cursor == 127U) {
+            cursor++;
+            continue;
+        }
+        return *cursor == '=' || *cursor == '+' || *cursor == '-' ||
+               *cursor == '@';
+    }
+    return false;
+}
+
+bool infiltratr_escape_csv_field(const char *input, bool spreadsheet_safe,
+                                 char *output, size_t size,
+                                 size_t *required_size)
+{
+    if (required_size) *required_size = 0U;
+    if (output && size > 0U) output[0] = '\0';
+    if (!input) return false;
+
+    size_t required = 3U; /* opening quote, closing quote, NUL */
+    const bool protect = spreadsheet_safe && csv_formula_candidate(input);
+    if (protect && !size_add(&required, 1U)) return false;
+
+    for (const unsigned char *cursor = (const unsigned char *)input;
+         *cursor; cursor++) {
+        size_t amount = 0U;
+        if (*cursor == '"')
+            amount = 2U;
+        else if (*cursor == '\t' || (*cursor >= 32U && *cursor != 127U))
+            amount = 1U;
+        if (!size_add(&required, amount)) return false;
+    }
+    if (required_size) *required_size = required;
+    if (!output) return size == 0U;
+    if (size < required) return false;
+
+    char *destination = output;
+    *destination++ = '"';
+    if (protect) *destination++ = '\'';
+    for (const unsigned char *cursor = (const unsigned char *)input;
+         *cursor; cursor++) {
+        if (*cursor == '"') {
+            *destination++ = '"';
+            *destination++ = '"';
+        } else if (*cursor == '\t') {
+            *destination++ = ' ';
+        } else if (*cursor >= 32U && *cursor != 127U) {
+            *destination++ = (char)*cursor;
+        }
+    }
+    *destination++ = '"';
+    *destination = '\0';
+    return true;
+}

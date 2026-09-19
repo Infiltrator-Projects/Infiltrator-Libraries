@@ -223,6 +223,13 @@ InfiltratrIoResult infiltratr_read_double_file_ex(const char *path,
     return parse_double_file(path, value);
 }
 
+InfiltratrIoResult infiltratr_read_text_file_alloc(const char *path,
+                                                   char **text,
+                                                   size_t *length)
+{
+    return infiltratr_posix_read_alloc(path, text, length);
+}
+
 bool infiltratr_read_text_file(const char *path, char *buffer, size_t size)
 {
     if (!path || !buffer || size < 2U) return false;

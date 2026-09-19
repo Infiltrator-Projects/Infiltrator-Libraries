@@ -16,6 +16,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Unsigned cursor token parsing | System Monitor procfs/sysfs parsing | ACTIVE |
 | Signed cursor token parsing | Completes the active cursor-parser family | READY |
 | Locale-independent finite decimal parsing | Calendar Plus, POSIX typed readers | ACTIVE |
+| Locale-independent fixed-point ASCII formatting | System Monitor preferences/history/CSV persistence | ACTIVE |
 | Strict binary quantity parsing | Replaces repeated K/M/G-style quantity parsing such as System Monitor cache-size input | READY |
 | Checked and saturating arithmetic | System Monitor, Defragger, LINK, InfiltratorFS | ACTIVE |
 | Checked unsigned subtract/multiply | Completes active checked-u64 family | READY |
@@ -30,6 +31,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Shared metric/duration formatting | System Monitor | ACTIVE |
 | Allocation-free i18n lookup/interpolation | LINK family | ACTIVE |
 | HTML text, JSON string and URI-component output encoding | ssmithnet.net, Infiltrator Repository | READY |
+| Spreadsheet-safe quoted CSV field encoding | System Monitor process export | ACTIVE |
 
 ## ABI contract
 
@@ -43,7 +45,7 @@ Public ABI-bearing structures use `struct_size` and `abi_version`. The implement
 
 Common owns generic file/path/clock mechanics used by Linux applications:
 
-- detailed text/u64/i64/double file readers;
+- detailed bounded and dynamically allocated complete text readers plus u64/i64/double readers;
 - readable-path selection;
 - durable atomic replacement and durable namespace removal;
 - monotonic nanosecond/second clocks;
