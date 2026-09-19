@@ -18,7 +18,7 @@ int main(void)
     if (day->abi_version != INFILTRATR_THEME_PALETTE_ABI) return 2;
     if (night->abi_version != INFILTRATR_THEME_PALETTE_ABI) return 3;
     if (day->background_rgb != 0xFFFFFFU) return 4;
-    if (night->background_rgb != 0x050608U) return 5;
+    if (night->background_rgb != 0x2B2B30U) return 5;
     if (day->button_background_rgb != 0x20252BU) return 6;
     if (night->button_background_rgb != 0xD7DDE2U) return 7;
     if (day->neutral_accent_rgb != 0x00ADEFU) return 11;
