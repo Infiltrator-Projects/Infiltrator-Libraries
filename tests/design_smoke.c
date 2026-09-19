@@ -17,10 +17,12 @@ int main(void)
     if (day == NULL || night == NULL) return 1;
     if (day->abi_version != INFILTRATR_THEME_PALETTE_ABI) return 2;
     if (night->abi_version != INFILTRATR_THEME_PALETTE_ABI) return 3;
-    if (day->background_rgb != 0xF4F5F7U) return 4;
+    if (day->background_rgb != 0xFFFFFFU) return 4;
     if (night->background_rgb != 0x050608U) return 5;
     if (day->button_background_rgb != 0x20252BU) return 6;
     if (night->button_background_rgb != 0xD7DDE2U) return 7;
+    if (day->neutral_accent_rgb != 0x00ADEFU) return 11;
+    if (night->neutral_accent_rgb != 0x00ADEFU) return 12;
     if (system_light != day || system_dark != night) return 8;
     if (strcmp(infiltratr_theme_mode_name(INFILTRATR_THEME_SYSTEM), "System") != 0) return 9;
     if (infiltratr_theme_mode_next(INFILTRATR_THEME_SYSTEM) != INFILTRATR_THEME_DAY) return 10;
