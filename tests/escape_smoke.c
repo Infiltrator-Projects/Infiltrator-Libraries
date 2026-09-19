@@ -46,7 +46,7 @@ int main(void)
     assert(infiltratr_escape_csv_field("  =SUM(A1:A2)", true,
                                        csv, sizeof(csv), &required));
     assert(strcmp(csv, "\"'  =SUM(A1:A2)\"") == 0);
-    assert(infiltratr_escape_csv_field("a\tb\nc\r\x01d", false,
+    assert(infiltratr_escape_csv_field("a\tb\nc\r\x01" "d", false,
                                        csv, sizeof(csv), &required));
     assert(strcmp(csv, "\"a bcd\"") == 0);
     char csv_tiny[4] = "xxx";
