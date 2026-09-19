@@ -2,6 +2,8 @@
 
 # Common
 
+**Project copyright:** © 2000–2026 Shannon Smith
+
 [![Common CI](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/actions/workflows/ci.yml/badge.svg)](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/actions/workflows/ci.yml)
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
