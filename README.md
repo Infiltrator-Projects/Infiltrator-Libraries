@@ -6,7 +6,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.9  
+**Current library version:** 1.19.10  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -40,13 +40,17 @@ Common owns portable mechanics and algorithms that have real use across the proj
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
 
-## Common 1.19.9
+## Common 1.19.10
 
-1.19.9 corrects the canonical Night background to the Mercedes graphite grey
-used by the desktop family: `#2B2B30`. The JSON design contract, native C
-palette, web adapter and regression tests now agree on that value. The remaining
-Night semantic roles stay unchanged, so this is a focused correction to the
-application canvas rather than a redesign of controls, borders or status colours. This is now the canonical Night canvas for every consumer that follows Common directly.
+1.19.10 makes the Linux MBLINK face the exact Night reference instead of
+reducing it to one replacement grey. The canonical canvas returns to
+`#050608`, while the surrounding graphite layers remain distinct:
+`#101318`, `#171B20`, `#0D1014`, `#0E1115`, `#202125` and their
+associated borders and text roles. The native C palette and web/JSON adapters
+now also expose the visible MBLINK Linux titlebar, connection-bar, heading,
+summary, kicker, detail, note, status-border, hover-accent and state-border
+colours so consumers can reproduce the layered dark face instead of flattening
+Night into black or a single grey.
 
 ## Common 1.19.8
 
