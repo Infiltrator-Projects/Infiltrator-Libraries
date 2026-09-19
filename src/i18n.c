@@ -1,33 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "infiltratr/i18n.h"
 #include "infiltratr/core.h"
+#include "ascii_internal.h"
 
 #include <string.h>
-
-static int ascii_alpha(unsigned char c)
-{
-    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-}
-
-static int ascii_digit(unsigned char c)
-{
-    return c >= '0' && c <= '9';
-}
-
-static int ascii_alnum(unsigned char c)
-{
-    return ascii_alpha(c) || ascii_digit(c);
-}
-
-static char ascii_lower(unsigned char c)
-{
-    return c >= 'A' && c <= 'Z' ? (char)(c + ('a' - 'A')) : (char)c;
-}
-
-static char ascii_upper(unsigned char c)
-{
-    return c >= 'a' && c <= 'z' ? (char)(c - ('a' - 'A')) : (char)c;
-}
 
 static size_t normalise_locale(char *destination, size_t capacity,
                                const char *source)
@@ -50,11 +26,11 @@ static size_t normalise_locale(char *destination, size_t capacity,
             segment_length = 0U;
             continue;
         }
-        if (!ascii_alnum(c) || out + 1U >= capacity) {
+        if (!infiltratr_ascii_alnum(c) || out + 1U >= capacity) {
             destination[0] = '\0';
             return 0U;
         }
-        destination[out++] = ascii_lower(c);
+        destination[out++] = infiltratr_ascii_lower(c);
         segment_length++;
     }
     if (segment_length == 0U) {
@@ -71,12 +47,12 @@ static size_t normalise_locale(char *destination, size_t capacity,
         if (start != 0U) {
             bool all_alpha = true;
             for (size_t i = start; i < end; ++i)
-                if (!ascii_alpha((unsigned char)destination[i])) all_alpha = false;
+                if (!infiltratr_ascii_alpha((unsigned char)destination[i])) all_alpha = false;
             if (all_alpha && length == 2U) {
                 for (size_t i = start; i < end; ++i)
-                    destination[i] = ascii_upper((unsigned char)destination[i]);
+                    destination[i] = infiltratr_ascii_upper((unsigned char)destination[i]);
             } else if (all_alpha && length == 4U) {
-                destination[start] = ascii_upper((unsigned char)destination[start]);
+                destination[start] = infiltratr_ascii_upper((unsigned char)destination[start]);
             }
         }
         start = end + 1U;

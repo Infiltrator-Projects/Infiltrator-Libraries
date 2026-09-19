@@ -178,49 +178,18 @@ InfiltratrIoResult infiltratr_read_text_file_ex(const char *path,
     return used == 0U ? INFILTRATR_IO_EMPTY : INFILTRATR_IO_OK;
 }
 
-static InfiltratrIoResult parse_u64_file(const char *path, uint64_t *value)
-{
-    if (!path || !value) return INFILTRATR_IO_INVALID_ARGUMENT;
-
-    char *text = NULL;
-    size_t length = 0U;
-    const InfiltratrIoResult status =
-        infiltratr_posix_read_alloc(path, &text, &length);
-    if (status != INFILTRATR_IO_OK) return status;
-
-    const bool valid_text = memchr(text, '\0', length) == NULL;
-    const bool parsed = valid_text &&
-        infiltratr_parse_u64(text, 10U, value);
-    free(text);
-    return parsed ? INFILTRATR_IO_OK : INFILTRATR_IO_INVALID_VALUE;
-}
-
 InfiltratrIoResult infiltratr_read_u64_file_ex(const char *path,
                                                uint64_t *value)
 {
-    return parse_u64_file(path, value);
-}
-
-static InfiltratrIoResult parse_double_file(const char *path, double *value)
-{
-    if (!path || !value) return INFILTRATR_IO_INVALID_ARGUMENT;
-
-    char *text = NULL;
-    size_t length = 0U;
-    const InfiltratrIoResult status =
-        infiltratr_posix_read_alloc(path, &text, &length);
-    if (status != INFILTRATR_IO_OK) return status;
-
-    const bool valid_text = memchr(text, '\0', length) == NULL;
-    const bool parsed = valid_text && infiltratr_parse_double(text, value);
-    free(text);
-    return parsed ? INFILTRATR_IO_OK : INFILTRATR_IO_INVALID_VALUE;
+    return infiltratr_posix_read_numeric_file(
+        path, INFILTRATR_POSIX_NUMERIC_U64, value);
 }
 
 InfiltratrIoResult infiltratr_read_double_file_ex(const char *path,
                                                   double *value)
 {
-    return parse_double_file(path, value);
+    return infiltratr_posix_read_numeric_file(
+        path, INFILTRATR_POSIX_NUMERIC_DOUBLE, value);
 }
 
 InfiltratrIoResult infiltratr_read_text_file_alloc(const char *path,

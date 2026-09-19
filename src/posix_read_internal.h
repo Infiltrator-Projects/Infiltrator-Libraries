@@ -3,12 +3,14 @@
 #define INFILTRATR_COMMON_POSIX_READ_INTERNAL_H
 
 #include "infiltratr/arithmetic.h"
+#include "infiltratr/core.h"
 #include "infiltratr/posix.h"
 
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 static InfiltratrIoResult infiltratr_posix_io_result_from_errno(int error_number)
@@ -79,6 +81,51 @@ static InfiltratrIoResult infiltratr_posix_read_alloc(const char *path,
     *text = buffer;
     if (length) *length = used;
     return INFILTRATR_IO_OK;
+}
+
+typedef enum {
+    INFILTRATR_POSIX_NUMERIC_U64 = 0,
+    INFILTRATR_POSIX_NUMERIC_I64,
+    INFILTRATR_POSIX_NUMERIC_DOUBLE
+} InfiltratrPosixNumericKind;
+
+static InfiltratrIoResult infiltratr_posix_read_numeric_file(
+    const char *path, InfiltratrPosixNumericKind kind, void *value)
+{
+    if (!path || !value) return INFILTRATR_IO_INVALID_ARGUMENT;
+
+    char *text = NULL;
+    size_t length = 0U;
+    const InfiltratrIoResult status =
+        infiltratr_posix_read_alloc(path, &text, &length);
+    if (status != INFILTRATR_IO_OK) return status;
+
+    bool parsed = false;
+    if (memchr(text, '\0', length) == NULL) {
+        switch (kind) {
+        case INFILTRATR_POSIX_NUMERIC_U64: {
+            uint64_t temporary = 0U;
+            parsed = infiltratr_parse_u64(text, 10U, &temporary);
+            if (parsed) *(uint64_t *)value = temporary;
+            break;
+        }
+        case INFILTRATR_POSIX_NUMERIC_I64: {
+            int64_t temporary = 0;
+            parsed = infiltratr_parse_i64(text, 10U, &temporary);
+            if (parsed) *(int64_t *)value = temporary;
+            break;
+        }
+        case INFILTRATR_POSIX_NUMERIC_DOUBLE: {
+            double temporary = 0.0;
+            parsed = infiltratr_parse_double(text, &temporary);
+            if (parsed) *(double *)value = temporary;
+            break;
+        }
+        }
+    }
+
+    free(text);
+    return parsed ? INFILTRATR_IO_OK : INFILTRATR_IO_INVALID_VALUE;
 }
 
 #endif

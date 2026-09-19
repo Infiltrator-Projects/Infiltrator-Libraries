@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <infiltratr/escape.h>
+#include <infiltratr/arithmetic.h>
+#include "ascii_internal.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -10,18 +12,9 @@ typedef enum {
     INFILTRATR_ESCAPE_MODE_URI
 } InfiltratrEscapeMode;
 
-static bool size_add(size_t *value, size_t amount)
-{
-    if (!value || *value > SIZE_MAX - amount) return false;
-    *value += amount;
-    return true;
-}
-
 static bool uri_unreserved(unsigned char value)
 {
-    return (value >= (unsigned char)'A' && value <= (unsigned char)'Z') ||
-           (value >= (unsigned char)'a' && value <= (unsigned char)'z') ||
-           (value >= (unsigned char)'0' && value <= (unsigned char)'9') ||
+    return infiltratr_ascii_alpha(value) || infiltratr_ascii_digit(value) ||
            value == (unsigned char)'-' || value == (unsigned char)'.' ||
            value == (unsigned char)'_' || value == (unsigned char)'~';
 }
@@ -61,7 +54,7 @@ static bool measure(InfiltratrEscapeMode mode, const char *input, size_t *requir
     if (!input || !required) return false;
     size_t total = 1U;
     for (const unsigned char *p = (const unsigned char *)input; *p; ++p) {
-        if (!size_add(&total, encoded_length(mode, *p))) return false;
+        if (!infiltratr_size_add_checked(total, encoded_length(mode, *p), &total)) return false;
     }
     *required = total;
     return true;
@@ -195,7 +188,7 @@ bool infiltratr_escape_csv_field(const char *input, bool spreadsheet_safe,
 
     size_t required = 3U; /* opening quote, closing quote, NUL */
     const bool protect = spreadsheet_safe && csv_formula_candidate(input);
-    if (protect && !size_add(&required, 1U)) return false;
+    if (protect && !infiltratr_size_add_checked(required, 1U, &required)) return false;
 
     for (const unsigned char *cursor = (const unsigned char *)input;
          *cursor; cursor++) {
@@ -204,7 +197,7 @@ bool infiltratr_escape_csv_field(const char *input, bool spreadsheet_safe,
             amount = 2U;
         else if (*cursor == '\t' || (*cursor >= 32U && *cursor != 127U))
             amount = 1U;
-        if (!size_add(&required, amount)) return false;
+        if (!infiltratr_size_add_checked(required, amount, &required)) return false;
     }
     if (required_size) *required_size = required;
     if (!output) return size == 0U;

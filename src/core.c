@@ -10,12 +10,11 @@
 #include "infiltratr/core.h"
 #include "infiltratr/compiler.h"
 #include "infiltratr/token.h"
+#include "ascii_internal.h"
 
 #include <ctype.h>
-#include <errno.h>
 #include <float.h>
 #include <math.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define INFILTRATR_PROJECT_INFO_ABI1_SIZE \
@@ -142,36 +141,25 @@ bool infiltratr_string_ends_with(const char *text, const char *suffix)
 bool infiltratr_parse_u64(const char *text, unsigned int base,
                           uint64_t *value)
 {
-    if (!text || !value || base == 1U || base > 36U) return false;
-    while (*text && isspace((unsigned char)*text)) text++;
-    if (*text == '+' || *text == '-' || *text == '\0') return false;
-
-    errno = 0;
-    char *end = NULL;
-    const unsigned long long parsed = strtoull(text, &end, (int)base);
-    if (errno != 0 || end == text || parsed > (unsigned long long)UINT64_MAX)
-        return false;
-    while (*end && isspace((unsigned char)*end)) end++;
-    if (*end != '\0') return false;
-    *value = (uint64_t)parsed;
+    if (!text || !value) return false;
+    const char *cursor = text;
+    uint64_t parsed = 0U;
+    if (!infiltratr_parse_u64_token(&cursor, base, &parsed)) return false;
+    while (*cursor && isspace((unsigned char)*cursor)) cursor++;
+    if (*cursor != '\0') return false;
+    *value = parsed;
     return true;
 }
 
 bool infiltratr_parse_i64(const char *text, unsigned int base, int64_t *value)
 {
-    if (!text || !value || base == 1U || base > 36U) return false;
-    while (*text && isspace((unsigned char)*text)) text++;
-    if (*text == '\0') return false;
-
-    errno = 0;
-    char *end = NULL;
-    const long long parsed = strtoll(text, &end, (int)base);
-    if (errno != 0 || end == text ||
-        parsed < (long long)INT64_MIN || parsed > (long long)INT64_MAX)
-        return false;
-    while (*end && isspace((unsigned char)*end)) end++;
-    if (*end != '\0') return false;
-    *value = (int64_t)parsed;
+    if (!text || !value) return false;
+    const char *cursor = text;
+    int64_t parsed = 0;
+    if (!infiltratr_parse_i64_token(&cursor, base, &parsed)) return false;
+    while (*cursor && isspace((unsigned char)*cursor)) cursor++;
+    if (*cursor != '\0') return false;
+    *value = parsed;
     return true;
 }
 
@@ -199,17 +187,6 @@ bool infiltratr_parse_i64_range(const char *text, unsigned int base,
         return false;
     *value = parsed;
     return true;
-}
-
-static bool ascii_space(char character)
-{
-    return character == ' ' || character == '\t' || character == '\n' ||
-           character == '\r' || character == '\f' || character == '\v';
-}
-
-static bool ascii_digit(char character)
-{
-    return character >= '0' && character <= '9';
 }
 
 /*
@@ -531,9 +508,9 @@ static bool parse_decimal_exponent(const char **cursor,
         *negative = *position == '-';
         position++;
     }
-    if (!ascii_digit(*position)) return false;
+    if (!infiltratr_ascii_digit(*position)) return false;
 
-    while (ascii_digit(*position)) {
+    while (infiltratr_ascii_digit(*position)) {
         const size_t digit = (size_t)(*position - '0');
         if (!*overflowed) {
             if (*magnitude > (SIZE_MAX - digit) / 10U)
@@ -678,7 +655,7 @@ static bool parse_double_prefix(const char *text, bool allow_sign,
     if (!text || !end || !value) return false;
 
     const char *cursor = text;
-    while (ascii_space(*cursor)) cursor++;
+    while (infiltratr_ascii_space(*cursor)) cursor++;
 
     bool negative = false;
     if (*cursor == '+' || *cursor == '-') {
@@ -695,7 +672,7 @@ static bool parse_double_prefix(const char *text, bool allow_sign,
     bool saw_digit = false;
     bool saw_nonzero = false;
 
-    while (ascii_digit(*cursor)) {
+    while (infiltratr_ascii_digit(*cursor)) {
         const uint8_t digit = (uint8_t)(*cursor - '0');
         saw_digit = true;
         if (!saw_nonzero && digit != 0U) saw_nonzero = true;
@@ -711,7 +688,7 @@ static bool parse_double_prefix(const char *text, bool allow_sign,
 
     if (*cursor == '.') {
         cursor++;
-        while (ascii_digit(*cursor)) {
+        while (infiltratr_ascii_digit(*cursor)) {
             const uint8_t digit = (uint8_t)(*cursor - '0');
             saw_digit = true;
             if (fractional_digits == SIZE_MAX) return false;
@@ -798,7 +775,7 @@ bool infiltratr_parse_double(const char *text, double *value)
     if (!parse_double_prefix(text, true, &end, &parsed))
         return false;
 
-    while (ascii_space(*end)) end++;
+    while (infiltratr_ascii_space(*end)) end++;
     if (*end != '\0') return false;
 
     *value = parsed;

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "infiltratr/quantity.h"
 #include "infiltratr/arithmetic.h"
+#include "ascii_internal.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -13,37 +14,6 @@ typedef struct {
     size_t capacity;
 } DecimalInteger;
 
-static bool ascii_equal_ci_span(const char *text, size_t length,
-                                const char *candidate)
-{
-    size_t i = 0U;
-    for (; i < length && candidate[i] != '\0'; ++i) {
-        unsigned char a = (unsigned char)text[i];
-        unsigned char b = (unsigned char)candidate[i];
-        if (a >= 'A' && a <= 'Z') a = (unsigned char)(a + ('a' - 'A'));
-        if (b >= 'A' && b <= 'Z') b = (unsigned char)(b + ('a' - 'A'));
-        if (a != b) return false;
-    }
-    return i == length && candidate[i] == '\0';
-}
-
-static bool ascii_space(unsigned char value)
-{
-    return value == ' ' || value == '\t' || value == '\r' ||
-           value == '\n' || value == '\f' || value == '\v';
-}
-
-static bool ascii_alpha(unsigned char value)
-{
-    return (value >= 'A' && value <= 'Z') ||
-           (value >= 'a' && value <= 'z');
-}
-
-static bool ascii_digit(unsigned char value)
-{
-    return value >= '0' && value <= '9';
-}
-
 static bool suffix_power(const char *suffix, size_t length,
                          unsigned int *power)
 {
@@ -52,9 +22,9 @@ static bool suffix_power(const char *suffix, size_t length,
     static const char *const iec_names[] = {"b", "kib", "mib", "gib", "tib", "pib", "eib"};
 
     for (unsigned int i = 0U; i < 7U; ++i) {
-        if (ascii_equal_ci_span(suffix, length, short_names[i]) ||
-            ascii_equal_ci_span(suffix, length, byte_names[i]) ||
-            ascii_equal_ci_span(suffix, length, iec_names[i])) {
+        if (infiltratr_ascii_equal_ci_span(suffix, length, short_names[i]) ||
+            infiltratr_ascii_equal_ci_span(suffix, length, byte_names[i]) ||
+            infiltratr_ascii_equal_ci_span(suffix, length, iec_names[i])) {
             *power = i;
             return true;
         }
@@ -166,10 +136,10 @@ static bool parse_exponent(const unsigned char **cursor,
         *negative = **cursor == '-';
         (*cursor)++;
     }
-    if (*cursor >= end || !ascii_digit(**cursor))
+    if (*cursor >= end || !infiltratr_ascii_digit(**cursor))
         return false;
 
-    while (*cursor < end && ascii_digit(**cursor)) {
+    while (*cursor < end && infiltratr_ascii_digit(**cursor)) {
         const size_t digit = (size_t)(**cursor - '0');
         if (!*overflowed) {
             if (*magnitude > (SIZE_MAX - digit) / 10U)
@@ -200,7 +170,7 @@ static bool parse_decimal_integer(const char *begin, const char *end,
     bool saw_digit = false;
     *fractional_digits = 0U;
 
-    while (cursor < limit && ascii_digit(*cursor)) {
+    while (cursor < limit && infiltratr_ascii_digit(*cursor)) {
         if (!decimal_append_forward(integer, (unsigned int)(*cursor - '0')))
             return false;
         cursor++;
@@ -209,7 +179,7 @@ static bool parse_decimal_integer(const char *begin, const char *end,
 
     if (cursor < limit && *cursor == '.') {
         cursor++;
-        while (cursor < limit && ascii_digit(*cursor)) {
+        while (cursor < limit && infiltratr_ascii_digit(*cursor)) {
             if (!decimal_append_forward(integer, (unsigned int)(*cursor - '0')))
                 return false;
             if (*fractional_digits == SIZE_MAX)
@@ -259,18 +229,18 @@ bool infiltratr_parse_binary_quantity_u64(const char *text, uint64_t *bytes)
 {
     if (!text || !bytes) return false;
 
-    while (*text && ascii_space((unsigned char)*text))
+    while (*text && infiltratr_ascii_space((unsigned char)*text))
         text++;
 
     const char *end = text + strlen(text);
-    while (end > text && ascii_space((unsigned char)end[-1]))
+    while (end > text && infiltratr_ascii_space((unsigned char)end[-1]))
         end--;
     if (end == text)
         return false;
 
     const char *suffix_start = end;
     while (suffix_start > text &&
-           ascii_alpha((unsigned char)suffix_start[-1]))
+           infiltratr_ascii_alpha((unsigned char)suffix_start[-1]))
         suffix_start--;
 
     unsigned int power = 0U;
@@ -278,7 +248,7 @@ bool infiltratr_parse_binary_quantity_u64(const char *text, uint64_t *bytes)
         return false;
 
     const char *number_end = suffix_start;
-    while (number_end > text && ascii_space((unsigned char)number_end[-1]))
+    while (number_end > text && infiltratr_ascii_space((unsigned char)number_end[-1]))
         number_end--;
     if (number_end == text)
         return false;

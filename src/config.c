@@ -8,35 +8,16 @@
  * @license GPL-3.0-or-later
  */
 #include "infiltratr/config.h"
+#include "ascii_internal.h"
 
 #include <stddef.h>
 #include <string.h>
 
-static bool ascii_space(unsigned char value)
-{
-    return value == ' ' || value == '\t' || value == '\r' ||
-           value == '\n' || value == '\f' || value == '\v';
-}
-
-static char ascii_lower(char value)
-{
-    return value >= 'A' && value <= 'Z' ? (char)(value + ('a' - 'A')) : value;
-}
-
-static bool ascii_token_equal(const char *text, size_t length,
-                              const char *token)
-{
-    size_t index = 0U;
-    for (; index < length && token[index]; index++)
-        if (ascii_lower(text[index]) != ascii_lower(token[index])) return false;
-    return index == length && token[index] == '\0';
-}
-
 static char *trim_ascii_in_place(char *text)
 {
-    while (*text && ascii_space((unsigned char)*text)) text++;
+    while (*text && infiltratr_ascii_space((unsigned char)*text)) text++;
     char *end = text + strlen(text);
-    while (end > text && ascii_space((unsigned char)end[-1])) end--;
+    while (end > text && infiltratr_ascii_space((unsigned char)end[-1])) end--;
     *end = '\0';
     return text;
 }
@@ -66,19 +47,19 @@ InfiltratrConfigLineStatus infiltratr_config_parse_line(
 bool infiltratr_config_parse_bool(const char *text, bool *value)
 {
     if (!text || !value) return false;
-    while (*text && ascii_space((unsigned char)*text)) text++;
+    while (*text && infiltratr_ascii_space((unsigned char)*text)) text++;
     const char *end = text + strlen(text);
-    while (end > text && ascii_space((unsigned char)end[-1])) end--;
+    while (end > text && infiltratr_ascii_space((unsigned char)end[-1])) end--;
     const size_t length = (size_t)(end - text);
 
     bool parsed;
     if ((length == 1U && text[0] == '1') ||
-        ascii_token_equal(text, length, "true") ||
-        ascii_token_equal(text, length, "yes"))
+        infiltratr_ascii_equal_ci_span(text, length, "true") ||
+        infiltratr_ascii_equal_ci_span(text, length, "yes"))
         parsed = true;
     else if ((length == 1U && text[0] == '0') ||
-             ascii_token_equal(text, length, "false") ||
-             ascii_token_equal(text, length, "no"))
+             infiltratr_ascii_equal_ci_span(text, length, "false") ||
+             infiltratr_ascii_equal_ci_span(text, length, "no"))
         parsed = false;
     else
         return false;
