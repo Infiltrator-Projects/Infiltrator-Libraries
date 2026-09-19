@@ -16,6 +16,7 @@ This ledger tracks graphical consumers of `infiltrator-design-v1.json`.
 | AUDILINK | LINK + SwiftUI | LINK geometry; MB typography migration pending | Audi identity local |
 | FORDLINK | LINK + SwiftUI | LINK geometry; MB typography migration pending | Ford identity local |
 | System-Monitor | GTK | MB Corpo roles applied at the application shell | System Monitor identity local |
+| Calculator | GTK / Win32 / SwiftUI | Strict three-face MB Corpo policy; canonical families/provenance from Common | Calculator geometry and icon identity local |
 | Character-Profiler | SwiftUI | System typography; migration pending | Character Profiler accent/identity local |
 | Keeper-Group-Export | Tk/ttk | MB Corpo roles and graphite/silver structure applied | Keeper accent/identity local |
 | WheresWally | Zabbix web widget | MB Corpo/design override applied; operational colours retained | NPS operational colour semantics local |

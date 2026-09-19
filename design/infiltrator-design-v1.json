@@ -52,6 +52,18 @@
         "family": "ui",
         "weight": 400
       }
+    },
+    "assets": {
+      "provenance": "immutable first-party archive",
+      "source_repository": "Infiltrator-Projects/MBLINK",
+      "source_commit": "aa161e7342112beab8feb7669f072c870f742765",
+      "archive_path": "assets/fonts/mb-corpo-fonts.tar.xz",
+      "archive_sha256": "bdb6063f838a7fab22b4d6b412170640c69511df53aa3dfa9a4ea8431c9d8274",
+      "file_sha256": {
+        "brand_regular": "c8bcd7e1a7d71169b38491d9b7c1ffe7ba7b46e888f0c1219931343a47bc0e05",
+        "ui_bold": "d37ea986e2344d83390f94f170e6272b56efd00bfec808afe8314c4ca45d43b4",
+        "ui_regular": "94ede6629443c03d4362dcef425fb3ff520be5d654370021a34e81286804465c"
+      }
     }
   },
   "palette": {
@@ -94,7 +106,8 @@
     "owned_graphical_ui_uses_mb_corpo_when_available": true,
     "fallback_is_required_when_mb_corpo_is_unavailable": true,
     "theme_contract_is_product_neutral": true,
-    "system_theme_is_platform_authoritative": true
+    "system_theme_is_platform_authoritative": true,
+    "consumer_may_require_mb_corpo_without_fallback": true
   },
   "theme": {
     "contract_version": 1,

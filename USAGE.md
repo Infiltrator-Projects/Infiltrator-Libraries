@@ -15,6 +15,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Strict signed/unsigned whole-value parsing and ranges | System Monitor, Defragger, LINK | ACTIVE |
 | Unsigned cursor token parsing | System Monitor procfs/sysfs parsing | ACTIVE |
 | Signed cursor token parsing | Completes the active cursor-parser family | READY |
+| Locale-independent finite decimal token parsing | Calculator expression-token conversion; completes the active cursor-parser family | ACTIVE |
 | Locale-independent finite decimal parsing | Calendar Plus, POSIX typed readers | ACTIVE |
 | Locale-independent fixed-point ASCII formatting | System Monitor preferences/history/CSV persistence | ACTIVE |
 | Strict binary quantity parsing | Replaces repeated K/M/G-style quantity parsing such as System Monitor cache-size input | READY |
@@ -110,6 +111,12 @@ A new public operation must satisfy at least one of these conditions:
 4. application-private production code can be replaced immediately.
 
 Once Common accepts an algorithmic responsibility, it must define complete input, boundary and failure semantics. Speculative utility APIs with no production justification stay out of Common.
+
+## Shared design ownership
+
+Common owns the canonical System/Day/Night semantic palette, structural radii/spacing metrics, MB Corpo family/role identity and immutable first-party font-asset provenance. Native consumers use `infiltratr/design.h`; build systems that package the canonical verified MB faces use `cmake/InfiltratrTypographyAssets.cmake`.
+
+The general design contract permits platform fallbacks when MB Corpo is unavailable, but a product may adopt a stricter no-fallback contract when it bundles and verifies the canonical faces itself. Product geometry, accents, icons and domain-specific presentation remain local.
 
 ## Shared web and Pages ownership
 

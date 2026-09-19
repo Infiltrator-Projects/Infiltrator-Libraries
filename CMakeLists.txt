@@ -143,4 +143,5 @@ write_basic_package_version_file(
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/InfiltratrCommonConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/InfiltratrCommonConfigVersion.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/InfiltratrTypographyAssets.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/InfiltratrCommon")

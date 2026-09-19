@@ -9,6 +9,7 @@
  */
 #include "infiltratr/core.h"
 #include "infiltratr/compiler.h"
+#include "infiltratr/token.h"
 
 #include <ctype.h>
 #include <errno.h>
@@ -671,15 +672,17 @@ static bool binary64_from_decimal(const uint8_t *digits, size_t digit_count,
     return true;
 }
 
-bool infiltratr_parse_double(const char *text, double *value)
+static bool parse_double_prefix(const char *text, bool allow_sign,
+                                const char **end, double *value)
 {
-    if (!text || !value) return false;
+    if (!text || !end || !value) return false;
 
     const char *cursor = text;
     while (ascii_space(*cursor)) cursor++;
 
     bool negative = false;
     if (*cursor == '+' || *cursor == '-') {
+        if (!allow_sign) return false;
         negative = *cursor == '-';
         cursor++;
     }
@@ -735,39 +738,72 @@ bool infiltratr_parse_double(const char *text, double *value)
                                 &exponent_overflowed))
         return false;
 
-    while (ascii_space(*cursor)) cursor++;
-    if (*cursor != '\0') return false;
-
+    double parsed = 0.0;
     if (!saw_nonzero) {
-        *value = negative ? -0.0 : 0.0;
-        return true;
-    }
-    if (exponent_overflowed) return false;
+        parsed = negative ? -0.0 : 0.0;
+    } else {
+        if (exponent_overflowed) return false;
 
-    const size_t discarded_digits = significant_digits - kept_digits;
-    size_t positive_adjustment = discarded_digits;
+        const size_t discarded_digits = significant_digits - kept_digits;
+        size_t positive_adjustment = discarded_digits;
 
-    if (!discarded_nonzero) {
-        size_t trailing_zeroes = 0U;
-        while (kept_digits > 0U && digits[kept_digits - 1U] == 0U) {
-            kept_digits--;
-            trailing_zeroes++;
+        if (!discarded_nonzero) {
+            size_t trailing_zeroes = 0U;
+            while (kept_digits > 0U && digits[kept_digits - 1U] == 0U) {
+                kept_digits--;
+                trailing_zeroes++;
+            }
+            if (trailing_zeroes > SIZE_MAX - positive_adjustment)
+                return false;
+            positive_adjustment += trailing_zeroes;
         }
-        if (trailing_zeroes > SIZE_MAX - positive_adjustment)
+
+        InfiltratrDecimalExponent decimal_exp;
+        if (!decimal_exponent_combine(exponent_negative, exponent_magnitude,
+                                      fractional_digits, positive_adjustment,
+                                      &decimal_exp))
             return false;
-        positive_adjustment += trailing_zeroes;
+
+        if (!binary64_from_decimal(digits, kept_digits, discarded_nonzero,
+                                   &decimal_exp, negative, &parsed))
+            return false;
     }
 
-    InfiltratrDecimalExponent decimal_exp;
-    if (!decimal_exponent_combine(exponent_negative, exponent_magnitude,
-                                  fractional_digits, positive_adjustment,
-                                  &decimal_exp))
-        return false;
-
-    return binary64_from_decimal(digits, kept_digits, discarded_nonzero,
-                                 &decimal_exp, negative, value);
+    *end = cursor;
+    *value = parsed;
+    return true;
 }
 
+bool infiltratr_parse_double_token(const char **cursor, bool allow_sign,
+                                   double *value)
+{
+    if (!cursor || !*cursor || !value) return false;
+
+    const char *end = NULL;
+    double parsed = 0.0;
+    if (!parse_double_prefix(*cursor, allow_sign, &end, &parsed))
+        return false;
+
+    *cursor = end;
+    *value = parsed;
+    return true;
+}
+
+bool infiltratr_parse_double(const char *text, double *value)
+{
+    if (!text || !value) return false;
+
+    const char *end = NULL;
+    double parsed = 0.0;
+    if (!parse_double_prefix(text, true, &end, &parsed))
+        return false;
+
+    while (ascii_space(*end)) end++;
+    if (*end != '\0') return false;
+
+    *value = parsed;
+    return true;
+}
 bool infiltratr_parse_double_range(const char *text, double minimum,
                                    double maximum, double *value)
 {

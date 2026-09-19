@@ -56,4 +56,28 @@ for mode in day night; do
   done
 done
 grep -Fq 'INFILTRATR_THEME_SYSTEM' "$root/include/infiltratr/design.h"
-echo "PASS: JSON, C and web design adapters match the canonical theme contract"
+
+for key in small_radius control_radius card_radius panel_radius compact_spacing \
+  control_spacing section_spacing content_padding screen_padding; do
+  value=$(jq -er ".metrics.$key" "$json")
+  grep -Fq -- ".$key = ${value}U" "$root/src/design.c"
+done
+
+ui_family=$(jq -er '.typography.ui_family' "$json")
+brand_family=$(jq -er '.typography.brand_family' "$json")
+grep -Fq -- ".ui_family = \"$ui_family\"" "$root/src/design.c"
+grep -Fq -- ".brand_family = \"$brand_family\"" "$root/src/design.c"
+
+assets="$root/cmake/InfiltratrTypographyAssets.cmake"
+source_commit=$(jq -er '.typography.assets.source_commit' "$json")
+archive_sha=$(jq -er '.typography.assets.archive_sha256' "$json")
+grep -Fq -- "\"$source_commit\"" "$assets"
+grep -Fq -- "\"$archive_sha\"" "$assets"
+for role in brand_regular ui_bold ui_regular; do
+  filename=$(jq -er ".typography.font_files.$role" "$json")
+  sha=$(jq -er ".typography.assets.file_sha256.$role" "$json")
+  grep -Fq -- "\"$filename\"" "$assets"
+  grep -Fq -- "\"$sha\"" "$assets"
+done
+
+echo "PASS: JSON, C, CMake and web design adapters match the canonical design contract"

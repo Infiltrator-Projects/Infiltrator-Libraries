@@ -40,6 +40,22 @@ bool infiltratr_parse_u64_token(const char **cursor, unsigned int base,
 bool infiltratr_parse_i64_token(const char **cursor, unsigned int base,
                                 int64_t *value);
 
+/**
+ * Parse one finite ASCII-decimal binary64 token.
+ *
+ * Leading ASCII whitespace is skipped. When @p allow_sign is true an optional
+ * leading '+' or '-' is accepted; otherwise a sign is not part of the token.
+ * Integer/fractional digits and an optional decimal exponent are recognised
+ * with the same exact, locale-independent conversion and range semantics as
+ * infiltratr_parse_double(). Parsing stops at the first byte not belonging to
+ * the numeric token. NaN/Inf spellings, hexadecimal floats, malformed
+ * exponents, overflow and underflow rounded to zero are rejected.
+ *
+ * Cursor and value are unchanged on failure.
+ */
+bool infiltratr_parse_double_token(const char **cursor, bool allow_sign,
+                                   double *value);
+
 #ifdef __cplusplus
 }
 #endif

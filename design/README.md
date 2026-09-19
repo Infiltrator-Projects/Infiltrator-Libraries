@@ -18,7 +18,7 @@ The canonical private/local filenames understood by existing applications are:
 - `mb_corpo_s_bold.ttf`;
 - `mb_corpo_s_regular.ttf`.
 
-Applications must provide a normal platform fallback when those faces are unavailable. This design contract does not grant redistribution rights and does not contain proprietary font binaries.
+Common publishes the canonical family names, role weights, filenames and immutable first-party asset provenance. The general design policy still permits normal platform fallbacks when those faces are unavailable, while a consumer that bundles the exact verified faces may deliberately impose a stricter no-fallback contract. Common does not contain the font binaries themselves.
 
 ## Shared structure
 
@@ -30,7 +30,7 @@ Product repositories continue to own identity. Manufacturer colours, product acc
 
 ## Ownership
 
-The JSON remains the canonical design source. A deliberately small, product-neutral C adapter is published by Common so native consumers do not need private copies of palette constants; it does not own toolkit integration or product-specific styling. Runtime algorithms and broadly reusable C mechanics remain in Common. LINK remains the source of truth for shared vehicle-diagnostics behaviour and shared LINK-family application shells.
+The JSON remains the canonical design source. A deliberately small, product-neutral C adapter publishes the theme palette, structural metrics and typography identity so native consumers do not need private copies of those values. The accompanying CMake metadata owns immutable font-asset provenance for consumers that package the verified faces; Common still does not own toolkit integration or product-specific styling. Runtime algorithms and broadly reusable C mechanics remain in Common. LINK remains the source of truth for shared vehicle-diagnostics behaviour and shared LINK-family application shells.
 
 When a platform cannot consume the JSON directly, its adapter should mirror these named roles rather than invent a new typography or structural palette. The web adapter is maintained alongside the JSON and regression-checked against its named values so the two cannot silently diverge. Product-specific source should contain only genuine identity overrides.
 

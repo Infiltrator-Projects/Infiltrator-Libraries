@@ -1,6 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "infiltratr/design.h"
 
+static const InfiltratrDesignMetrics design_metrics = {
+    .struct_size = sizeof(InfiltratrDesignMetrics),
+    .abi_version = INFILTRATR_DESIGN_METRICS_ABI,
+    .small_radius = 6U,
+    .control_radius = 10U,
+    .card_radius = 12U,
+    .panel_radius = 18U,
+    .compact_spacing = 6U,
+    .control_spacing = 10U,
+    .section_spacing = 18U,
+    .content_padding = 16U,
+    .screen_padding = 20U
+};
+
+static const InfiltratrTypography typography = {
+    .struct_size = sizeof(InfiltratrTypography),
+    .abi_version = INFILTRATR_TYPOGRAPHY_ABI,
+    .ui_family = "MB Corpo S Title WEB",
+    .brand_family = "MB Corpo A Title Cond WEB",
+    .ui_regular_weight = 400U,
+    .ui_bold_weight = 700U,
+    .brand_weight = 400U,
+    .brand_regular_filename = "mb_corpo_a_cond_regular.ttf",
+    .ui_bold_filename = "mb_corpo_s_bold.ttf",
+    .ui_regular_filename = "mb_corpo_s_regular.ttf",
+    .gtk_fallback = "Sans",
+    .apple_fallback = "system",
+    .windows_fallback = "Segoe UI"
+};
+
 static const InfiltratrThemePalette day_palette = {
     .struct_size = sizeof(InfiltratrThemePalette),
     .abi_version = INFILTRATR_THEME_PALETTE_ABI,
@@ -96,4 +126,14 @@ const InfiltratrThemePalette *infiltratr_theme_resolve(
         return &night_palette;
     }
     return system_is_dark ? &night_palette : &day_palette;
+}
+
+const InfiltratrDesignMetrics *infiltratr_design_metrics(void)
+{
+    return &design_metrics;
+}
+
+const InfiltratrTypography *infiltratr_typography(void)
+{
+    return &typography;
 }

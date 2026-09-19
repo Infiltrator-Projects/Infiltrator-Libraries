@@ -35,6 +35,42 @@ static void test_base_detection(void)
     assert(strcmp(cursor, ",tail") == 0);
 }
 
+static void test_double_token(void)
+{
+    const char *text = "  -12.5e2+tail";
+    const char *cursor = text;
+    double value = 0.0;
+    assert(infiltratr_parse_double_token(&cursor, true, &value));
+    assert(value == -1250.0);
+    assert(strcmp(cursor, "+tail") == 0);
+
+    text = "3.25*2";
+    cursor = text;
+    value = 0.0;
+    assert(infiltratr_parse_double_token(&cursor, false, &value));
+    assert(value == 3.25);
+    assert(strcmp(cursor, "*2") == 0);
+
+    text = "-1";
+    cursor = text;
+    value = 77.0;
+    assert(!infiltratr_parse_double_token(&cursor, false, &value));
+    assert(cursor == text);
+    assert(value == 77.0);
+
+    text = "1e+";
+    cursor = text;
+    assert(!infiltratr_parse_double_token(&cursor, true, &value));
+    assert(cursor == text);
+    assert(value == 77.0);
+
+    text = "1e999999";
+    cursor = text;
+    assert(!infiltratr_parse_double_token(&cursor, true, &value));
+    assert(cursor == text);
+    assert(value == 77.0);
+}
+
 static void test_failure_preserves_outputs(void)
 {
     const char *text = "-1";
@@ -65,6 +101,7 @@ int main(void)
 {
     test_decimal_token();
     test_base_detection();
+    test_double_token();
     test_failure_preserves_outputs();
     puts("Infiltratr Common token tests passed.");
     return 0;

@@ -19,6 +19,8 @@ extern "C" {
 #endif
 
 #define INFILTRATR_THEME_PALETTE_ABI 1U
+#define INFILTRATR_DESIGN_METRICS_ABI 1U
+#define INFILTRATR_TYPOGRAPHY_ABI 1U
 
 typedef enum {
     INFILTRATR_THEME_SYSTEM = 0,
@@ -55,10 +57,48 @@ typedef struct {
     uint32_t equals_hover_rgb;
 } InfiltratrThemePalette;
 
+/** Product-neutral native rendering metrics from the canonical design contract. */
+typedef struct {
+    size_t struct_size;
+    uint32_t abi_version;
+    uint32_t small_radius;
+    uint32_t control_radius;
+    uint32_t card_radius;
+    uint32_t panel_radius;
+    uint32_t compact_spacing;
+    uint32_t control_spacing;
+    uint32_t section_spacing;
+    uint32_t content_padding;
+    uint32_t screen_padding;
+} InfiltratrDesignMetrics;
+
+/**
+ * Canonical typography identity. Common owns family names, role weights,
+ * filenames and normal platform fallbacks; individual products may impose a
+ * stricter no-fallback policy when they bundle the required faces themselves.
+ */
+typedef struct {
+    size_t struct_size;
+    uint32_t abi_version;
+    const char *ui_family;
+    const char *brand_family;
+    uint32_t ui_regular_weight;
+    uint32_t ui_bold_weight;
+    uint32_t brand_weight;
+    const char *brand_regular_filename;
+    const char *ui_bold_filename;
+    const char *ui_regular_filename;
+    const char *gtk_fallback;
+    const char *apple_fallback;
+    const char *windows_fallback;
+} InfiltratrTypography;
+
 const char *infiltratr_theme_mode_name(InfiltratrThemeMode mode);
 InfiltratrThemeMode infiltratr_theme_mode_next(InfiltratrThemeMode mode);
 const InfiltratrThemePalette *infiltratr_theme_resolve(
     InfiltratrThemeMode mode, bool system_is_dark);
+const InfiltratrDesignMetrics *infiltratr_design_metrics(void);
+const InfiltratrTypography *infiltratr_typography(void);
 
 #ifdef __cplusplus
 }
