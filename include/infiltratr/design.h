@@ -55,6 +55,22 @@ typedef struct {
     uint32_t surface_hover_rgb;
     uint32_t operation_hover_rgb;
     uint32_t equals_hover_rgb;
+    /* Exact product-neutral colour roles promoted from the Linux MBLINK reference face. */
+    uint32_t titlebar_rgb;
+    uint32_t connection_rgb;
+    uint32_t connection_border_rgb;
+    uint32_t heading_rgb;
+    uint32_t summary_rgb;
+    uint32_t kicker_rgb;
+    uint32_t detail_label_rgb;
+    uint32_t note_rgb;
+    uint32_t status_border_rgb;
+    uint32_t accent_foreground_rgb;
+    uint32_t accent_hover_rgb;
+    uint32_t selected_summary_rgb;
+    uint32_t warning_muted_rgb;
+    uint32_t warning_border_rgb;
+    uint32_t success_border_rgb;
 } InfiltratrThemePalette;
 
 /** Product-neutral native rendering metrics from the canonical design contract. */
