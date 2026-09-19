@@ -25,6 +25,6 @@ This ledger tracks graphical consumers of `infiltrator-design-v1.json`.
 | ExtFS-for-Windows | NSIS / driver tooling | Native installer chrome only; no standalone project UI theme | Platform installer behaviour local |
 | Common | Library/docs | No application UI | Owns this design contract only |
 
-The rule is simple: MB Corpo typography roles plus the shared Day/Night semantic palettes are owned by Common; System means follow the host platform. Product accents, logos, manufacturer colours, page composition and domain-specific status semantics remain local. Native C/C++ consumers should prefer `include/infiltratr/design.h`; web consumers use `infiltrator-web-v1.css`. GTK/Cinnamon/SwiftUI adapters may keep local selector/widget code, but CI should validate any generated or mirrored values against Common rather than allowing private palette truth.
+The rule is simple: MB Corpo typography roles plus the shared white Day and MB graphite/`#00ADEF` Night semantic palettes are owned by Common; System means detect the host light/dark preference and select exactly one of those two palettes. Product accents, logos, manufacturer colours, page composition and domain-specific status semantics remain local. Native C/C++ consumers should prefer `include/infiltratr/design.h`; web consumers use `infiltrator-web-v1.css`. GTK/Cinnamon/SwiftUI adapters may keep local selector/widget code, but CI should validate any generated or mirrored values against Common rather than allowing private palette truth.
 
 SPDX-License-Identifier: GPL-3.0-or-later
