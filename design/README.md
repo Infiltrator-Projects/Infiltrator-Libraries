@@ -22,7 +22,7 @@ Common publishes the canonical family names, role weights, filenames and immutab
 
 ## Shared structure
 
-The common visual language has two explicit shared palettes: **Night**, the Mercedes graphite-grey `#2B2B30` foundation with the canonical `#00ADEF` accent, and **Day**, its white counterpart using the same accent. Both expose the same semantic roles so controls, states and hierarchy remain consistent across applications without forcing one luminance. **System** is not a third palette: it is a policy requiring the platform adapter to resolve the operating system's current light/dark preference to exactly **Day** or **Night**.
+The common visual language has two explicit shared palettes: **Night**, the layered Linux MBLINK graphite/black foundation with `#050608` canvas, distinct graphite surfaces and the canonical `#00ADEF` accent, and **Day**, its white counterpart using the same accent. Both expose the same semantic roles so controls, states and hierarchy remain consistent across applications without forcing one luminance. **System** is not a third palette: it is a policy requiring the platform adapter to resolve the operating system's current light/dark preference to exactly **Day** or **Night**.
 
 `infiltrator-web-v1.css` is the canonical web adapter for these neutral roles. Existing consumers keep the historical Night values at `:root`; theme-aware consumers set `data-infiltratr-theme="system|day|night"` on the root element. System mode uses `prefers-color-scheme`. The C adapter in `include/infiltratr/design.h` exposes the same Day/Night semantic tokens to native C/C++ consumers while leaving operating-system theme detection to the platform layer.
 
