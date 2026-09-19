@@ -6,7 +6,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.5  
+**Current library version:** 1.19.6  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -40,9 +40,11 @@ Common owns portable mechanics and algorithms that have real use across the proj
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
 
-## Common 1.19.5
+## Common 1.19.6
 
-1.19.5 centralises two project-family mechanics that had begun to drift across
+The appearance contract is now explicit: Day is the white palette, Night is the MB graphite/black palette with the canonical `#00ADEF` accent, and System must resolve the host light/dark preference to exactly one of those two palettes.
+
+1.19.6 centralises two project-family mechanics that had begun to drift across
 consumers. Project build profiles now have one canonical human-readable label
 contract, and the dynamic-library adapter can atomically bind a table of
 required and optional symbols without each application carrying its own
