@@ -39,6 +39,20 @@ int main(void)
     assert(infiltratr_string_starts_with("calendar-plus", "calendar"));
     assert(infiltratr_string_ends_with("calendar-plus", "plus"));
     assert(!infiltratr_string_ends_with("calendar", "plus"));
+    assert(infiltratr_ascii_is_space(' '));
+    assert(infiltratr_ascii_is_space('\n'));
+    assert(!infiltratr_ascii_is_space((unsigned char)0xa0));
+    assert(infiltratr_ascii_is_alpha('Z'));
+    assert(infiltratr_ascii_is_alpha('q'));
+    assert(!infiltratr_ascii_is_alpha('7'));
+    assert(infiltratr_ascii_is_digit('7'));
+    assert(!infiltratr_ascii_is_digit('x'));
+    assert(infiltratr_ascii_is_alnum('7'));
+    assert(infiltratr_ascii_is_alnum('x'));
+    assert(!infiltratr_ascii_is_alnum('-'));
+    assert(infiltratr_ascii_is_xdigit('F'));
+    assert(infiltratr_ascii_is_xdigit('a'));
+    assert(!infiltratr_ascii_is_xdigit('G'));
     assert(infiltratr_ascii_to_lower('Q') == 'q');
     assert(infiltratr_ascii_to_lower((unsigned char)0xc0) == (unsigned char)0xc0);
     assert(infiltratr_ascii_to_upper('q') == 'Q');
@@ -48,6 +62,11 @@ int main(void)
     assert(!infiltratr_ascii_equal_ci(NULL, "x"));
     assert(infiltratr_ascii_starts_with_ci("FAT32", "fat"));
     assert(!infiltratr_ascii_starts_with_ci("ext4", "fat"));
+    assert(infiltratr_ascii_contains_ci("Mint-Y-Dark", "dark"));
+    assert(infiltratr_ascii_contains_ci("DARKER", "ark"));
+    assert(infiltratr_ascii_contains_ci("anything", ""));
+    assert(!infiltratr_ascii_contains_ci("Mint-Y", "dark"));
+    assert(!infiltratr_ascii_contains_ci(NULL, "dark"));
     assert(strcmp(infiltratr_build_profile_label("native"),
                   "Native / local machine compile") == 0);
     assert(strcmp(infiltratr_build_profile_label("generic"),
