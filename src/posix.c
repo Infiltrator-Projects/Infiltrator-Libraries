@@ -17,6 +17,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <math.h>
 #include <pwd.h>
 #include <stdlib.h>
@@ -562,6 +563,100 @@ int infiltratr_unlink_durable(const char *path, bool missing_ok)
     const int failure = atomic_sync_directory(parent);
     free(parent);
     return failure;
+}
+
+static bool posix_timespec_is_normalized_nonnegative(
+    const struct timespec *value)
+{
+    if (!value || value->tv_nsec < 0 || value->tv_nsec >= 1000000000L)
+        return false;
+    if ((time_t)-1 < (time_t)0 && (intmax_t)value->tv_sec < 0)
+        return false;
+    return true;
+}
+
+static uintmax_t posix_time_t_maximum(void)
+{
+    if ((time_t)-1 > (time_t)0) return (uintmax_t)(time_t)-1;
+
+    const unsigned int time_bits = (unsigned int)(sizeof(time_t) * CHAR_BIT);
+    const unsigned int uintmax_bits =
+        (unsigned int)(sizeof(uintmax_t) * CHAR_BIT);
+    if (time_bits >= uintmax_bits) return UINTMAX_MAX >> 1U;
+    return (UINTMAX_C(1) << (time_bits - 1U)) - 1U;
+}
+
+int infiltratr_posix_deadline_after_milliseconds(int clock_id,
+                                                  uint64_t milliseconds,
+                                                  struct timespec *deadline)
+{
+    if (!deadline) return EINVAL;
+
+    struct timespec now = {0};
+    if (clock_gettime((clockid_t)clock_id, &now) != 0)
+        return errno ? errno : EIO;
+    if (!posix_timespec_is_normalized_nonnegative(&now)) return EINVAL;
+
+    uintmax_t extra_seconds = (uintmax_t)(milliseconds / UINT64_C(1000));
+    uint64_t nanoseconds =
+        (uint64_t)now.tv_nsec +
+        (milliseconds % UINT64_C(1000)) * UINT64_C(1000000);
+    if (nanoseconds >= UINT64_C(1000000000)) {
+        nanoseconds -= UINT64_C(1000000000);
+        extra_seconds++;
+    }
+
+    const uintmax_t current_seconds = (uintmax_t)now.tv_sec;
+    const uintmax_t maximum_seconds = posix_time_t_maximum();
+    if (current_seconds > maximum_seconds ||
+        extra_seconds > maximum_seconds - current_seconds)
+        return EOVERFLOW;
+
+    struct timespec result = {
+        .tv_sec = (time_t)(current_seconds + extra_seconds),
+        .tv_nsec = (long)nanoseconds
+    };
+    *deadline = result;
+    return 0;
+}
+
+int infiltratr_posix_deadline_remaining_milliseconds(
+    int clock_id, const struct timespec *deadline, uint64_t *milliseconds)
+{
+    if (!deadline || !milliseconds ||
+        !posix_timespec_is_normalized_nonnegative(deadline))
+        return EINVAL;
+
+    struct timespec now = {0};
+    if (clock_gettime((clockid_t)clock_id, &now) != 0)
+        return errno ? errno : EIO;
+    if (!posix_timespec_is_normalized_nonnegative(&now)) return EINVAL;
+
+    if (deadline->tv_sec < now.tv_sec ||
+        (deadline->tv_sec == now.tv_sec &&
+         deadline->tv_nsec <= now.tv_nsec)) {
+        *milliseconds = 0U;
+        return 0;
+    }
+
+    uintmax_t seconds =
+        (uintmax_t)deadline->tv_sec - (uintmax_t)now.tv_sec;
+    long nanoseconds = deadline->tv_nsec - now.tv_nsec;
+    if (nanoseconds < 0) {
+        if (seconds == 0U) return EINVAL;
+        seconds--;
+        nanoseconds += 1000000000L;
+    }
+
+    if (seconds > UINT64_MAX / UINT64_C(1000)) return EOVERFLOW;
+    uint64_t result = (uint64_t)seconds * UINT64_C(1000);
+    const uint64_t fractional =
+        ((uint64_t)nanoseconds + UINT64_C(999999)) / UINT64_C(1000000);
+    if (fractional > UINT64_MAX - result) return EOVERFLOW;
+    result += fractional;
+
+    *milliseconds = result;
+    return 0;
 }
 
 bool infiltratr_monotonic_nanoseconds(uint64_t *nanoseconds)
