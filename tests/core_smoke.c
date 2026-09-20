@@ -39,6 +39,15 @@ int main(void)
     assert(infiltratr_string_starts_with("calendar-plus", "calendar"));
     assert(infiltratr_string_ends_with("calendar-plus", "plus"));
     assert(!infiltratr_string_ends_with("calendar", "plus"));
+    assert(infiltratr_ascii_to_lower('Q') == 'q');
+    assert(infiltratr_ascii_to_lower((unsigned char)0xc0) == (unsigned char)0xc0);
+    assert(infiltratr_ascii_to_upper('q') == 'Q');
+    assert(infiltratr_ascii_equal_ci("NVIDIA", "nvidia"));
+    assert(!infiltratr_ascii_equal_ci("NVIDIA", "nvidia0"));
+    assert(infiltratr_ascii_equal_ci(NULL, NULL));
+    assert(!infiltratr_ascii_equal_ci(NULL, "x"));
+    assert(infiltratr_ascii_starts_with_ci("FAT32", "fat"));
+    assert(!infiltratr_ascii_starts_with_ci("ext4", "fat"));
     assert(strcmp(infiltratr_build_profile_label("native"),
                   "Native / local machine compile") == 0);
     assert(strcmp(infiltratr_build_profile_label("generic"),
