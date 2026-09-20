@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -105,6 +106,117 @@ bool infiltratr_path_join(char *destination, size_t size,
     if (needs_separator) destination[offset++] = '/';
     memcpy(destination + offset, right_start, right_length + 1U);
     return true;
+}
+
+static bool copy_path_value(const char *value,
+                            char *destination, size_t size)
+{
+    if (!destination || size == 0U) return false;
+    destination[0] = '\0';
+    if (!value || !value[0]) return false;
+    const size_t length = strlen(value);
+    if (length >= size) return false;
+    memcpy(destination, value, length + 1U);
+    return true;
+}
+
+bool infiltratr_posix_home_directory(char *destination, size_t size)
+{
+    if (!destination || size == 0U) return false;
+    destination[0] = '\0';
+
+    const char *environment_home = getenv("HOME");
+    if (environment_home && environment_home[0])
+        return copy_path_value(environment_home, destination, size);
+
+    long suggested = sysconf(_SC_GETPW_R_SIZE_MAX);
+    size_t capacity = suggested > 0 ? (size_t)suggested : 16384U;
+    if (capacity < 1024U) capacity = 1024U;
+
+    char *storage = NULL;
+    struct passwd entry;
+    struct passwd *result = NULL;
+    for (;;) {
+        char *grown = realloc(storage, capacity);
+        if (!grown) {
+            free(storage);
+            return false;
+        }
+        storage = grown;
+        const int failure =
+            getpwuid_r(getuid(), &entry, storage, capacity, &result);
+        if (failure == 0) break;
+        if (failure != ERANGE || capacity > SIZE_MAX / 2U) {
+            free(storage);
+            return false;
+        }
+        capacity *= 2U;
+    }
+
+    const bool okay = result && result->pw_dir && result->pw_dir[0] &&
+                      copy_path_value(result->pw_dir, destination, size);
+    free(storage);
+    return okay;
+}
+
+static bool xdg_home(const char *environment_name, const char *fallback_suffix,
+                     char *destination, size_t size)
+{
+    if (!destination || size == 0U) return false;
+    destination[0] = '\0';
+
+    const char *configured = getenv(environment_name);
+    if (configured && configured[0] == '/')
+        return copy_path_value(configured, destination, size);
+
+    char home[4096];
+    if (!infiltratr_posix_home_directory(home, sizeof(home))) return false;
+    return infiltratr_path_join(destination, size, home, fallback_suffix);
+}
+
+bool infiltratr_xdg_config_home(char *destination, size_t size)
+{
+    return xdg_home("XDG_CONFIG_HOME", ".config", destination, size);
+}
+
+bool infiltratr_xdg_data_home(char *destination, size_t size)
+{
+    return xdg_home("XDG_DATA_HOME", ".local/share", destination, size);
+}
+
+static int ensure_directory(const char *path, mode_t mode)
+{
+    if (mkdir(path, mode) == 0) return 0;
+    if (errno != EEXIST) return errno;
+
+    struct stat status;
+    if (stat(path, &status) != 0) return errno;
+    return S_ISDIR(status.st_mode) ? 0 : ENOTDIR;
+}
+
+int infiltratr_mkdir_parents(const char *path, unsigned int mode)
+{
+    if (!path || !path[0]) return EINVAL;
+
+    char *copy = strdup(path);
+    if (!copy) return errno ? errno : ENOMEM;
+
+    size_t length = strlen(copy);
+    while (length > 1U && copy[length - 1U] == '/')
+        copy[--length] = '\0';
+
+    const mode_t permissions = (mode_t)(mode & 07777U);
+    int failure = 0;
+    for (char *cursor = copy + (copy[0] == '/' ? 1 : 0);
+         *cursor && failure == 0; cursor++) {
+        if (*cursor != '/') continue;
+        *cursor = '\0';
+        if (copy[0]) failure = ensure_directory(copy, permissions);
+        *cursor = '/';
+    }
+    if (failure == 0) failure = ensure_directory(copy, permissions);
+    free(copy);
+    return failure;
 }
 
 bool infiltratr_first_readable_path(const char *base,
