@@ -28,6 +28,19 @@ int main(void)
     if (infiltratr_theme_mode_next(INFILTRATR_THEME_SYSTEM) != INFILTRATR_THEME_DAY) return 10;
     if (infiltratr_theme_mode_next(INFILTRATR_THEME_DAY) != INFILTRATR_THEME_NIGHT) return 11;
     if (infiltratr_theme_mode_next(INFILTRATR_THEME_NIGHT) != INFILTRATR_THEME_SYSTEM) return 12;
+    if (strcmp(infiltratr_theme_mode_key(INFILTRATR_THEME_SYSTEM), "system") != 0) return 36;
+    if (strcmp(infiltratr_theme_mode_key(INFILTRATR_THEME_DAY), "day") != 0) return 37;
+    if (strcmp(infiltratr_theme_mode_key(INFILTRATR_THEME_NIGHT), "night") != 0) return 38;
+    InfiltratrThemeMode parsed = INFILTRATR_THEME_SYSTEM;
+    if (!infiltratr_theme_mode_parse("DAY", &parsed) ||
+        parsed != INFILTRATR_THEME_DAY) return 39;
+    if (!infiltratr_theme_mode_parse("night", &parsed) ||
+        parsed != INFILTRATR_THEME_NIGHT) return 40;
+    parsed = INFILTRATR_THEME_DAY;
+    if (infiltratr_theme_mode_parse("unknown", &parsed) ||
+        parsed != INFILTRATR_THEME_DAY) return 41;
+    if (infiltratr_theme_mode_parse(NULL, &parsed) ||
+        infiltratr_theme_mode_parse("day", NULL)) return 42;
 
     const InfiltratrDesignMetrics *metrics = infiltratr_design_metrics();
     if (metrics == NULL || metrics->abi_version != INFILTRATR_DESIGN_METRICS_ABI) return 13;

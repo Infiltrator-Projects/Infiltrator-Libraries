@@ -29,7 +29,8 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Exact timing / periodic cadence | Calendar Plus, System Monitor, LINK, Backyard Racer | ACTIVE |
 | Software surfaces, alpha compositing and nearest/bilinear scaling | Backyard Racer; shared framebuffer foundation | ACTIVE |
 | Generic quantity scaling | Formatting foundation | FOUNDATION |
-| Shared metric/duration formatting | System Monitor | ACTIVE |
+| Shared metric/duration formatting, including canonical GHz rendering | System Monitor | ACTIVE |
+| Canonical System/Day/Night persistence keys and parsing | System Monitor, InfiltratorFS | ACTIVE |
 | Allocation-free i18n lookup/interpolation | LINK family | ACTIVE |
 | HTML text, JSON string and URI-component output encoding | ssmithnet.net, Infiltrator Repository | READY |
 | Spreadsheet-safe quoted CSV field encoding | System Monitor process export | ACTIVE |

@@ -110,6 +110,15 @@ typedef struct {
 } InfiltratrTypography;
 
 const char *infiltratr_theme_mode_name(InfiltratrThemeMode mode);
+/** Return the canonical lowercase persistence key: system, day or night. */
+const char *infiltratr_theme_mode_key(InfiltratrThemeMode mode);
+/**
+ * Parse a complete ASCII theme key case-insensitively.
+ *
+ * Accepted keys are system, day and night. Caller output is unchanged for
+ * NULL, empty or unknown input.
+ */
+bool infiltratr_theme_mode_parse(const char *text, InfiltratrThemeMode *mode);
 InfiltratrThemeMode infiltratr_theme_mode_next(InfiltratrThemeMode mode);
 const InfiltratrThemePalette *infiltratr_theme_resolve(
     InfiltratrThemeMode mode, bool system_is_dark);

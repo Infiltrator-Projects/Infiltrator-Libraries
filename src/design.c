@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "infiltratr/design.h"
 
+#include "ascii_internal.h"
+
+#include <string.h>
+
 static const InfiltratrDesignMetrics design_metrics = {
     .struct_size = sizeof(InfiltratrDesignMetrics),
     .abi_version = INFILTRATR_DESIGN_METRICS_ABI,
@@ -131,6 +135,36 @@ const char *infiltratr_theme_mode_name(InfiltratrThemeMode mode)
     default:
         return "System";
     }
+}
+
+const char *infiltratr_theme_mode_key(InfiltratrThemeMode mode)
+{
+    switch (mode) {
+    case INFILTRATR_THEME_DAY:
+        return "day";
+    case INFILTRATR_THEME_NIGHT:
+        return "night";
+    case INFILTRATR_THEME_SYSTEM:
+    default:
+        return "system";
+    }
+}
+
+bool infiltratr_theme_mode_parse(const char *text, InfiltratrThemeMode *mode)
+{
+    if (!text || !mode) return false;
+    const size_t length = strlen(text);
+    InfiltratrThemeMode parsed;
+    if (infiltratr_ascii_equal_ci_span(text, length, "system"))
+        parsed = INFILTRATR_THEME_SYSTEM;
+    else if (infiltratr_ascii_equal_ci_span(text, length, "day"))
+        parsed = INFILTRATR_THEME_DAY;
+    else if (infiltratr_ascii_equal_ci_span(text, length, "night"))
+        parsed = INFILTRATR_THEME_NIGHT;
+    else
+        return false;
+    *mode = parsed;
+    return true;
 }
 
 InfiltratrThemeMode infiltratr_theme_mode_next(InfiltratrThemeMode mode)

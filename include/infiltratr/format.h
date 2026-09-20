@@ -99,6 +99,9 @@ char *infiltratr_format_percent(bool available, double value,
 /** Render an optional whole-number MHz value. */
 char *infiltratr_format_mhz(bool available, double value,
                             char *buffer, size_t size);
+/** Render an optional GHz value with two fractional digits. */
+char *infiltratr_format_ghz(bool available, double value,
+                            char *buffer, size_t size);
 /** Render an optional whole-number degrees-Celsius value. */
 char *infiltratr_format_celsius(bool available, double value,
                                 char *buffer, size_t size);

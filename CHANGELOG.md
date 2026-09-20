@@ -4,8 +4,13 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 ## Unreleased
 
-- Documentation baseline standardised across the Infiltrator project family.
-- Continue to record ABI/API additions, behaviour changes, portability changes and fixes that affect consumers here.
+No unreleased changes.
+
+## 1.19.11 — 2026-09-20
+
+- Added canonical lowercase System/Day/Night persistence keys and case-insensitive parsing to the shared design contract, replacing duplicated consumer serialization logic.
+- Added the shared two-decimal GHz formatter used by System Monitor, completing the active frequency-formatting family without a consumer-local scalar wrapper.
+- Standardised the documentation baseline across the Infiltrator project family.
 
 ## 1.19.7 — 2026-09-19
 

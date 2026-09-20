@@ -47,6 +47,10 @@ int main(void)
                   "N/A") == 0);
     assert(strcmp(infiltratr_format_mhz(true, 3200.0, text, sizeof(text)),
                   "3200 MHz") == 0);
+    assert(strcmp(infiltratr_format_ghz(true, 4.275, text, sizeof(text)),
+                  "4.28 GHz") == 0);
+    assert(strcmp(infiltratr_format_ghz(false, 0.0, text, sizeof(text)),
+                  "N/A") == 0);
     assert(strcmp(infiltratr_format_celsius(true, 64.0, text, sizeof(text)),
                   "64 °C") == 0);
     assert(strcmp(infiltratr_format_watts(true, 12.25, text, sizeof(text)),

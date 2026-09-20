@@ -230,6 +230,15 @@ char *infiltratr_format_mhz(bool available, double value, char *buffer, size_t s
     return buffer;
 }
 
+char *infiltratr_format_ghz(bool available, double value, char *buffer, size_t size)
+{
+    InfiltratrScalarFormatOptions options = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
+    options.decimal_places = 2U;
+    options.suffix = " GHz";
+    (void)infiltratr_format_scalar(available, (long double)value, &options, buffer, size);
+    return buffer;
+}
+
 char *infiltratr_format_celsius(bool available, double value, char *buffer, size_t size)
 {
     InfiltratrScalarFormatOptions options = INFILTRATR_SCALAR_FORMAT_OPTIONS_INIT;
