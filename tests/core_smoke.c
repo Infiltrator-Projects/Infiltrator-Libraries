@@ -175,6 +175,13 @@ int main(void)
     assert(infiltratr_u64_multiply_saturating(UINT64_MAX, 2U) == UINT64_MAX);
     assert(infiltratr_percent_u64(1U, 8U) == 12.5);
 
+    uint64_t counter_delta = 0U;
+    assert(infiltratr_u64_counter_delta(12U, 10U, &counter_delta));
+    assert(counter_delta == 2U);
+    counter_delta = 99U;
+    assert(!infiltratr_u64_counter_delta(9U, 10U, &counter_delta));
+    assert(counter_delta == 99U);
+
     double rate = -1.0;
     assert(infiltratr_u64_counter_rate(12U, 10U, 512.0L, 2.0, &rate));
     assert(rate == 512.0);
