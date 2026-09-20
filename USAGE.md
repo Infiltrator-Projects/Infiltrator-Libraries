@@ -13,6 +13,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Project identity, metadata and canonical build-profile labels | System Monitor, Calendar Plus, LINK, InfiltratorFS | ACTIVE |
 | Bounded strings, trimming and deterministic ASCII classification/case matching/ordering | System Monitor, Calendar Plus, Defragger, LINK | ACTIVE |
 | Stable non-cryptographic FNV-1a identity/signature mixing | System Monitor runtime identities/change signatures; reusable byte-stream hashing | ACTIVE |
+| Monotonic unsigned-counter delta/rate mechanics | System Monitor CPU, process, storage, network and hardware accounting | ACTIVE |
 | Strict signed/unsigned whole-value parsing and ranges | System Monitor, Defragger, LINK | ACTIVE |
 | Unsigned cursor token parsing | System Monitor procfs/sysfs parsing | ACTIVE |
 | Signed cursor token parsing | Completes the active cursor-parser family | READY |
@@ -54,6 +55,7 @@ Common owns generic file/path/clock mechanics used by Linux applications:
 - current-user home and XDG config/data-home resolution plus recursive directory creation;
 - durable atomic replacement and durable namespace removal;
 - monotonic nanosecond/second clocks;
+- normalized absolute POSIX-clock deadline creation and upward-rounded remaining-millisecond conversion;
 - exact EINTR-safe sequential descriptor reads/writes;
 - exact EINTR-safe positioned pread/pwrite.
 
@@ -83,7 +85,7 @@ The Windows build separates the static-library output from the DLL import librar
 
 ## Consumer boundaries
 
-- System Monitor: Common owns general C primitives, deterministic ASCII matching/ordering, stable non-cryptographic hash mixing, formatting, timing, dynamic loading and POSIX mechanics, including toolkit-neutral user/XDG path discovery and recursive directory creation; process/group signature composition and hardware/UI policy remain System Monitor-owned.
+- System Monitor: Common owns general C primitives, deterministic ASCII matching/ordering, stable non-cryptographic hash mixing, monotonic counter delta/rate mechanics, formatting, timing, dynamic loading and POSIX mechanics, including toolkit-neutral user/XDG path discovery, recursive directory creation and absolute clock-deadline conversion; process/group signature composition and hardware/UI policy remain System Monitor-owned.
 - Calendar Plus: Common owns generic strings/parsing/arithmetic/timing, the system-wide temporal presentation policy, explicit conventional/decimal clock formatting, canonical build-profile labels and dynamic-library binding; specialised historical/astronomical clocks, chronology, ICU version probing and calendar/event semantics remain Calendar-owned.
 - Defragger: Common owns general arithmetic, byte order, exact I/O and generic durable file publication/removal; filesystem safety, on-disk validation, recovery record contents and relocation transactions remain Defragger-owned.
 - InfiltratorFS: Common owns endian/UTF-8/checked arithmetic/exact POSIX I/O; allocation, CoW, checkpoints, recovery and filesystem semantics remain InfiltratorFS-owned.
