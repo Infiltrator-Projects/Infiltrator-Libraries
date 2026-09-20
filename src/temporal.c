@@ -7,6 +7,7 @@
 
 #include "infiltratr/arithmetic.h"
 #include "infiltratr/config.h"
+#include "infiltratr/timing.h"
 
 #include <stdio.h>
 #include <string.h>
