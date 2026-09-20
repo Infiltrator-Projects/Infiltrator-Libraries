@@ -120,6 +120,59 @@ static void test_policy_v2(void)
         "version=2\nclock-mode=standard\nprimary-calendar=none\n", &parsed));
 }
 
+
+static void test_policy_v3(void)
+{
+    InfiltratrTemporalPolicyV3 policy;
+    InfiltratrTemporalPolicyV3 parsed;
+    char text[1024];
+    size_t length = 0U;
+
+    CHECK(infiltratr_temporal_policy_v3_default(&policy));
+    CHECK(policy.version == INFILTRATR_TEMPORAL_POLICY_V3_VERSION);
+    CHECK(strcmp(policy.clock_mode, "standard") == 0);
+    CHECK(strcmp(policy.calendar, "gregorian") == 0);
+
+    strcpy(policy.clock_mode, "decimal");
+    strcpy(policy.calendar, "egyptian-nabonassar");
+    policy.show_seconds = true;
+    policy.location_configured = true;
+    policy.latitude = -36.39;
+    policy.longitude = 145.36;
+
+    CHECK(infiltratr_temporal_policy_v3_serialize(
+        &policy, text, sizeof(text), &length));
+    CHECK(length == strlen(text));
+    CHECK(strstr(text, "version=3\n") != NULL);
+    CHECK(strstr(text, "calendar=egyptian-nabonassar\n") != NULL);
+    CHECK(strstr(text, "secondary-calendar=") == NULL);
+
+    CHECK(infiltratr_temporal_policy_v3_parse(text, &parsed));
+    CHECK(strcmp(parsed.clock_mode, "decimal") == 0);
+    CHECK(strcmp(parsed.calendar, "egyptian-nabonassar") == 0);
+    CHECK(parsed.show_seconds);
+    CHECK(parsed.location_configured);
+    CHECK(parsed.latitude == -36.39);
+    CHECK(parsed.longitude == 145.36);
+
+    CHECK(infiltratr_temporal_policy_v3_parse(
+        "version=2\n"
+        "clock-mode=roman-temporal\n"
+        "primary-calendar=hebrew\n"
+        "secondary-calendar=gregorian\n"
+        "show-seconds=true\n"
+        "location-configured=false\n"
+        "latitude=0.000000\n"
+        "longitude=0.000000\n",
+        &parsed));
+    CHECK(strcmp(parsed.clock_mode, "roman-temporal") == 0);
+    CHECK(strcmp(parsed.calendar, "hebrew") == 0);
+    CHECK(parsed.show_seconds);
+
+    CHECK(!infiltratr_temporal_policy_v3_parse(
+        "version=3\ncalendar=none\n", &parsed));
+}
+
 static void test_clock_formats(void)
 {
     char text[64];
@@ -173,6 +226,7 @@ int main(void)
     test_catalogue();
     test_policy_round_trip();
     test_policy_v2();
+    test_policy_v3();
     test_clock_formats();
     return 0;
 }
