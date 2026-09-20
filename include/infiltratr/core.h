@@ -143,6 +143,18 @@ bool infiltratr_string_starts_with(const char *text, const char *prefix);
 /** Return true when `text` ends with `suffix`; NULL input is false. */
 bool infiltratr_string_ends_with(const char *text, const char *suffix);
 
+/** Convert one ASCII byte to lowercase; all non-A-Z bytes are unchanged. */
+unsigned char infiltratr_ascii_to_lower(unsigned char value);
+/** Convert one ASCII byte to uppercase; all non-a-z bytes are unchanged. */
+unsigned char infiltratr_ascii_to_upper(unsigned char value);
+/**
+ * Compare complete NUL-terminated strings using deterministic ASCII-only
+ * case folding. Two NULL pointers compare equal; NULL and text do not.
+ */
+bool infiltratr_ascii_equal_ci(const char *left, const char *right);
+/** Return true when text begins with prefix using ASCII-only case folding. */
+bool infiltratr_ascii_starts_with_ci(const char *text, const char *prefix);
+
 /**
  * Parse a complete unsigned integer in base 0 or 2..36.
  * Surrounding C-library whitespace is accepted; either sign is rejected.
