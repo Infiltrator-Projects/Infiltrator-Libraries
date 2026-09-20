@@ -22,6 +22,8 @@ extern "C" {
 #endif
 
 #define INFILTRATR_TEMPORAL_POLICY_VERSION 1U
+#define INFILTRATR_TEMPORAL_POLICY_V2_VERSION 2U
+#define INFILTRATR_TEMPORAL_ID_CAPACITY 64U
 
 typedef enum InfiltratrClockProfile {
     INFILTRATR_CLOCK_PROFILE_SYSTEM = 0,
@@ -36,6 +38,31 @@ typedef struct InfiltratrTemporalPolicy {
     InfiltratrClockProfile clock_profile;
     bool show_seconds;
 } InfiltratrTemporalPolicy;
+
+typedef struct InfiltratrTemporalClockModeInfo {
+    const char *id;
+    const char *name;
+    bool supports_seconds;
+    bool requires_latitude;
+    bool requires_longitude;
+} InfiltratrTemporalClockModeInfo;
+
+typedef struct InfiltratrTemporalCalendarInfo {
+    const char *id;
+    const char *name;
+} InfiltratrTemporalCalendarInfo;
+
+typedef struct InfiltratrTemporalPolicyV2 {
+    uint32_t struct_size;
+    uint32_t version;
+    char clock_mode[INFILTRATR_TEMPORAL_ID_CAPACITY];
+    char primary_calendar[INFILTRATR_TEMPORAL_ID_CAPACITY];
+    char secondary_calendar[INFILTRATR_TEMPORAL_ID_CAPACITY];
+    bool show_seconds;
+    bool location_configured;
+    double latitude;
+    double longitude;
+} InfiltratrTemporalPolicyV2;
 
 /** Initialise a policy to conservative system-following defaults. */
 bool infiltratr_temporal_policy_default(InfiltratrTemporalPolicy *policy);
@@ -94,6 +121,45 @@ bool infiltratr_temporal_format_clock(InfiltratrClockProfile profile,
                                       char *buffer,
                                       size_t capacity,
                                       size_t *length);
+
+/**
+ * Initialise the extensible system-wide temporal policy.
+ *
+ * The default authority is conventional OS-locale time, Gregorian primary
+ * calendar, no secondary calendar, no seconds and no configured location.
+ * There is deliberately no "follow system" clock identity in this catalogue:
+ * System Settings is the authority. Individual applications may separately
+ * offer "Follow System Settings" as an application-local behaviour.
+ */
+bool infiltratr_temporal_policy_v2_default(InfiltratrTemporalPolicyV2 *policy);
+
+/** Complete system-wide clock catalogue shared by Settings and Calendar. */
+size_t infiltratr_temporal_clock_mode_count(void);
+const InfiltratrTemporalClockModeInfo *
+infiltratr_temporal_clock_mode_at(size_t index);
+const InfiltratrTemporalClockModeInfo *
+infiltratr_temporal_clock_mode_find(const char *id);
+
+/** Complete calendar-system catalogue. Index 0 is "none" for secondary use. */
+size_t infiltratr_temporal_calendar_count(void);
+const InfiltratrTemporalCalendarInfo *
+infiltratr_temporal_calendar_at(size_t index);
+const InfiltratrTemporalCalendarInfo *
+infiltratr_temporal_calendar_find(const char *id);
+
+/**
+ * Parse version-2 temporal policy. Version-1 policy documents are accepted and
+ * migrated in memory to equivalent v2 clock identities.
+ */
+bool infiltratr_temporal_policy_v2_parse(const char *text,
+                                         InfiltratrTemporalPolicyV2 *policy);
+
+/** Serialize the complete temporal authority as deterministic version-2 text. */
+bool infiltratr_temporal_policy_v2_serialize(
+    const InfiltratrTemporalPolicyV2 *policy,
+    char *buffer,
+    size_t capacity,
+    size_t *length);
 
 #ifdef __cplusplus
 }
