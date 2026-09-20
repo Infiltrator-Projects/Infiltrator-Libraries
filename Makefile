@@ -9,7 +9,7 @@ override CFLAGS += -std=c11 -fPIC -Wall -Wextra -Wpedantic -Werror \
 	-Wshadow -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes
 PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/arithmetic.o \
 	$(BUILD_DIR)/config.o $(BUILD_DIR)/i18n.o $(BUILD_DIR)/token.o \
-	$(BUILD_DIR)/timing.o $(BUILD_DIR)/format.o $(BUILD_DIR)/quantity.o $(BUILD_DIR)/graphics.o \
+	$(BUILD_DIR)/timing.o $(BUILD_DIR)/temporal.o $(BUILD_DIR)/format.o $(BUILD_DIR)/quantity.o $(BUILD_DIR)/graphics.o \
 	$(BUILD_DIR)/escape.o $(BUILD_DIR)/design.o
 OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/dynlib.o $(BUILD_DIR)/posix.o \
 	$(BUILD_DIR)/posix_path.o $(BUILD_DIR)/posix_io.o $(BUILD_DIR)/posix_numeric.o
@@ -47,6 +47,8 @@ $(BUILD_DIR)/token-smoke: tests/token_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
 $(BUILD_DIR)/timing-smoke: tests/timing_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
+$(BUILD_DIR)/temporal-smoke: tests/temporal_smoke.c $(PORTABLE_ARCHIVE)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
 $(BUILD_DIR)/graphics-smoke: tests/graphics_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
 $(BUILD_DIR)/escape-smoke: tests/escape_smoke.c $(PORTABLE_ARCHIVE)
@@ -76,7 +78,7 @@ $(BUILD_DIR)/posix-numeric-contract: tests/posix_numeric_contract.c $(ARCHIVE)
 portable-check: version-check $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-contract \
 	$(BUILD_DIR)/encoding-contract $(BUILD_DIR)/completion-contract \
 	$(BUILD_DIR)/arithmetic-smoke $(BUILD_DIR)/config-smoke $(BUILD_DIR)/i18n-smoke \
-	$(BUILD_DIR)/token-smoke $(BUILD_DIR)/timing-smoke $(BUILD_DIR)/graphics-smoke \
+	$(BUILD_DIR)/token-smoke $(BUILD_DIR)/timing-smoke $(BUILD_DIR)/temporal-smoke $(BUILD_DIR)/graphics-smoke \
 	$(BUILD_DIR)/escape-smoke $(BUILD_DIR)/design-smoke
 	./$(BUILD_DIR)/portable-smoke
 	./$(BUILD_DIR)/portable-contract
@@ -87,6 +89,7 @@ portable-check: version-check $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-
 	./$(BUILD_DIR)/i18n-smoke
 	./$(BUILD_DIR)/token-smoke
 	./$(BUILD_DIR)/timing-smoke
+	./$(BUILD_DIR)/temporal-smoke
 	./$(BUILD_DIR)/graphics-smoke
 	./$(BUILD_DIR)/escape-smoke
 	./$(BUILD_DIR)/design-smoke
