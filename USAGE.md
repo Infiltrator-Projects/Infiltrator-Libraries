@@ -11,7 +11,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Capability | Principal consumers / reason | Status |
 | --- | --- | --- |
 | Project identity, metadata and canonical build-profile labels | System Monitor, Calendar Plus, LINK, InfiltratorFS | ACTIVE |
-| Bounded strings, trimming and deterministic ASCII case matching | System Monitor, Calendar Plus, Defragger, LINK | ACTIVE |
+| Bounded strings, trimming and deterministic ASCII classification/case matching | System Monitor, Calendar Plus, Defragger, LINK | ACTIVE |
 | Strict signed/unsigned whole-value parsing and ranges | System Monitor, Defragger, LINK | ACTIVE |
 | Unsigned cursor token parsing | System Monitor procfs/sysfs parsing | ACTIVE |
 | Signed cursor token parsing | Completes the active cursor-parser family | READY |
