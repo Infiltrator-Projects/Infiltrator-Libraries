@@ -6,6 +6,12 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.17 — 2026-09-20
+
+- Added a generic monotonic unsigned-counter delta contract with unchanged-output rollback semantics and made the existing counter-rate operation consume it.
+- Added errno-style POSIX absolute-deadline construction for caller-selected clocks and upward-rounded remaining-millisecond conversion.
+- Kept pthread wait policy, hardware-counter interpretation and product-specific baseline/reset semantics in consumers while removing their repeated generic arithmetic.
+
 ## 1.19.16 — 2026-09-20
 
 - Expanded temporal policy to a version-2 system authority containing all 21 Calendar clock systems.
