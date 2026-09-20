@@ -22,7 +22,6 @@ extern "C" {
 #endif
 
 #define INFILTRATR_TEMPORAL_POLICY_VERSION 1U
-#define INFILTRATR_TEMPORAL_POLICY_V2_VERSION 2U
 #define INFILTRATR_TEMPORAL_POLICY_V3_VERSION 3U
 #define INFILTRATR_TEMPORAL_ID_CAPACITY 64U
 
@@ -53,22 +52,10 @@ typedef struct InfiltratrTemporalCalendarInfo {
     const char *name;
 } InfiltratrTemporalCalendarInfo;
 
-typedef struct InfiltratrTemporalPolicyV2 {
-    uint32_t struct_size;
-    uint32_t version;
-    char clock_mode[INFILTRATR_TEMPORAL_ID_CAPACITY];
-    char primary_calendar[INFILTRATR_TEMPORAL_ID_CAPACITY];
-    char secondary_calendar[INFILTRATR_TEMPORAL_ID_CAPACITY];
-    bool show_seconds;
-    bool location_configured;
-    double latitude;
-    double longitude;
-} InfiltratrTemporalPolicyV2;
-
 /*
- * Version 3 is the current system-wide authority.  It deliberately has one
- * calendar only: the retired secondary-calendar concept is preserved solely
- * in the v2 compatibility API and is never written by current consumers.
+ * Version 3 is the current system-wide authority. It deliberately has one
+ * calendar only. The retired secondary-calendar concept is not part of the
+ * public API.
  */
 typedef struct InfiltratrTemporalPolicyV3 {
     uint32_t struct_size;
@@ -139,17 +126,6 @@ bool infiltratr_temporal_format_clock(InfiltratrClockProfile profile,
                                       size_t capacity,
                                       size_t *length);
 
-/**
- * Initialise the extensible system-wide temporal policy.
- *
- * The default authority is conventional OS-locale time, Gregorian primary
- * calendar, no secondary calendar, no seconds and no configured location.
- * There is deliberately no "follow system" clock identity in this catalogue:
- * System Settings is the authority. Individual applications may separately
- * offer "Follow System Settings" as an application-local behaviour.
- */
-bool infiltratr_temporal_policy_v2_default(InfiltratrTemporalPolicyV2 *policy);
-
 /** Complete system-wide clock catalogue shared by Settings and Calendar. */
 size_t infiltratr_temporal_clock_mode_count(void);
 const InfiltratrTemporalClockModeInfo *
@@ -157,12 +133,7 @@ infiltratr_temporal_clock_mode_at(size_t index);
 const InfiltratrTemporalClockModeInfo *
 infiltratr_temporal_clock_mode_find(const char *id);
 
-/**
- * Complete calendar-system catalogue.
- *
- * The legacy "none" entry remains at index 0 only for v2 compatibility.
- * Current v3 policy never exposes it as a selectable system calendar.
- */
+/** Complete selectable system-calendar catalogue. */
 size_t infiltratr_temporal_calendar_count(void);
 const InfiltratrTemporalCalendarInfo *
 infiltratr_temporal_calendar_at(size_t index);
@@ -170,26 +141,17 @@ const InfiltratrTemporalCalendarInfo *
 infiltratr_temporal_calendar_find(const char *id);
 
 /**
- * Parse version-2 temporal policy. Version-1 policy documents are accepted and
- * migrated in memory to equivalent v2 clock identities.
+ * Initialise the current system-wide temporal authority.
+ *
+ * The default is Standard time (OS locale), Gregorian calendar, seconds off
+ * and no configured geographic location. System Settings owns this policy;
+ * consumers read it rather than maintaining competing temporal preferences.
  */
-bool infiltratr_temporal_policy_v2_parse(const char *text,
-                                         InfiltratrTemporalPolicyV2 *policy);
-
-/** Serialize the complete temporal authority as deterministic version-2 text. */
-bool infiltratr_temporal_policy_v2_serialize(
-    const InfiltratrTemporalPolicyV2 *policy,
-    char *buffer,
-    size_t capacity,
-    size_t *length);
-
-/** Initialise the current one-calendar system-wide temporal authority. */
 bool infiltratr_temporal_policy_v3_default(InfiltratrTemporalPolicyV3 *policy);
 
 /**
- * Parse current temporal policy. Version-1 and version-2 documents are
- * accepted and migrated in memory. A retired v2 secondary-calendar value is
- * intentionally discarded during migration.
+ * Parse current temporal policy. Older on-disk documents may be migrated
+ * internally, but no older temporal-policy ABI is exposed publicly.
  */
 bool infiltratr_temporal_policy_v3_parse(const char *text,
                                          InfiltratrTemporalPolicyV3 *policy);
