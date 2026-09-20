@@ -6,7 +6,8 @@ This roadmap describes direction rather than a promise of dates. The exact relea
 
 - maintain the published ABI and exact consumer contract;
 - keep shared primitives at least as strong as the best consumer implementation;
-- qualify Linux, Windows and Apple consumers through CI.
+- qualify Linux, Windows and Apple consumers through CI;
+- keep toolkit-neutral POSIX user paths and directory creation in Common rather than duplicating them in graphical consumers.
 
 ## Near-term direction
 
