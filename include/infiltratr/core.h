@@ -250,6 +250,14 @@ uint64_t infiltratr_u64_multiply_saturating(uint64_t left, uint64_t right);
 /** Return `part / whole` as a percentage clamped to 0..100; zero whole maps to 0. */
 double infiltratr_percent_u64(uint64_t part, uint64_t whole);
 /**
+ * Calculate the delta between two samples of a monotonic unsigned counter.
+ *
+ * Counter rollback returns false. Caller output is unchanged on failure so a
+ * domain-specific fallback can be established before calling when required.
+ */
+bool infiltratr_u64_counter_delta(uint64_t current, uint64_t previous,
+                                  uint64_t *delta);
+/**
  * Convert a monotonic unsigned counter delta into a rate.
  * Counter rollback, invalid scale/time or an unrepresentable result returns
  * false and writes 0.0 to a valid `rate` output.
