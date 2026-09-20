@@ -6,6 +6,12 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.14 — 2026-09-20
+
+- Added the portable system-wide temporal presentation policy contract with stable System, 12-hour, 24-hour and decimal-10 clock profiles.
+- Added deterministic versioned policy parsing/serialization so System Settings and consumers can exchange one user-wide temporal preference without changing canonical data.
+- Promoted Calendar's exact rational decimal-day partition semantics into Common and added boundary/extreme-instant regression coverage.
+
 ## 1.19.13 — 2026-09-20
 
 - Added toolkit-neutral current-user HOME, XDG_CONFIG_HOME and XDG_DATA_HOME resolution to the POSIX provider, with specification-correct fallback for relative XDG overrides.
