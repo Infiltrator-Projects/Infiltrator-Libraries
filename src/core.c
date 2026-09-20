@@ -939,19 +939,27 @@ double infiltratr_percent_u64(uint64_t part, uint64_t whole)
     return percentage >= 100.0L ? 100.0 : (double)percentage;
 }
 
+bool infiltratr_u64_counter_delta(uint64_t current, uint64_t previous,
+                                  uint64_t *delta)
+{
+    if (!delta || current < previous) return false;
+    *delta = current - previous;
+    return true;
+}
+
 bool infiltratr_u64_counter_rate(uint64_t current, uint64_t previous,
                                  long double units_per_count,
                                  double elapsed_seconds, double *rate)
 {
     if (!rate) return false;
     *rate = 0.0;
-    if (current < previous || units_per_count < 0.0L ||
-        !isfinite(units_per_count) || elapsed_seconds <= 0.0 ||
-        !isfinite(elapsed_seconds))
+    uint64_t delta = 0U;
+    if (!infiltratr_u64_counter_delta(current, previous, &delta) ||
+        units_per_count < 0.0L || !isfinite(units_per_count) ||
+        elapsed_seconds <= 0.0 || !isfinite(elapsed_seconds))
         return false;
     const long double calculated =
-        (long double)(current - previous) * units_per_count /
-        (long double)elapsed_seconds;
+        (long double)delta * units_per_count / (long double)elapsed_seconds;
     if (!isfinite(calculated) || calculated > (long double)DBL_MAX) return false;
     *rate = (double)calculated;
     return true;
