@@ -49,6 +49,78 @@ static void test_paths(void)
     assert(resolved[0] == '\0');
 }
 
+static void test_user_paths_and_directories(void)
+{
+    const char *old_home_value = getenv("HOME");
+    const char *old_config_value = getenv("XDG_CONFIG_HOME");
+    const char *old_data_value = getenv("XDG_DATA_HOME");
+    char *old_home = old_home_value ? strdup(old_home_value) : NULL;
+    char *old_config = old_config_value ? strdup(old_config_value) : NULL;
+    char *old_data = old_data_value ? strdup(old_data_value) : NULL;
+
+    assert(setenv("HOME", "/tmp/infiltratr-home", 1) == 0);
+    assert(unsetenv("XDG_CONFIG_HOME") == 0);
+    assert(unsetenv("XDG_DATA_HOME") == 0);
+
+    char path[256];
+    assert(infiltratr_posix_home_directory(path, sizeof(path)));
+    assert(strcmp(path, "/tmp/infiltratr-home") == 0);
+    assert(infiltratr_xdg_config_home(path, sizeof(path)));
+    assert(strcmp(path, "/tmp/infiltratr-home/.config") == 0);
+    assert(infiltratr_xdg_data_home(path, sizeof(path)));
+    assert(strcmp(path, "/tmp/infiltratr-home/.local/share") == 0);
+
+    assert(setenv("XDG_CONFIG_HOME", "/tmp/infiltratr-config", 1) == 0);
+    assert(setenv("XDG_DATA_HOME", "/tmp/infiltratr-data", 1) == 0);
+    assert(infiltratr_xdg_config_home(path, sizeof(path)));
+    assert(strcmp(path, "/tmp/infiltratr-config") == 0);
+    assert(infiltratr_xdg_data_home(path, sizeof(path)));
+    assert(strcmp(path, "/tmp/infiltratr-data") == 0);
+
+    assert(setenv("XDG_CONFIG_HOME", "relative-config", 1) == 0);
+    assert(infiltratr_xdg_config_home(path, sizeof(path)));
+    assert(strcmp(path, "/tmp/infiltratr-home/.config") == 0);
+
+    char tiny[2] = "x";
+    assert(!infiltratr_xdg_config_home(tiny, sizeof(tiny)));
+    assert(tiny[0] == '\0');
+
+    char root[] = "infiltratr-mkdir-XXXXXX";
+    assert(mkdtemp(root));
+    char nested[256];
+    assert(snprintf(nested, sizeof(nested), "%s/a/b/c", root) > 0);
+    assert(infiltratr_mkdir_parents(nested, 0700U) == 0);
+    assert(infiltratr_mkdir_parents(nested, 0700U) == 0);
+    struct stat status;
+    assert(stat(nested, &status) == 0 && S_ISDIR(status.st_mode));
+    char child[256];
+    assert(snprintf(child, sizeof(child), "%s/a/b", root) > 0);
+    assert(rmdir(nested) == 0);
+    assert(rmdir(child) == 0);
+    assert(snprintf(child, sizeof(child), "%s/a", root) > 0);
+    assert(rmdir(child) == 0);
+    assert(rmdir(root) == 0);
+
+    if (old_home) {
+        assert(setenv("HOME", old_home, 1) == 0);
+        free(old_home);
+    } else {
+        assert(unsetenv("HOME") == 0);
+    }
+    if (old_config) {
+        assert(setenv("XDG_CONFIG_HOME", old_config, 1) == 0);
+        free(old_config);
+    } else {
+        assert(unsetenv("XDG_CONFIG_HOME") == 0);
+    }
+    if (old_data) {
+        assert(setenv("XDG_DATA_HOME", old_data, 1) == 0);
+        free(old_data);
+    } else {
+        assert(unsetenv("XDG_DATA_HOME") == 0);
+    }
+}
+
 static void test_first_readable_path(void)
 {
     char directory[] = "infiltratr-readable-path-XXXXXX";
@@ -393,6 +465,7 @@ static void test_results_and_clock(void)
 int main(void)
 {
     test_paths();
+    test_user_paths_and_directories();
     test_first_readable_path();
     test_long_first_u64_path();
     test_text_io();
