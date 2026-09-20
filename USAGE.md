@@ -27,6 +27,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Big-endian conversion and byte load/store | Replaces repeated filesystem BE16/BE32 decoding in Defragger; completes endian family | READY |
 | Strict UTF-8 validation | InfiltratorFS | ACTIVE |
 | Exact timing / periodic cadence | Calendar Plus, System Monitor, LINK, Backyard Racer | ACTIVE |
+| System-wide temporal presentation policy and explicit 12h/24h/decimal-10 clock formatting | System Settings and Calendar; future Common-aware applications | ACTIVE |
 | Software surfaces, alpha compositing and nearest/bilinear scaling | Backyard Racer; shared framebuffer foundation | ACTIVE |
 | Generic quantity scaling | Formatting foundation | FOUNDATION |
 | Shared metric/duration formatting, including canonical GHz rendering | System Monitor | ACTIVE |
@@ -82,7 +83,7 @@ The Windows build separates the static-library output from the DLL import librar
 ## Consumer boundaries
 
 - System Monitor: Common owns general C primitives, formatting, timing, dynamic loading and POSIX mechanics, including toolkit-neutral user/XDG path discovery and recursive directory creation; hardware/UI policy remains System Monitor-owned.
-- Calendar Plus: Common owns generic strings/parsing/arithmetic/timing, canonical build-profile labels and dynamic-library binding; chronology, astronomy, ICU version probing and calendar/event semantics remain Calendar-owned.
+- Calendar Plus: Common owns generic strings/parsing/arithmetic/timing, the system-wide temporal presentation policy, explicit conventional/decimal clock formatting, canonical build-profile labels and dynamic-library binding; specialised historical/astronomical clocks, chronology, ICU version probing and calendar/event semantics remain Calendar-owned.
 - Defragger: Common owns general arithmetic, byte order, exact I/O and generic durable file publication/removal; filesystem safety, on-disk validation, recovery record contents and relocation transactions remain Defragger-owned.
 - InfiltratorFS: Common owns endian/UTF-8/checked arithmetic/exact POSIX I/O; allocation, CoW, checkpoints, recovery and filesystem semantics remain InfiltratorFS-owned.
 - LINK: Common owns portable primitives/localisation engine/timing; OBD/UDS/ISO-TP and vehicle-diagnostic policy remain LINK-owned.
