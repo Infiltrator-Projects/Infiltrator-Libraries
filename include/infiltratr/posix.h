@@ -63,6 +63,42 @@ bool infiltratr_path_concat(char *destination, size_t size,
 bool infiltratr_path_join(char *destination, size_t size,
                           const char *left, const char *right);
 
+/**
+ * Resolve the current POSIX user's home directory.
+ *
+ * A non-empty HOME environment value is authoritative. When HOME is unset or
+ * empty, the implementation falls back to the passwd database for the real
+ * user ID. Valid output storage is cleared on failure.
+ */
+bool infiltratr_posix_home_directory(char *destination, size_t size);
+
+/**
+ * Resolve XDG_CONFIG_HOME according to the XDG base-directory contract.
+ *
+ * An absolute non-empty XDG_CONFIG_HOME is used directly. Relative or missing
+ * values fall back to `$HOME/.config`. Valid output storage is cleared on
+ * failure.
+ */
+bool infiltratr_xdg_config_home(char *destination, size_t size);
+
+/**
+ * Resolve XDG_DATA_HOME according to the XDG base-directory contract.
+ *
+ * An absolute non-empty XDG_DATA_HOME is used directly. Relative or missing
+ * values fall back to `$HOME/.local/share`. Valid output storage is cleared on
+ * failure.
+ */
+bool infiltratr_xdg_data_home(char *destination, size_t size);
+
+/**
+ * Create a POSIX directory path recursively.
+ *
+ * Existing directory components are accepted. The supplied permission bits are
+ * passed to mkdir for newly created components and remain subject to umask.
+ * Returns zero on success or an errno-style failure code.
+ */
+int infiltratr_mkdir_parents(const char *path, unsigned int mode);
+
 bool infiltratr_first_readable_path(const char *base,
                                     const char *const *suffixes,
                                     size_t suffix_count,
