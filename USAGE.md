@@ -49,6 +49,7 @@ Common owns generic file/path/clock mechanics used by Linux applications:
 
 - detailed bounded and dynamically allocated complete text readers plus u64/i64/double readers;
 - readable-path selection;
+- current-user home and XDG config/data-home resolution plus recursive directory creation;
 - durable atomic replacement and durable namespace removal;
 - monotonic nanosecond/second clocks;
 - exact EINTR-safe sequential descriptor reads/writes;
@@ -80,7 +81,7 @@ The Windows build separates the static-library output from the DLL import librar
 
 ## Consumer boundaries
 
-- System Monitor: Common owns general C primitives, formatting, timing, dynamic loading and POSIX mechanics; hardware/UI policy remains System Monitor-owned.
+- System Monitor: Common owns general C primitives, formatting, timing, dynamic loading and POSIX mechanics, including toolkit-neutral user/XDG path discovery and recursive directory creation; hardware/UI policy remains System Monitor-owned.
 - Calendar Plus: Common owns generic strings/parsing/arithmetic/timing, canonical build-profile labels and dynamic-library binding; chronology, astronomy, ICU version probing and calendar/event semantics remain Calendar-owned.
 - Defragger: Common owns general arithmetic, byte order, exact I/O and generic durable file publication/removal; filesystem safety, on-disk validation, recovery record contents and relocation transactions remain Defragger-owned.
 - InfiltratorFS: Common owns endian/UTF-8/checked arithmetic/exact POSIX I/O; allocation, CoW, checkpoints, recovery and filesystem semantics remain InfiltratorFS-owned.
