@@ -49,7 +49,9 @@ contracts proven by System Monitor. Consumers can resolve the current home
 directory, XDG configuration/data homes and recursively create directory trees
 without importing toolkit helpers into non-UI code. The XDG helpers reject
 relative overrides and follow the base-directory specification's HOME
-fallbacks.
+fallbacks. The same consumer pass completes Common's deterministic public ASCII
+family with classification and case-insensitive substring matching so kernel,
+protocol and identifier grammars do not fall back to locale/toolkit helpers.
 
 ## Common 1.19.12
 
