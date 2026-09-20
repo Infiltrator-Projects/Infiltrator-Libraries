@@ -24,6 +24,25 @@ int main(void)
     assert(strcmp(infiltratr_path_basename("/"), "") == 0);
     assert(strcmp(infiltratr_path_basename(""), "") == 0);
     assert(strcmp(infiltratr_path_basename(NULL), "") == 0);
+
+    char parent[32];
+    assert(infiltratr_path_dirname("/alpha/beta", parent, sizeof(parent)));
+    assert(strcmp(parent, "/alpha") == 0);
+    assert(infiltratr_path_dirname("alpha/beta/", parent, sizeof(parent)));
+    assert(strcmp(parent, "alpha") == 0);
+    assert(infiltratr_path_dirname("alpha//beta", parent, sizeof(parent)));
+    assert(strcmp(parent, "alpha") == 0);
+    assert(infiltratr_path_dirname("/alpha", parent, sizeof(parent)));
+    assert(strcmp(parent, "/") == 0);
+    assert(infiltratr_path_dirname("alpha", parent, sizeof(parent)));
+    assert(strcmp(parent, ".") == 0);
+    assert(infiltratr_path_dirname("", parent, sizeof(parent)));
+    assert(strcmp(parent, ".") == 0);
+    assert(!infiltratr_path_dirname(NULL, parent, sizeof(parent)));
+    assert(parent[0] == '\0');
+    char tiny[2] = {'x', '\0'};
+    assert(!infiltratr_path_dirname("/alpha/beta", tiny, sizeof(tiny)));
+    assert(tiny[0] == '\0');
     puts("Infiltratr Common POSIX path tests passed.");
     return 0;
 }
