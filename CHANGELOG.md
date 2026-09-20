@@ -6,6 +6,14 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.16 — 2026-09-20
+
+- Expanded temporal policy to a version-2 system authority containing all 21 Calendar clock systems.
+- Added the complete shared calendar-system catalogue: 30 primary calendars plus None for the optional secondary date.
+- Added primary calendar, secondary calendar, seconds and optional geographic latitude/longitude to the persisted temporal policy.
+- Removed the conceptual global "Follow system" choice: the authority uses Standard time (OS locale), while applications may separately offer Follow System Settings.
+- Added automatic in-memory migration of version-1 system/12h/24h/decimal policy documents to v2.
+
 ## 1.19.15 — 2026-09-20
 
 - Completed the deterministic ASCII family with locale-independent case-insensitive lexical ordering, allowing consumers to remove residual `strcasecmp` sorting.
