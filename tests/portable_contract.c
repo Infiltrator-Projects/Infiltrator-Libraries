@@ -31,7 +31,7 @@ static InfiltratrProjectInfo valid_project_info(void)
         .license_id = "GPL-3.0-or-later",
         .comments = "Portable public API contract regression suite",
         .icon_name = "contract-test",
-        .copyright_text = "Copyright (c) 2000-2026 Shannon Smith"
+        .copyright_text = "Copyright (c) 1993-2026 Shannon Smith"
     };
     return info;
 }
