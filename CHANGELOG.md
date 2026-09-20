@@ -4,7 +4,8 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 ## Unreleased
 
-No unreleased changes.
+- Promote deterministic ASCII case conversion/comparison for protocol and hardware identifiers.
+- Add bounded POSIX lexical dirname beside the existing basename contract.
 
 ## 1.19.11 — 2026-09-20
 
