@@ -138,6 +138,44 @@ bool infiltratr_string_ends_with(const char *text, const char *suffix)
            strcmp(text + text_length - suffix_length, suffix) == 0;
 }
 
+unsigned char infiltratr_ascii_to_lower(unsigned char value)
+{
+    return infiltratr_ascii_lower(value);
+}
+
+unsigned char infiltratr_ascii_to_upper(unsigned char value)
+{
+    return infiltratr_ascii_upper(value);
+}
+
+bool infiltratr_ascii_equal_ci(const char *left, const char *right)
+{
+    if (left == right) return true;
+    if (!left || !right) return false;
+    while (*left && *right) {
+        if (infiltratr_ascii_lower((unsigned char)*left) !=
+            infiltratr_ascii_lower((unsigned char)*right))
+            return false;
+        left++;
+        right++;
+    }
+    return *left == '\0' && *right == '\0';
+}
+
+bool infiltratr_ascii_starts_with_ci(const char *text, const char *prefix)
+{
+    if (!text || !prefix) return false;
+    while (*prefix) {
+        if (!*text ||
+            infiltratr_ascii_lower((unsigned char)*text) !=
+            infiltratr_ascii_lower((unsigned char)*prefix))
+            return false;
+        text++;
+        prefix++;
+    }
+    return true;
+}
+
 bool infiltratr_parse_u64(const char *text, unsigned int base,
                           uint64_t *value)
 {
