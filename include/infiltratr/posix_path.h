@@ -14,6 +14,9 @@
 #ifndef INFILTRATR_COMMON_POSIX_PATH_H
 #define INFILTRATR_COMMON_POSIX_PATH_H
 
+#include <stdbool.h>
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,6 +29,17 @@ extern "C" {
  * matches the simple `strrchr(path, '/') + 1` semantics used by consumers.
  */
 const char *infiltratr_path_basename(const char *path);
+
+/**
+ * Copy the lexical parent directory of a POSIX path into caller storage.
+ *
+ * Trailing separators are ignored. A path with no separator yields "." and a
+ * path directly below the root yields "/". Repeated separators immediately
+ * before the final component are collapsed in the returned parent. NULL input,
+ * missing output storage or truncation returns false; valid output storage is
+ * cleared on failure.
+ */
+bool infiltratr_path_dirname(const char *path, char *buffer, size_t size);
 
 #ifdef __cplusplus
 }
