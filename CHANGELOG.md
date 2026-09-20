@@ -6,6 +6,14 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.18 — 2026-09-20
+
+- Removed the retired public temporal-policy v2 ABI instead of carrying compatibility baggage.
+- Made temporal policy v3 the sole current cross-application authority.
+- Removed the secondary-calendar entry and the non-calendar `none` choice from the shared calendar catalogue.
+- Retained only a private one-time parser for already-written v2 `presentation.conf` data; the old primary calendar migrates to the single v3 calendar and the retired secondary value is discarded.
+- Added regression coverage proving v3 serialisation cannot emit secondary-calendar state and the shared calendar catalogue contains only the 30 real calendar systems.
+
 ## 1.19.17 — 2026-09-20
 
 - Added a generic monotonic unsigned-counter delta contract with unchanged-output rollback semantics and made the existing counter-rate operation consume it.
