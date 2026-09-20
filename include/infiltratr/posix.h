@@ -229,7 +229,7 @@ double infiltratr_monotonic_seconds(void);
  * @return zero on success, otherwise an errno-style error such as EINVAL,
  *         EOVERFLOW or the error reported by clock_gettime().
  */
-int infiltratr_posix_deadline_after_milliseconds(clockid_t clock_id,
+int infiltratr_posix_deadline_after_milliseconds(int clock_id,
                                                   uint64_t milliseconds,
                                                   struct timespec *deadline);
 
@@ -245,7 +245,7 @@ int infiltratr_posix_deadline_after_milliseconds(clockid_t clock_id,
  *         EOVERFLOW or the error reported by clock_gettime().
  */
 int infiltratr_posix_deadline_remaining_milliseconds(
-    clockid_t clock_id, const struct timespec *deadline,
+    int clock_id, const struct timespec *deadline,
     uint64_t *milliseconds);
 
 #ifdef __cplusplus
