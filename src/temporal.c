@@ -7,6 +7,8 @@
 
 #include "infiltratr/arithmetic.h"
 #include "infiltratr/config.h"
+#include "infiltratr/core.h"
+#include "infiltratr/format.h"
 #include "infiltratr/timing.h"
 
 #include <stdio.h>
@@ -28,6 +30,64 @@ static const ClockProfileEntry clock_profiles[] = {
     { INFILTRATR_CLOCK_PROFILE_CONVENTIONAL_12, "conventional-12", "12-hour time" },
     { INFILTRATR_CLOCK_PROFILE_CONVENTIONAL_24, "conventional-24", "24-hour time" },
     { INFILTRATR_CLOCK_PROFILE_DECIMAL_10, "decimal-10", "Decimal time (10-hour day)" }
+};
+
+static const InfiltratrTemporalClockModeInfo temporal_clock_modes[] = {
+    { "standard", "Standard time (OS locale)", true, false, false },
+    { "standard-24", "Standard time (24-hour)", true, false, false },
+    { "standard-12", "Standard time (12-hour)", true, false, false },
+    { "internet", "Internet Time (@000 to @999)", true, false, false },
+    { "unix", "Unix time (epoch seconds)", false, false, false },
+    { "binary", "Binary clock", true, false, false },
+    { "hexadecimal", "Hexadecimal time (0000 to FFFF)", false, false, false },
+    { "julian", "Astronomical Julian Date (JD)", true, false, false },
+    { "modified-julian", "Modified Julian Date (MJD)", true, false, false },
+    { "sidereal", "Local sidereal time", true, false, true },
+    { "solar", "Apparent solar time", true, false, true },
+    { "mean-solar", "Local mean solar time", true, false, true },
+    { "decimal", "French Republican decimal time (10-hour day)", true, false, false },
+    { "chinese-time", "Traditional Chinese double-hours", false, false, false },
+    { "chinese-ke", "Chinese hundred-kè time", false, false, false },
+    { "roman-temporal", "Roman temporal time", false, true, true },
+    { "japanese-temporal", "Edo Japanese seasonal time", false, true, true },
+    { "italian-hours", "Italian hours (from sunset)", true, true, true },
+    { "babylonian-hours", "Babylonian hours (from sunrise)", true, true, true },
+    { "indian-ghati", "Indian ghaṭī time (from sunrise)", false, true, true },
+    { "nuremberg-hours", "Nuremberg hours (sunrise/sunset reset)", true, true, true }
+};
+
+static const InfiltratrTemporalCalendarInfo temporal_calendars[] = {
+    { "none", "None" },
+    { "gregorian", "Gregorian" },
+    { "iso-week", "ISO week calendar" },
+    { "julian", "Julian" },
+    { "revised-julian", "Revised Julian" },
+    { "hebrew", "Hebrew" },
+    { "islamic-umalqura", "Islamic (Umm al-Qura)" },
+    { "islamic-civil", "Islamic (civil/tabular)" },
+    { "islamic-tbla", "Islamic (tabular, astronomical epoch)" },
+    { "islamic", "Islamic (astronomical approximation)" },
+    { "persian", "Persian (Solar Hijri)" },
+    { "bahai", "Bahá’í (Badíʿ)" },
+    { "buddhist", "Buddhist" },
+    { "coptic", "Coptic" },
+    { "ethiopian", "Ethiopian" },
+    { "ethiopic-amete-alem", "Ethiopic (Amete Alem)" },
+    { "chinese", "Chinese traditional" },
+    { "dangi", "Dangi (traditional Korean)" },
+    { "indian", "Indian National (Saka)" },
+    { "japanese", "Japanese imperial era" },
+    { "minguo", "Minguo (Republic of China)" },
+    { "roman", "Roman" },
+    { "byzantine", "Byzantine (Anno Mundi)" },
+    { "egyptian-nabonassar", "Egyptian civil (Nabonassar era)" },
+    { "armenian-traditional", "Armenian traditional (365-day)" },
+    { "mayan", "Mayan Long Count" },
+    { "french-republican", "French Republican" },
+    { "swedish-historical", "Swedish historical (1700–1753)" },
+    { "international-fixed", "International Fixed" },
+    { "world", "World Calendar" },
+    { "positivist", "Positivist" }
 };
 
 static bool profile_valid(InfiltratrClockProfile profile)
@@ -296,6 +356,314 @@ bool infiltratr_temporal_format_clock(InfiltratrClockProfile profile,
         capacity <= (size_t)written) {
         return false;
     }
+    memcpy(buffer, temporary, (size_t)written + 1U);
+    if (length != NULL) {
+        *length = (size_t)written;
+    }
+    return true;
+}
+
+
+static bool copy_temporal_id(char destination[INFILTRATR_TEMPORAL_ID_CAPACITY],
+                             const char *source)
+{
+    size_t length;
+    if (destination == NULL || source == NULL) {
+        return false;
+    }
+    length = strlen(source);
+    if (length == 0U || length >= INFILTRATR_TEMPORAL_ID_CAPACITY) {
+        return false;
+    }
+    memcpy(destination, source, length + 1U);
+    return true;
+}
+
+bool infiltratr_temporal_policy_v2_default(InfiltratrTemporalPolicyV2 *policy)
+{
+    if (policy == NULL) {
+        return false;
+    }
+    memset(policy, 0, sizeof(*policy));
+    policy->struct_size = (uint32_t)sizeof(*policy);
+    policy->version = INFILTRATR_TEMPORAL_POLICY_V2_VERSION;
+    return copy_temporal_id(policy->clock_mode, "standard") &&
+           copy_temporal_id(policy->primary_calendar, "gregorian") &&
+           copy_temporal_id(policy->secondary_calendar, "none");
+}
+
+size_t infiltratr_temporal_clock_mode_count(void)
+{
+    return sizeof(temporal_clock_modes) / sizeof(temporal_clock_modes[0]);
+}
+
+const InfiltratrTemporalClockModeInfo *
+infiltratr_temporal_clock_mode_at(size_t index)
+{
+    return index < infiltratr_temporal_clock_mode_count()
+        ? &temporal_clock_modes[index] : NULL;
+}
+
+const InfiltratrTemporalClockModeInfo *
+infiltratr_temporal_clock_mode_find(const char *id)
+{
+    size_t index;
+    if (id == NULL) {
+        return NULL;
+    }
+    for (index = 0U; index < infiltratr_temporal_clock_mode_count(); ++index) {
+        if (strcmp(id, temporal_clock_modes[index].id) == 0) {
+            return &temporal_clock_modes[index];
+        }
+    }
+    return NULL;
+}
+
+size_t infiltratr_temporal_calendar_count(void)
+{
+    return sizeof(temporal_calendars) / sizeof(temporal_calendars[0]);
+}
+
+const InfiltratrTemporalCalendarInfo *
+infiltratr_temporal_calendar_at(size_t index)
+{
+    return index < infiltratr_temporal_calendar_count()
+        ? &temporal_calendars[index] : NULL;
+}
+
+const InfiltratrTemporalCalendarInfo *
+infiltratr_temporal_calendar_find(const char *id)
+{
+    size_t index;
+    if (id == NULL) {
+        return NULL;
+    }
+    for (index = 0U; index < infiltratr_temporal_calendar_count(); ++index) {
+        if (strcmp(id, temporal_calendars[index].id) == 0) {
+            return &temporal_calendars[index];
+        }
+    }
+    return NULL;
+}
+
+static bool temporal_document_version(const char *text, unsigned int *version)
+{
+    const char *cursor;
+    if (text == NULL || version == NULL) {
+        return false;
+    }
+    cursor = text;
+    while (*cursor != '\0') {
+        const char *newline = strchr(cursor, '\n');
+        size_t length = newline != NULL ? (size_t)(newline - cursor)
+                                        : strlen(cursor);
+        char line[256];
+        char *key = NULL;
+        char *value = NULL;
+        InfiltratrConfigLineStatus status;
+        uint64_t parsed = 0U;
+
+        if (length >= sizeof(line)) {
+            return false;
+        }
+        memcpy(line, cursor, length);
+        line[length] = '\0';
+        status = infiltratr_config_parse_line(line, &key, &value);
+        if (status == INFILTRATR_CONFIG_LINE_INVALID) {
+            return false;
+        }
+        if (status == INFILTRATR_CONFIG_LINE_ENTRY &&
+            strcmp(key, "version") == 0) {
+            if (!infiltratr_parse_u64_range(value, 10U, 1U, UINT32_MAX,
+                                            &parsed)) {
+                return false;
+            }
+            *version = (unsigned int)parsed;
+            return true;
+        }
+        if (newline == NULL) {
+            break;
+        }
+        cursor = newline + 1;
+    }
+    return false;
+}
+
+static bool migrate_v1_policy(const char *text,
+                              InfiltratrTemporalPolicyV2 *policy)
+{
+    InfiltratrTemporalPolicy legacy;
+    const char *mode = "standard";
+
+    if (!infiltratr_temporal_policy_parse(text, &legacy) ||
+        !infiltratr_temporal_policy_v2_default(policy)) {
+        return false;
+    }
+
+    switch (legacy.clock_profile) {
+    case INFILTRATR_CLOCK_PROFILE_CONVENTIONAL_12:
+        mode = "standard-12";
+        break;
+    case INFILTRATR_CLOCK_PROFILE_CONVENTIONAL_24:
+        mode = "standard-24";
+        break;
+    case INFILTRATR_CLOCK_PROFILE_DECIMAL_10:
+        mode = "decimal";
+        break;
+    case INFILTRATR_CLOCK_PROFILE_SYSTEM:
+    default:
+        mode = "standard";
+        break;
+    }
+
+    policy->show_seconds = legacy.show_seconds;
+    return copy_temporal_id(policy->clock_mode, mode);
+}
+
+bool infiltratr_temporal_policy_v2_parse(const char *text,
+                                         InfiltratrTemporalPolicyV2 *policy)
+{
+    InfiltratrTemporalPolicyV2 parsed;
+    const char *cursor;
+    unsigned int version = 0U;
+
+    if (text == NULL || policy == NULL ||
+        !temporal_document_version(text, &version)) {
+        return false;
+    }
+    if (version == 1U) {
+        return migrate_v1_policy(text, policy);
+    }
+    if (version != INFILTRATR_TEMPORAL_POLICY_V2_VERSION ||
+        !infiltratr_temporal_policy_v2_default(&parsed)) {
+        return false;
+    }
+
+    cursor = text;
+    while (*cursor != '\0') {
+        const char *newline = strchr(cursor, '\n');
+        size_t length = newline != NULL ? (size_t)(newline - cursor)
+                                        : strlen(cursor);
+        char line[256];
+        char *key = NULL;
+        char *value = NULL;
+        InfiltratrConfigLineStatus status;
+
+        if (length >= sizeof(line)) {
+            return false;
+        }
+        memcpy(line, cursor, length);
+        line[length] = '\0';
+        status = infiltratr_config_parse_line(line, &key, &value);
+        if (status == INFILTRATR_CONFIG_LINE_INVALID) {
+            return false;
+        }
+        if (status == INFILTRATR_CONFIG_LINE_ENTRY) {
+            if (strcmp(key, "version") == 0) {
+                if (strcmp(value, "2") != 0) {
+                    return false;
+                }
+            } else if (strcmp(key, "clock-mode") == 0) {
+                if (infiltratr_temporal_clock_mode_find(value) == NULL ||
+                    !copy_temporal_id(parsed.clock_mode, value)) {
+                    return false;
+                }
+            } else if (strcmp(key, "primary-calendar") == 0) {
+                if (strcmp(value, "none") == 0 ||
+                    infiltratr_temporal_calendar_find(value) == NULL ||
+                    !copy_temporal_id(parsed.primary_calendar, value)) {
+                    return false;
+                }
+            } else if (strcmp(key, "secondary-calendar") == 0) {
+                if (infiltratr_temporal_calendar_find(value) == NULL ||
+                    !copy_temporal_id(parsed.secondary_calendar, value)) {
+                    return false;
+                }
+            } else if (strcmp(key, "show-seconds") == 0) {
+                if (!infiltratr_config_parse_bool(value,
+                                                  &parsed.show_seconds)) {
+                    return false;
+                }
+            } else if (strcmp(key, "location-configured") == 0) {
+                if (!infiltratr_config_parse_bool(value,
+                                                  &parsed.location_configured)) {
+                    return false;
+                }
+            } else if (strcmp(key, "latitude") == 0) {
+                if (!infiltratr_parse_double_range(value, -90.0, 90.0,
+                                                   &parsed.latitude)) {
+                    return false;
+                }
+            } else if (strcmp(key, "longitude") == 0) {
+                if (!infiltratr_parse_double_range(value, -180.0, 180.0,
+                                                   &parsed.longitude)) {
+                    return false;
+                }
+            }
+        }
+        if (newline == NULL) {
+            break;
+        }
+        cursor = newline + 1;
+    }
+
+    if (infiltratr_temporal_clock_mode_find(parsed.clock_mode) == NULL ||
+        infiltratr_temporal_calendar_find(parsed.primary_calendar) == NULL ||
+        strcmp(parsed.primary_calendar, "none") == 0 ||
+        infiltratr_temporal_calendar_find(parsed.secondary_calendar) == NULL) {
+        return false;
+    }
+
+    *policy = parsed;
+    return true;
+}
+
+bool infiltratr_temporal_policy_v2_serialize(
+    const InfiltratrTemporalPolicyV2 *policy,
+    char *buffer,
+    size_t capacity,
+    size_t *length)
+{
+    char latitude[64];
+    char longitude[64];
+    char temporary[512];
+    int written;
+
+    if (policy == NULL || buffer == NULL ||
+        policy->struct_size < sizeof(*policy) ||
+        policy->version != INFILTRATR_TEMPORAL_POLICY_V2_VERSION ||
+        infiltratr_temporal_clock_mode_find(policy->clock_mode) == NULL ||
+        infiltratr_temporal_calendar_find(policy->primary_calendar) == NULL ||
+        strcmp(policy->primary_calendar, "none") == 0 ||
+        infiltratr_temporal_calendar_find(policy->secondary_calendar) == NULL ||
+        !infiltratr_format_fixed_ascii(policy->latitude, 6U,
+                                       latitude, sizeof(latitude)) ||
+        !infiltratr_format_fixed_ascii(policy->longitude, 6U,
+                                       longitude, sizeof(longitude))) {
+        return false;
+    }
+
+    written = snprintf(temporary, sizeof(temporary),
+                       "version=2\n"
+                       "clock-mode=%s\n"
+                       "primary-calendar=%s\n"
+                       "secondary-calendar=%s\n"
+                       "show-seconds=%s\n"
+                       "location-configured=%s\n"
+                       "latitude=%s\n"
+                       "longitude=%s\n",
+                       policy->clock_mode,
+                       policy->primary_calendar,
+                       policy->secondary_calendar,
+                       policy->show_seconds ? "true" : "false",
+                       policy->location_configured ? "true" : "false",
+                       latitude,
+                       longitude);
+    if (written < 0 || (size_t)written >= sizeof(temporary) ||
+        capacity <= (size_t)written) {
+        return false;
+    }
+
     memcpy(buffer, temporary, (size_t)written + 1U);
     if (length != NULL) {
         *length = (size_t)written;
