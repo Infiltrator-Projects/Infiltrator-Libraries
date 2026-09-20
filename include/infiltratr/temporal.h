@@ -23,6 +23,7 @@ extern "C" {
 
 #define INFILTRATR_TEMPORAL_POLICY_VERSION 1U
 #define INFILTRATR_TEMPORAL_POLICY_V2_VERSION 2U
+#define INFILTRATR_TEMPORAL_POLICY_V3_VERSION 3U
 #define INFILTRATR_TEMPORAL_ID_CAPACITY 64U
 
 typedef enum InfiltratrClockProfile {
@@ -63,6 +64,22 @@ typedef struct InfiltratrTemporalPolicyV2 {
     double latitude;
     double longitude;
 } InfiltratrTemporalPolicyV2;
+
+/*
+ * Version 3 is the current system-wide authority.  It deliberately has one
+ * calendar only: the retired secondary-calendar concept is preserved solely
+ * in the v2 compatibility API and is never written by current consumers.
+ */
+typedef struct InfiltratrTemporalPolicyV3 {
+    uint32_t struct_size;
+    uint32_t version;
+    char clock_mode[INFILTRATR_TEMPORAL_ID_CAPACITY];
+    char calendar[INFILTRATR_TEMPORAL_ID_CAPACITY];
+    bool show_seconds;
+    bool location_configured;
+    double latitude;
+    double longitude;
+} InfiltratrTemporalPolicyV3;
 
 /** Initialise a policy to conservative system-following defaults. */
 bool infiltratr_temporal_policy_default(InfiltratrTemporalPolicy *policy);
@@ -140,7 +157,12 @@ infiltratr_temporal_clock_mode_at(size_t index);
 const InfiltratrTemporalClockModeInfo *
 infiltratr_temporal_clock_mode_find(const char *id);
 
-/** Complete calendar-system catalogue. Index 0 is "none" for secondary use. */
+/**
+ * Complete calendar-system catalogue.
+ *
+ * The legacy "none" entry remains at index 0 only for v2 compatibility.
+ * Current v3 policy never exposes it as a selectable system calendar.
+ */
 size_t infiltratr_temporal_calendar_count(void);
 const InfiltratrTemporalCalendarInfo *
 infiltratr_temporal_calendar_at(size_t index);
@@ -157,6 +179,24 @@ bool infiltratr_temporal_policy_v2_parse(const char *text,
 /** Serialize the complete temporal authority as deterministic version-2 text. */
 bool infiltratr_temporal_policy_v2_serialize(
     const InfiltratrTemporalPolicyV2 *policy,
+    char *buffer,
+    size_t capacity,
+    size_t *length);
+
+/** Initialise the current one-calendar system-wide temporal authority. */
+bool infiltratr_temporal_policy_v3_default(InfiltratrTemporalPolicyV3 *policy);
+
+/**
+ * Parse current temporal policy. Version-1 and version-2 documents are
+ * accepted and migrated in memory. A retired v2 secondary-calendar value is
+ * intentionally discarded during migration.
+ */
+bool infiltratr_temporal_policy_v3_parse(const char *text,
+                                         InfiltratrTemporalPolicyV3 *policy);
+
+/** Serialize the current authority as deterministic version-3 text. */
+bool infiltratr_temporal_policy_v3_serialize(
+    const InfiltratrTemporalPolicyV3 *policy,
     char *buffer,
     size_t capacity,
     size_t *length);
