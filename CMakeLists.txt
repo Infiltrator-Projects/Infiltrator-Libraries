@@ -18,7 +18,7 @@ option(INFILTRATR_COMMON_BUILD_SHARED "Build the versioned shared Common library
 
 set(INFILTRATR_COMMON_PORTABLE_SOURCES
     src/core.c src/arithmetic.c src/config.c src/i18n.c
-    src/token.c src/timing.c src/format.c src/quantity.c src/graphics.c src/escape.c src/design.c)
+    src/token.c src/timing.c src/temporal.c src/format.c src/quantity.c src/graphics.c src/escape.c src/design.c)
 set(INFILTRATR_COMMON_WARNING_FLAGS
     -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes)
 
@@ -101,6 +101,7 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
     infiltratr_common_add_test(infiltratr-i18n-smoke tests/i18n_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-token-smoke tests/token_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-timing-smoke tests/timing_smoke.c InfiltratrCommon::Portable)
+    infiltratr_common_add_test(infiltratr-temporal-smoke tests/temporal_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-graphics-smoke tests/graphics_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-escape-smoke tests/escape_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-design-smoke tests/design_smoke.c InfiltratrCommon::Portable)
