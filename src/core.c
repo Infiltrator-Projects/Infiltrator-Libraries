@@ -138,6 +138,31 @@ bool infiltratr_string_ends_with(const char *text, const char *suffix)
            strcmp(text + text_length - suffix_length, suffix) == 0;
 }
 
+bool infiltratr_ascii_is_space(unsigned char value)
+{
+    return infiltratr_ascii_space(value);
+}
+
+bool infiltratr_ascii_is_alpha(unsigned char value)
+{
+    return infiltratr_ascii_alpha(value);
+}
+
+bool infiltratr_ascii_is_digit(unsigned char value)
+{
+    return infiltratr_ascii_digit(value);
+}
+
+bool infiltratr_ascii_is_alnum(unsigned char value)
+{
+    return infiltratr_ascii_alnum(value);
+}
+
+bool infiltratr_ascii_is_xdigit(unsigned char value)
+{
+    return infiltratr_ascii_xdigit(value);
+}
+
 unsigned char infiltratr_ascii_to_lower(unsigned char value)
 {
     return infiltratr_ascii_lower(value);
@@ -174,6 +199,16 @@ bool infiltratr_ascii_starts_with_ci(const char *text, const char *prefix)
         prefix++;
     }
     return true;
+}
+
+bool infiltratr_ascii_contains_ci(const char *text, const char *needle)
+{
+    if (!text || !needle) return false;
+    if (!*needle) return true;
+    for (const char *start = text; *start; start++)
+        if (infiltratr_ascii_starts_with_ci(start, needle))
+            return true;
+    return false;
 }
 
 bool infiltratr_parse_u64(const char *text, unsigned int base,
