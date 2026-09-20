@@ -27,6 +27,13 @@ static inline bool infiltratr_ascii_alnum(unsigned char value)
     return infiltratr_ascii_alpha(value) || infiltratr_ascii_digit(value);
 }
 
+static inline bool infiltratr_ascii_xdigit(unsigned char value)
+{
+    return infiltratr_ascii_digit(value) ||
+           (value >= 'A' && value <= 'F') ||
+           (value >= 'a' && value <= 'f');
+}
+
 static inline unsigned char infiltratr_ascii_lower(unsigned char value)
 {
     return value >= 'A' && value <= 'Z'
