@@ -8,7 +8,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.11  
+**Current library version:** 1.19.12  
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
