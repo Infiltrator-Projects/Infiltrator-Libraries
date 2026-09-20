@@ -19,6 +19,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -216,6 +217,36 @@ int infiltratr_unlink_durable(const char *path, bool missing_ok);
 bool infiltratr_monotonic_nanoseconds(uint64_t *nanoseconds);
 
 double infiltratr_monotonic_seconds(void);
+
+/**
+ * Create an absolute POSIX-clock deadline a whole number of milliseconds
+ * after the current value of `clock_id`.
+ *
+ * The clock sample must use a normalized, non-negative `struct timespec`.
+ * Zero milliseconds is valid and produces an immediate deadline. The caller's
+ * output is unchanged on failure.
+ *
+ * @return zero on success, otherwise an errno-style error such as EINVAL,
+ *         EOVERFLOW or the error reported by clock_gettime().
+ */
+int infiltratr_posix_deadline_after_milliseconds(clockid_t clock_id,
+                                                  uint64_t milliseconds,
+                                                  struct timespec *deadline);
+
+/**
+ * Return the upward-rounded whole milliseconds remaining until an absolute
+ * POSIX-clock deadline.
+ *
+ * A reached or expired deadline returns zero milliseconds. Both the supplied
+ * deadline and the sampled clock value must be normalized and non-negative.
+ * The caller's output is unchanged on failure.
+ *
+ * @return zero on success, otherwise an errno-style error such as EINVAL,
+ *         EOVERFLOW or the error reported by clock_gettime().
+ */
+int infiltratr_posix_deadline_remaining_milliseconds(
+    clockid_t clock_id, const struct timespec *deadline,
+    uint64_t *milliseconds);
 
 #ifdef __cplusplus
 }
