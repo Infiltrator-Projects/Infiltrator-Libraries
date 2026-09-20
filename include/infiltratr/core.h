@@ -33,7 +33,7 @@
 extern "C" {
 #endif
 
-#define INFILTRATR_COMMON_VERSION "1.19.14"
+#define INFILTRATR_COMMON_VERSION "1.19.15"
 #define INFILTRATR_PROJECT_INFO_ABI 1U
 #define INFILTRATR_SCALE_OPTIONS_ABI 1U
 #define INFILTRATR_ARRAY_LENGTH(array) (sizeof(array) / sizeof((array)[0]))
@@ -164,8 +164,38 @@ unsigned char infiltratr_ascii_to_upper(unsigned char value);
 bool infiltratr_ascii_equal_ci(const char *left, const char *right);
 /** Return true when text begins with prefix using ASCII-only case folding. */
 bool infiltratr_ascii_starts_with_ci(const char *text, const char *prefix);
+/**
+ * Lexically compare complete NUL-terminated strings using deterministic
+ * ASCII-only case folding. The result is negative, zero or positive using
+ * unsigned-byte ordering after folding A-Z to a-z. Two NULL pointers compare
+ * equal; NULL sorts before non-NULL text.
+ */
+int infiltratr_ascii_compare_ci(const char *left, const char *right);
 /** Return true when needle occurs in text using ASCII-only case folding. */
 bool infiltratr_ascii_contains_ci(const char *text, const char *needle);
+
+/** Standard 64-bit FNV-1a offset basis for a new stable hash stream. */
+#define INFILTRATR_FNV1A64_OFFSET_BASIS UINT64_C(14695981039346656037)
+
+/**
+ * Mix one byte into a 64-bit FNV-1a stream.
+ *
+ * This is a stable, non-cryptographic identity/signature hash. It must not be
+ * used for authentication, adversarial collision resistance or secrets.
+ */
+uint64_t infiltratr_fnv1a64_mix_byte(uint64_t hash, unsigned char value);
+/**
+ * Mix one NUL-terminated byte string into a 64-bit FNV-1a stream.
+ *
+ * The terminating NUL is not included. NULL is treated as an empty string.
+ */
+uint64_t infiltratr_fnv1a64_mix_text(uint64_t hash, const char *text);
+/**
+ * Mix one uint64 value in explicit little-endian byte order into FNV-1a.
+ *
+ * Explicit byte order makes the result stable across host architectures.
+ */
+uint64_t infiltratr_fnv1a64_mix_u64_le(uint64_t hash, uint64_t value);
 
 /**
  * Parse a complete unsigned integer in base 0 or 2..36.

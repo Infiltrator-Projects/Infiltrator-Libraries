@@ -6,6 +6,12 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.15 — 2026-09-20
+
+- Completed the deterministic ASCII family with locale-independent case-insensitive lexical ordering, allowing consumers to remove residual `strcasecmp` sorting.
+- Added stable non-cryptographic 64-bit FNV-1a byte, text and explicit little-endian uint64 mixing for consumer runtime identities/change signatures.
+- Kept signature composition and domain identity policy in consumers; Common owns only the portable hash mechanics.
+
 ## 1.19.14 — 2026-09-20
 
 - Added the portable system-wide temporal presentation policy contract with stable System, 12-hour, 24-hour and decimal-10 clock profiles.

@@ -187,6 +187,25 @@ bool infiltratr_ascii_equal_ci(const char *left, const char *right)
     return *left == '\0' && *right == '\0';
 }
 
+int infiltratr_ascii_compare_ci(const char *left, const char *right)
+{
+    if (left == right) return 0;
+    if (!left) return -1;
+    if (!right) return 1;
+    while (*left && *right) {
+        const unsigned char folded_left =
+            infiltratr_ascii_lower((unsigned char)*left);
+        const unsigned char folded_right =
+            infiltratr_ascii_lower((unsigned char)*right);
+        if (folded_left != folded_right)
+            return folded_left < folded_right ? -1 : 1;
+        left++;
+        right++;
+    }
+    if (*left == *right) return 0;
+    return *left == '\0' ? -1 : 1;
+}
+
 bool infiltratr_ascii_starts_with_ci(const char *text, const char *prefix)
 {
     if (!text || !prefix) return false;
@@ -209,6 +228,29 @@ bool infiltratr_ascii_contains_ci(const char *text, const char *needle)
         if (infiltratr_ascii_starts_with_ci(start, needle))
             return true;
     return false;
+}
+
+uint64_t infiltratr_fnv1a64_mix_byte(uint64_t hash, unsigned char value)
+{
+    hash ^= (uint64_t)value;
+    return hash * UINT64_C(1099511628211);
+}
+
+uint64_t infiltratr_fnv1a64_mix_text(uint64_t hash, const char *text)
+{
+    const unsigned char *cursor =
+        (const unsigned char *)(text ? text : "");
+    while (*cursor)
+        hash = infiltratr_fnv1a64_mix_byte(hash, *cursor++);
+    return hash;
+}
+
+uint64_t infiltratr_fnv1a64_mix_u64_le(uint64_t hash, uint64_t value)
+{
+    for (unsigned int shift = 0U; shift < 64U; shift += 8U)
+        hash = infiltratr_fnv1a64_mix_byte(
+            hash, (unsigned char)((value >> shift) & UINT64_C(0xff)));
+    return hash;
 }
 
 bool infiltratr_parse_u64(const char *text, unsigned int base,

@@ -11,7 +11,8 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Capability | Principal consumers / reason | Status |
 | --- | --- | --- |
 | Project identity, metadata and canonical build-profile labels | System Monitor, Calendar Plus, LINK, InfiltratorFS | ACTIVE |
-| Bounded strings, trimming and deterministic ASCII classification/case matching | System Monitor, Calendar Plus, Defragger, LINK | ACTIVE |
+| Bounded strings, trimming and deterministic ASCII classification/case matching/ordering | System Monitor, Calendar Plus, Defragger, LINK | ACTIVE |
+| Stable non-cryptographic FNV-1a identity/signature mixing | System Monitor runtime identities/change signatures; reusable byte-stream hashing | ACTIVE |
 | Strict signed/unsigned whole-value parsing and ranges | System Monitor, Defragger, LINK | ACTIVE |
 | Unsigned cursor token parsing | System Monitor procfs/sysfs parsing | ACTIVE |
 | Signed cursor token parsing | Completes the active cursor-parser family | READY |
@@ -82,7 +83,7 @@ The Windows build separates the static-library output from the DLL import librar
 
 ## Consumer boundaries
 
-- System Monitor: Common owns general C primitives, formatting, timing, dynamic loading and POSIX mechanics, including toolkit-neutral user/XDG path discovery and recursive directory creation; hardware/UI policy remains System Monitor-owned.
+- System Monitor: Common owns general C primitives, deterministic ASCII matching/ordering, stable non-cryptographic hash mixing, formatting, timing, dynamic loading and POSIX mechanics, including toolkit-neutral user/XDG path discovery and recursive directory creation; process/group signature composition and hardware/UI policy remain System Monitor-owned.
 - Calendar Plus: Common owns generic strings/parsing/arithmetic/timing, the system-wide temporal presentation policy, explicit conventional/decimal clock formatting, canonical build-profile labels and dynamic-library binding; specialised historical/astronomical clocks, chronology, ICU version probing and calendar/event semantics remain Calendar-owned.
 - Defragger: Common owns general arithmetic, byte order, exact I/O and generic durable file publication/removal; filesystem safety, on-disk validation, recovery record contents and relocation transactions remain Defragger-owned.
 - InfiltratorFS: Common owns endian/UTF-8/checked arithmetic/exact POSIX I/O; allocation, CoW, checkpoints, recovery and filesystem semantics remain InfiltratorFS-owned.

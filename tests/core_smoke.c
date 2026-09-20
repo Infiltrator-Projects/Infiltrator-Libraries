@@ -60,6 +60,12 @@ int main(void)
     assert(!infiltratr_ascii_equal_ci("NVIDIA", "nvidia0"));
     assert(infiltratr_ascii_equal_ci(NULL, NULL));
     assert(!infiltratr_ascii_equal_ci(NULL, "x"));
+    assert(infiltratr_ascii_compare_ci("Alpha", "alpha") == 0);
+    assert(infiltratr_ascii_compare_ci("alpha", "Bravo") < 0);
+    assert(infiltratr_ascii_compare_ci("Zulu", "beta") > 0);
+    assert(infiltratr_ascii_compare_ci(NULL, NULL) == 0);
+    assert(infiltratr_ascii_compare_ci(NULL, "x") < 0);
+    assert(infiltratr_ascii_compare_ci("x", NULL) > 0);
     assert(infiltratr_ascii_starts_with_ci("FAT32", "fat"));
     assert(!infiltratr_ascii_starts_with_ci("ext4", "fat"));
     assert(infiltratr_ascii_contains_ci("Mint-Y-Dark", "dark"));
@@ -67,6 +73,20 @@ int main(void)
     assert(infiltratr_ascii_contains_ci("anything", ""));
     assert(!infiltratr_ascii_contains_ci("Mint-Y", "dark"));
     assert(!infiltratr_ascii_contains_ci(NULL, "dark"));
+
+    uint64_t stable_hash = INFILTRATR_FNV1A64_OFFSET_BASIS;
+    stable_hash = infiltratr_fnv1a64_mix_text(stable_hash, "hello");
+    assert(stable_hash == UINT64_C(0xa430d84680aabd0b));
+    assert(infiltratr_fnv1a64_mix_text(stable_hash, NULL) == stable_hash);
+    uint64_t word_hash = INFILTRATR_FNV1A64_OFFSET_BASIS;
+    word_hash = infiltratr_fnv1a64_mix_u64_le(
+        word_hash, UINT64_C(0x0807060504030201));
+    uint64_t byte_hash = INFILTRATR_FNV1A64_OFFSET_BASIS;
+    for (unsigned int byte = 1U; byte <= 8U; byte++)
+        byte_hash = infiltratr_fnv1a64_mix_byte(
+            byte_hash, (unsigned char)byte);
+    assert(word_hash == byte_hash);
+
     assert(strcmp(infiltratr_build_profile_label("native"),
                   "Native / local machine compile") == 0);
     assert(strcmp(infiltratr_build_profile_label("generic"),
