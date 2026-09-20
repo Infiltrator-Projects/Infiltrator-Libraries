@@ -225,6 +225,13 @@ static void test_arithmetic(void)
     assert(infiltratr_u64_multiply_saturating(UINT64_MAX, 2U) == UINT64_MAX);
     assert(infiltratr_percent_u64(0U, 0U) == 0.0);
     assert(infiltratr_percent_u64(200U, 100U) == 100.0);
+    uint64_t delta = 77U;
+    assert(infiltratr_u64_counter_delta(12U, 10U, &delta));
+    assert(delta == 2U);
+    delta = 77U;
+    assert(!infiltratr_u64_counter_delta(9U, 10U, &delta));
+    assert(delta == 77U);
+    assert(!infiltratr_u64_counter_delta(10U, 9U, NULL));
     double rate = 77.0;
     assert(!infiltratr_u64_counter_rate(9U, 10U, 1.0L, 1.0, &rate));
     assert(rate == 0.0);
