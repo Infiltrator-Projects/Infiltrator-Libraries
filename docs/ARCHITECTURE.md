@@ -9,7 +9,7 @@ Common is the canonical first-party shared library for portable mechanics, algor
 The repository is intentionally layered:
 
 - Portable core — dependency-light C interfaces for algorithms and data contracts that are meaningful across operating systems.
-- Platform adapters — POSIX, dynamic-library and other host-facing code that translates platform mechanisms into stable Common contracts.
+- Platform adapters — POSIX, dynamic-library and other host-facing code that translates platform mechanisms into stable Common contracts, including user/XDG path discovery and recursive directory creation where products would otherwise depend on toolkit helpers.
 - Shared design/localisation — product-neutral visual tokens and localisation mechanics consumed by native and web-facing projects.
 - Build and package surfaces — Make, CMake and installed-package metadata that let consumers use one reviewed implementation rather than private copies.
 - Regression and consumer tests — contract tests that protect behaviour at the point where multiple projects now depend on it.
