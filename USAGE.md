@@ -28,7 +28,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Big-endian conversion and byte load/store | Replaces repeated filesystem BE16/BE32 decoding in Defragger; completes endian family | READY |
 | Strict UTF-8 validation | InfiltratorFS | ACTIVE |
 | Exact timing / periodic cadence | Calendar Plus, System Monitor, LINK, Backyard Racer | ACTIVE |
-| System-wide temporal presentation policy and explicit 12h/24h/decimal-10 clock formatting | System Settings and Calendar; future Common-aware applications | ACTIVE |
+| System-wide temporal presentation authority, full clock/calendar catalogues, location policy and explicit 12h/24h/decimal-10 formatting | System Settings and Calendar; future Common-aware applications | ACTIVE |
 | Software surfaces, alpha compositing and nearest/bilinear scaling | Backyard Racer; shared framebuffer foundation | ACTIVE |
 | Generic quantity scaling | Formatting foundation | FOUNDATION |
 | Shared metric/duration formatting, including canonical GHz rendering | System Monitor | ACTIVE |
