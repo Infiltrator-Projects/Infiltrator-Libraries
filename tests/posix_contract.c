@@ -460,6 +460,34 @@ static void test_results_and_clock(void)
     assert(infiltratr_monotonic_nanoseconds(&nanoseconds));
     assert(nanoseconds > 0U);
     assert(infiltratr_monotonic_seconds() > 0.0);
+
+    assert(infiltratr_posix_deadline_after_milliseconds(
+               CLOCK_MONOTONIC, 1U, NULL) == EINVAL);
+
+    struct timespec deadline = {0};
+    assert(infiltratr_posix_deadline_after_milliseconds(
+               CLOCK_MONOTONIC, 1000U, &deadline) == 0);
+    uint64_t remaining = UINT64_MAX;
+    assert(infiltratr_posix_deadline_remaining_milliseconds(
+               CLOCK_MONOTONIC, &deadline, &remaining) == 0);
+    assert(remaining > 0U && remaining <= 1000U);
+
+    struct timespec immediate = {0};
+    assert(infiltratr_posix_deadline_after_milliseconds(
+               CLOCK_MONOTONIC, 0U, &immediate) == 0);
+    remaining = UINT64_MAX;
+    assert(infiltratr_posix_deadline_remaining_milliseconds(
+               CLOCK_MONOTONIC, &immediate, &remaining) == 0);
+    assert(remaining == 0U);
+
+    const struct timespec malformed = {
+        .tv_sec = 0,
+        .tv_nsec = 1000000000L
+    };
+    remaining = 77U;
+    assert(infiltratr_posix_deadline_remaining_milliseconds(
+               CLOCK_MONOTONIC, &malformed, &remaining) == EINVAL);
+    assert(remaining == 77U);
 }
 
 int main(void)
