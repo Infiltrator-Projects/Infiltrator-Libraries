@@ -143,6 +143,16 @@ bool infiltratr_string_starts_with(const char *text, const char *prefix);
 /** Return true when `text` ends with `suffix`; NULL input is false. */
 bool infiltratr_string_ends_with(const char *text, const char *suffix);
 
+/** Return true only for the six ASCII whitespace bytes. */
+bool infiltratr_ascii_is_space(unsigned char value);
+/** Return true only for ASCII A-Z or a-z. */
+bool infiltratr_ascii_is_alpha(unsigned char value);
+/** Return true only for ASCII 0-9. */
+bool infiltratr_ascii_is_digit(unsigned char value);
+/** Return true only for ASCII letters or decimal digits. */
+bool infiltratr_ascii_is_alnum(unsigned char value);
+/** Return true only for ASCII hexadecimal digits 0-9/A-F/a-f. */
+bool infiltratr_ascii_is_xdigit(unsigned char value);
 /** Convert one ASCII byte to lowercase; all non-A-Z bytes are unchanged. */
 unsigned char infiltratr_ascii_to_lower(unsigned char value);
 /** Convert one ASCII byte to uppercase; all non-a-z bytes are unchanged. */
@@ -154,6 +164,8 @@ unsigned char infiltratr_ascii_to_upper(unsigned char value);
 bool infiltratr_ascii_equal_ci(const char *left, const char *right);
 /** Return true when text begins with prefix using ASCII-only case folding. */
 bool infiltratr_ascii_starts_with_ci(const char *text, const char *prefix);
+/** Return true when needle occurs in text using ASCII-only case folding. */
+bool infiltratr_ascii_contains_ci(const char *text, const char *needle);
 
 /**
  * Parse a complete unsigned integer in base 0 or 2..36.
