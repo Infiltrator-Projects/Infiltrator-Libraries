@@ -10,7 +10,8 @@ No unreleased changes.
 
 - Added toolkit-neutral current-user HOME, XDG_CONFIG_HOME and XDG_DATA_HOME resolution to the POSIX provider, with specification-correct fallback for relative XDG overrides.
 - Added recursive POSIX directory creation with errno-style failure reporting, replacing graphical-toolkit filesystem helpers in consumers without moving application policy into Common.
-- Extended POSIX contract tests to cover environment overrides, XDG fallback behaviour, truncation and recursive directory creation.
+- Completed the public deterministic ASCII family with whitespace/alpha/digit/alnum/hex classification and case-insensitive substring matching, replacing locale/toolkit helpers in kernel, protocol and identifier grammars.
+- Extended POSIX and core contract tests to cover environment overrides, XDG fallback behaviour, truncation, recursive directory creation and the complete ASCII contracts.
 
 ## 1.19.12 — 2026-09-20
 
