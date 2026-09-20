@@ -670,3 +670,184 @@ bool infiltratr_temporal_policy_v2_serialize(
     }
     return true;
 }
+
+
+bool infiltratr_temporal_policy_v3_default(InfiltratrTemporalPolicyV3 *policy)
+{
+    if (policy == NULL) {
+        return false;
+    }
+    memset(policy, 0, sizeof(*policy));
+    policy->struct_size = (uint32_t)sizeof(*policy);
+    policy->version = INFILTRATR_TEMPORAL_POLICY_V3_VERSION;
+    return copy_temporal_id(policy->clock_mode, "standard") &&
+           copy_temporal_id(policy->calendar, "gregorian");
+}
+
+static bool temporal_policy_v3_from_v2(
+    const InfiltratrTemporalPolicyV2 *legacy,
+    InfiltratrTemporalPolicyV3 *policy)
+{
+    if (legacy == NULL || policy == NULL ||
+        !infiltratr_temporal_policy_v3_default(policy) ||
+        !copy_temporal_id(policy->clock_mode, legacy->clock_mode) ||
+        !copy_temporal_id(policy->calendar, legacy->primary_calendar)) {
+        return false;
+    }
+    policy->show_seconds = legacy->show_seconds;
+    policy->location_configured = legacy->location_configured;
+    policy->latitude = legacy->latitude;
+    policy->longitude = legacy->longitude;
+    return true;
+}
+
+bool infiltratr_temporal_policy_v3_parse(const char *text,
+                                         InfiltratrTemporalPolicyV3 *policy)
+{
+    InfiltratrTemporalPolicyV3 parsed;
+    const char *cursor;
+    unsigned int version = 0U;
+
+    if (text == NULL || policy == NULL ||
+        !temporal_document_version(text, &version)) {
+        return false;
+    }
+
+    if (version == INFILTRATR_TEMPORAL_POLICY_VERSION ||
+        version == INFILTRATR_TEMPORAL_POLICY_V2_VERSION) {
+        InfiltratrTemporalPolicyV2 legacy;
+        if (!infiltratr_temporal_policy_v2_parse(text, &legacy)) {
+            return false;
+        }
+        return temporal_policy_v3_from_v2(&legacy, policy);
+    }
+
+    if (version != INFILTRATR_TEMPORAL_POLICY_V3_VERSION ||
+        !infiltratr_temporal_policy_v3_default(&parsed)) {
+        return false;
+    }
+
+    cursor = text;
+    while (*cursor != '\0') {
+        const char *newline = strchr(cursor, '\n');
+        size_t line_length = newline != NULL
+            ? (size_t)(newline - cursor) : strlen(cursor);
+        char line[256];
+        char *key = NULL;
+        char *value = NULL;
+        InfiltratrConfigLineStatus status;
+
+        if (line_length >= sizeof(line)) {
+            return false;
+        }
+        memcpy(line, cursor, line_length);
+        line[line_length] = '\0';
+        status = infiltratr_config_parse_line(line, &key, &value);
+        if (status == INFILTRATR_CONFIG_LINE_INVALID) {
+            return false;
+        }
+
+        if (status == INFILTRATR_CONFIG_LINE_ENTRY) {
+            if (strcmp(key, "version") == 0) {
+                if (strcmp(value, "3") != 0) {
+                    return false;
+                }
+            } else if (strcmp(key, "clock-mode") == 0) {
+                if (infiltratr_temporal_clock_mode_find(value) == NULL ||
+                    !copy_temporal_id(parsed.clock_mode, value)) {
+                    return false;
+                }
+            } else if (strcmp(key, "calendar") == 0) {
+                if (strcmp(value, "none") == 0 ||
+                    infiltratr_temporal_calendar_find(value) == NULL ||
+                    !copy_temporal_id(parsed.calendar, value)) {
+                    return false;
+                }
+            } else if (strcmp(key, "show-seconds") == 0) {
+                if (!infiltratr_config_parse_bool(value,
+                                                  &parsed.show_seconds)) {
+                    return false;
+                }
+            } else if (strcmp(key, "location-configured") == 0) {
+                if (!infiltratr_config_parse_bool(
+                        value, &parsed.location_configured)) {
+                    return false;
+                }
+            } else if (strcmp(key, "latitude") == 0) {
+                if (!infiltratr_parse_double_range(
+                        value, -90.0, 90.0, &parsed.latitude)) {
+                    return false;
+                }
+            } else if (strcmp(key, "longitude") == 0) {
+                if (!infiltratr_parse_double_range(
+                        value, -180.0, 180.0, &parsed.longitude)) {
+                    return false;
+                }
+            }
+        }
+
+        if (newline == NULL) {
+            break;
+        }
+        cursor = newline + 1;
+    }
+
+    if (infiltratr_temporal_clock_mode_find(parsed.clock_mode) == NULL ||
+        infiltratr_temporal_calendar_find(parsed.calendar) == NULL ||
+        strcmp(parsed.calendar, "none") == 0) {
+        return false;
+    }
+
+    *policy = parsed;
+    return true;
+}
+
+bool infiltratr_temporal_policy_v3_serialize(
+    const InfiltratrTemporalPolicyV3 *policy,
+    char *buffer,
+    size_t capacity,
+    size_t *length)
+{
+    char latitude[64];
+    char longitude[64];
+    char temporary[512];
+    int written;
+
+    if (policy == NULL || buffer == NULL ||
+        policy->struct_size < sizeof(*policy) ||
+        policy->version != INFILTRATR_TEMPORAL_POLICY_V3_VERSION ||
+        infiltratr_temporal_clock_mode_find(policy->clock_mode) == NULL ||
+        infiltratr_temporal_calendar_find(policy->calendar) == NULL ||
+        strcmp(policy->calendar, "none") == 0 ||
+        !infiltratr_format_fixed_ascii(policy->latitude, 6U,
+                                       latitude, sizeof(latitude)) ||
+        !infiltratr_format_fixed_ascii(policy->longitude, 6U,
+                                       longitude, sizeof(longitude))) {
+        return false;
+    }
+
+    written = snprintf(temporary, sizeof(temporary),
+                       "version=3\n"
+                       "clock-mode=%s\n"
+                       "calendar=%s\n"
+                       "show-seconds=%s\n"
+                       "location-configured=%s\n"
+                       "latitude=%s\n"
+                       "longitude=%s\n",
+                       policy->clock_mode,
+                       policy->calendar,
+                       policy->show_seconds ? "true" : "false",
+                       policy->location_configured ? "true" : "false",
+                       latitude,
+                       longitude);
+    if (written < 0 || (size_t)written >= sizeof(temporary) ||
+        capacity <= (size_t)written) {
+        return false;
+    }
+
+    memcpy(buffer, temporary, (size_t)written + 1U);
+    if (length != NULL) {
+        *length = (size_t)written;
+    }
+    return true;
+}
