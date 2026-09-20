@@ -42,6 +42,15 @@ Common owns portable mechanics and algorithms that have real use across the proj
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
 
+## Common 1.19.12
+
+1.19.12 continues the bidirectional consumer pass by promoting deterministic
+ASCII case conversion/comparison that Common already used internally and by
+completing the POSIX lexical-path pair with a bounded dirname operation.
+System Monitor can therefore use one shared contract for hardware/protocol
+identifiers and parent-directory extraction instead of POSIX locale helpers or
+GTK allocation helpers.
+
 ## Common 1.19.11
 
 1.19.11 completes two consumer-proven Common contracts found during the
