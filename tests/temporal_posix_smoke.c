@@ -23,6 +23,11 @@ int main(void)
     char expected[4096];
     char actual[4096];
     char marker[4096];
+    char provider_path[4096];
+    const char *old_provider_value =
+        getenv("INFILTRATR_TEMPORAL_PROVIDER_MARKER_PATH");
+    char *old_provider =
+        old_provider_value != NULL ? strdup(old_provider_value) : NULL;
     InfiltratrTemporalPolicyV3 policy;
     InfiltratrTemporalPolicyV3 loaded;
     bool found = true;
@@ -40,9 +45,33 @@ int main(void)
                     root) > 0);
     CHECK(strcmp(actual, expected) == 0);
 
+    CHECK(snprintf(provider_path, sizeof(provider_path),
+                   "%s/temporal-v3", root) > 0);
+    CHECK(setenv("INFILTRATR_TEMPORAL_PROVIDER_MARKER_PATH",
+                 provider_path, 1) == 0);
     CHECK(infiltratr_temporal_posix_provider_marker_path(
         marker, sizeof(marker)));
-    CHECK(strcmp(marker, INFILTRATR_TEMPORAL_PROVIDER_MARKER) == 0);
+    CHECK(strcmp(marker, provider_path) == 0);
+    CHECK(!infiltratr_temporal_posix_provider_available());
+
+    {
+        FILE *provider = fopen(provider_path, "wb");
+        CHECK(provider != NULL);
+        CHECK(fputs("provider=wrong\npolicy-version=3\n"
+                    "contract=infiltratr-temporal-v3\n", provider) >= 0);
+        CHECK(fclose(provider) == 0);
+    }
+    CHECK(!infiltratr_temporal_posix_provider_available());
+
+    {
+        FILE *provider = fopen(provider_path, "wb");
+        CHECK(provider != NULL);
+        CHECK(fputs("provider=infiltrator-system-settings\n"
+                    "policy-version=3\n"
+                    "contract=infiltratr-temporal-v3\n", provider) >= 0);
+        CHECK(fclose(provider) == 0);
+    }
+    CHECK(infiltratr_temporal_posix_provider_available());
 
     CHECK(infiltratr_temporal_posix_policy_load(&loaded, &found) ==
            INFILTRATR_IO_OK);
@@ -71,6 +100,14 @@ int main(void)
     CHECK(loaded.longitude == 145.36);
 
     CHECK(unlink(expected) == 0);
+    CHECK(unlink(provider_path) == 0);
+    if (old_provider != NULL) {
+        CHECK(setenv("INFILTRATR_TEMPORAL_PROVIDER_MARKER_PATH",
+                     old_provider, 1) == 0);
+        free(old_provider);
+    } else {
+        CHECK(unsetenv("INFILTRATR_TEMPORAL_PROVIDER_MARKER_PATH") == 0);
+    }
     {
         char directory[4096];
         CHECK(snprintf(directory, sizeof(directory), "%s/infiltrator", root) > 0);
