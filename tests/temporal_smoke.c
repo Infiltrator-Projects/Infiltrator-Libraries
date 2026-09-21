@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "infiltratr/temporal.h"
 
-#include <stdint.h>
+#include <math.h>\n#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,6 +81,18 @@ static void test_policy_v3(void)
     CHECK(parsed.location_configured);
     CHECK(parsed.latitude == -36.39);
     CHECK(parsed.longitude == 145.36);
+
+    policy.latitude = 90.000001;
+    CHECK(!infiltratr_temporal_policy_v3_serialize(
+        &policy, text, sizeof(text), &length));
+    policy.latitude = -36.39;
+    policy.longitude = 180.000001;
+    CHECK(!infiltratr_temporal_policy_v3_serialize(
+        &policy, text, sizeof(text), &length));
+    policy.longitude = NAN;
+    CHECK(!infiltratr_temporal_policy_v3_serialize(
+        &policy, text, sizeof(text), &length));
+    policy.longitude = 145.36;
 
     CHECK(infiltratr_temporal_policy_v3_parse(
         "version=2\n"
