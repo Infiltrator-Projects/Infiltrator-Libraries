@@ -6,6 +6,14 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.20 — 2026-09-21
+
+- Validate the temporal provider marker's provider identity, policy version and contract instead of treating any readable file at the marker path as authority.
+- Permit an explicit absolute provider-marker path for staged/custom-prefix installs and deterministic qualification.
+- Reject non-finite and out-of-range latitude/longitude before serialising temporal policy, keeping save/load validation symmetric.
+- Add allocation-backed XDG configuration-path resolution and remove the temporal persistence layer's private 4096-byte path ceiling.
+- Extend POSIX and temporal contract tests for long XDG paths, provider marker contents and coordinate bounds.
+
 ## 1.19.19 — 2026-09-21
 
 - Added the shared POSIX temporal-policy persistence adapter so Linux consumers no longer duplicate the XDG `presentation.conf` path, parsing, validation, directory creation or atomic write mechanics.
