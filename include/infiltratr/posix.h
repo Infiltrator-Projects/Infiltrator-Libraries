@@ -83,6 +83,15 @@ bool infiltratr_posix_home_directory(char *destination, size_t size);
 bool infiltratr_xdg_config_home(char *destination, size_t size);
 
 /**
+ * Resolve XDG_CONFIG_HOME into newly allocated storage.
+ *
+ * This variant has no project-imposed path-length ceiling. On success,
+ * *destination owns a NUL-terminated path that the caller releases with
+ * free(). On failure *destination is NULL.
+ */
+bool infiltratr_xdg_config_home_alloc(char **destination);
+
+/**
  * Resolve XDG_DATA_HOME according to the XDG base-directory contract.
  *
  * An absolute non-empty XDG_DATA_HOME is used directly. Relative or missing
