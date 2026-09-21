@@ -121,14 +121,11 @@ static bool copy_path_value(const char *value,
     return true;
 }
 
-bool infiltratr_posix_home_directory(char *destination, size_t size)
+static char *posix_home_directory_alloc_internal(void)
 {
-    if (!destination || size == 0U) return false;
-    destination[0] = '\0';
-
     const char *environment_home = getenv("HOME");
     if (environment_home && environment_home[0])
-        return copy_path_value(environment_home, destination, size);
+        return strdup(environment_home);
 
     long suggested = sysconf(_SC_GETPW_R_SIZE_MAX);
     size_t capacity = suggested > 0 ? (size_t)suggested : 16384U;
@@ -141,7 +138,7 @@ bool infiltratr_posix_home_directory(char *destination, size_t size)
         char *grown = realloc(storage, capacity);
         if (!grown) {
             free(storage);
-            return false;
+            return NULL;
         }
         storage = grown;
         const int failure =
@@ -149,15 +146,73 @@ bool infiltratr_posix_home_directory(char *destination, size_t size)
         if (failure == 0) break;
         if (failure != ERANGE || capacity > SIZE_MAX / 2U) {
             free(storage);
-            return false;
+            return NULL;
         }
         capacity *= 2U;
     }
 
-    const bool okay = result && result->pw_dir && result->pw_dir[0] &&
-                      copy_path_value(result->pw_dir, destination, size);
+    char *home = NULL;
+    if (result && result->pw_dir && result->pw_dir[0])
+        home = strdup(result->pw_dir);
     free(storage);
+    return home;
+}
+
+bool infiltratr_posix_home_directory(char *destination, size_t size)
+{
+    if (!destination || size == 0U) return false;
+    destination[0] = '\0';
+
+    char *home = posix_home_directory_alloc_internal();
+    if (!home) return false;
+    const bool okay = copy_path_value(home, destination, size);
+    free(home);
     return okay;
+}
+
+static char *path_join_alloc_internal(const char *left, const char *right)
+{
+    if (!left || !right) return NULL;
+
+    const size_t left_length = strlen(left);
+    const char *right_start = right;
+    while (*right_start == '/' && left_length > 0U) right_start++;
+    const size_t right_length = strlen(right_start);
+    const bool needs_separator =
+        left_length > 0U && left[left_length - 1U] != '/';
+    size_t size = 0U;
+    size_t length = 0U;
+
+    if (!infiltratr_size_add_checked(left_length, right_length, &length) ||
+        (needs_separator &&
+         !infiltratr_size_add_checked(length, 1U, &length)) ||
+        !infiltratr_size_add_checked(length, 1U, &size)) {
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+
+    char *joined = malloc(size);
+    if (!joined) return NULL;
+    if (!infiltratr_path_join(joined, size, left, right_start)) {
+        free(joined);
+        errno = ENAMETOOLONG;
+        return NULL;
+    }
+    return joined;
+}
+
+static char *xdg_home_alloc(const char *environment_name,
+                            const char *fallback_suffix)
+{
+    const char *configured = getenv(environment_name);
+    if (configured && configured[0] == '/')
+        return strdup(configured);
+
+    char *home = posix_home_directory_alloc_internal();
+    if (!home) return NULL;
+    char *resolved = path_join_alloc_internal(home, fallback_suffix);
+    free(home);
+    return resolved;
 }
 
 static bool xdg_home(const char *environment_name, const char *fallback_suffix,
@@ -166,18 +221,23 @@ static bool xdg_home(const char *environment_name, const char *fallback_suffix,
     if (!destination || size == 0U) return false;
     destination[0] = '\0';
 
-    const char *configured = getenv(environment_name);
-    if (configured && configured[0] == '/')
-        return copy_path_value(configured, destination, size);
-
-    char home[4096];
-    if (!infiltratr_posix_home_directory(home, sizeof(home))) return false;
-    return infiltratr_path_join(destination, size, home, fallback_suffix);
+    char *resolved = xdg_home_alloc(environment_name, fallback_suffix);
+    if (!resolved) return false;
+    const bool okay = copy_path_value(resolved, destination, size);
+    free(resolved);
+    return okay;
 }
 
 bool infiltratr_xdg_config_home(char *destination, size_t size)
 {
     return xdg_home("XDG_CONFIG_HOME", ".config", destination, size);
+}
+
+bool infiltratr_xdg_config_home_alloc(char **destination)
+{
+    if (!destination) return false;
+    *destination = xdg_home_alloc("XDG_CONFIG_HOME", ".config");
+    return *destination != NULL;
 }
 
 bool infiltratr_xdg_data_home(char *destination, size_t size)
