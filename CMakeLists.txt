@@ -44,7 +44,7 @@ infiltratr_common_configure_target(infiltratr-common-portable Portable)
 set(INFILTRATR_COMMON_FULL_SOURCES ${INFILTRATR_COMMON_PORTABLE_SOURCES} src/dynlib.c)
 if(UNIX)
     list(APPEND INFILTRATR_COMMON_FULL_SOURCES
-        src/posix.c src/posix_path.c src/posix_io.c src/posix_numeric.c)
+        src/posix.c src/posix_path.c src/posix_io.c src/posix_numeric.c src/temporal_posix.c)
 endif()
 
 add_library(infiltratr-common STATIC ${INFILTRATR_COMMON_FULL_SOURCES})
@@ -120,6 +120,7 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
         infiltratr_common_add_test(infiltratr-posix-path-smoke tests/posix_path_smoke.c InfiltratrCommon::Common)
         infiltratr_common_add_test(infiltratr-posix-io-contract tests/posix_io_contract.c InfiltratrCommon::Common)
         infiltratr_common_add_test(infiltratr-posix-numeric-contract tests/posix_numeric_contract.c InfiltratrCommon::Common)
+        infiltratr_common_add_test(infiltratr-temporal-posix-smoke tests/temporal_posix_smoke.c InfiltratrCommon::Common)
     endif()
 endif()
 
