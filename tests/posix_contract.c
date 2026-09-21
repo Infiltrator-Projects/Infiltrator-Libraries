@@ -77,6 +77,25 @@ static void test_user_paths_and_directories(void)
     assert(infiltratr_xdg_data_home(path, sizeof(path)));
     assert(strcmp(path, "/tmp/infiltratr-data") == 0);
 
+    char *allocated_config = NULL;
+    assert(infiltratr_xdg_config_home_alloc(&allocated_config));
+    assert(allocated_config != NULL);
+    assert(strcmp(allocated_config, "/tmp/infiltratr-config") == 0);
+    free(allocated_config);
+
+    char *long_config = malloc(5002U);
+    assert(long_config != NULL);
+    long_config[0] = '/';
+    memset(long_config + 1U, 'x', 5000U);
+    long_config[5001U] = '\0';
+    assert(setenv("XDG_CONFIG_HOME", long_config, 1) == 0);
+    allocated_config = NULL;
+    assert(infiltratr_xdg_config_home_alloc(&allocated_config));
+    assert(allocated_config != NULL);
+    assert(strcmp(allocated_config, long_config) == 0);
+    free(allocated_config);
+    free(long_config);
+
     assert(setenv("XDG_CONFIG_HOME", "relative-config", 1) == 0);
     assert(infiltratr_xdg_config_home(path, sizeof(path)));
     assert(strcmp(path, "/tmp/infiltratr-home/.config") == 0);
