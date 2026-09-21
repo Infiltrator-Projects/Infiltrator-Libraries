@@ -42,6 +42,10 @@ Common owns portable mechanics and algorithms that have real use across the proj
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
 
+## Common 1.19.19
+
+1.19.19 centralises the Linux/POSIX persistence side of temporal policy. Common now owns the canonical XDG `presentation.conf` path, validated load/atomic save helpers and the installed `temporal-v3` provider capability marker used by consumers to decide whether System Settings is authoritative. Platform-specific fallback policy remains with the consuming desktop adapter.
+
 ## Common 1.19.18
 
 1.19.18 makes the current temporal authority a clean one-calendar contract. The retired secondary-calendar model and public v2 temporal ABI are removed. Current System Settings and Calendar consumers use policy v3 directly. A small private parser accepts already-written v2 presentation.conf files only to preserve user state during upgrade; it is not a compatibility API.
