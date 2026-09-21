@@ -2,11 +2,19 @@
 #define _POSIX_C_SOURCE 200809L
 #include "infiltratr/temporal_posix.h"
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#define CHECK(expression) \
+    do { \
+        if (!(expression)) { \
+            fprintf(stderr, "CHECK failed at %s:%d: %s\n", \
+                    __FILE__, __LINE__, #expression); \
+            return 1; \
+        } \
+    } while (0)
 
 int main(void)
 {
@@ -19,30 +27,30 @@ int main(void)
     InfiltratrTemporalPolicyV3 loaded;
     bool found = true;
 
-    assert(root != NULL);
-    assert(setenv("XDG_CONFIG_HOME", root, 1) == 0);
+    CHECK(root != NULL);
+    CHECK(setenv("XDG_CONFIG_HOME", root, 1) == 0);
 
-    assert(infiltratr_temporal_posix_policy_directory(
+    CHECK(infiltratr_temporal_posix_policy_directory(
         actual, sizeof(actual)));
-    assert(snprintf(expected, sizeof(expected), "%s/infiltrator", root) > 0);
-    assert(strcmp(actual, expected) == 0);
+    CHECK(snprintf(expected, sizeof(expected), "%s/infiltrator", root) > 0);
+    CHECK(strcmp(actual, expected) == 0);
 
-    assert(infiltratr_temporal_posix_policy_path(actual, sizeof(actual)));
-    assert(snprintf(expected, sizeof(expected), "%s/infiltrator/presentation.conf",
+    CHECK(infiltratr_temporal_posix_policy_path(actual, sizeof(actual)));
+    CHECK(snprintf(expected, sizeof(expected), "%s/infiltrator/presentation.conf",
                     root) > 0);
-    assert(strcmp(actual, expected) == 0);
+    CHECK(strcmp(actual, expected) == 0);
 
-    assert(infiltratr_temporal_posix_provider_marker_path(
+    CHECK(infiltratr_temporal_posix_provider_marker_path(
         marker, sizeof(marker)));
-    assert(strcmp(marker, INFILTRATR_TEMPORAL_PROVIDER_MARKER) == 0);
+    CHECK(strcmp(marker, INFILTRATR_TEMPORAL_PROVIDER_MARKER) == 0);
 
-    assert(infiltratr_temporal_posix_policy_load(&loaded, &found) ==
+    CHECK(infiltratr_temporal_posix_policy_load(&loaded, &found) ==
            INFILTRATR_IO_OK);
-    assert(!found);
-    assert(strcmp(loaded.clock_mode, "standard") == 0);
-    assert(strcmp(loaded.calendar, "gregorian") == 0);
+    CHECK(!found);
+    CHECK(strcmp(loaded.clock_mode, "standard") == 0);
+    CHECK(strcmp(loaded.calendar, "gregorian") == 0);
 
-    assert(infiltratr_temporal_policy_v3_default(&policy));
+    CHECK(infiltratr_temporal_policy_v3_default(&policy));
     strcpy(policy.clock_mode, "standard-24");
     strcpy(policy.calendar, "hebrew");
     policy.show_seconds = true;
@@ -50,25 +58,25 @@ int main(void)
     policy.latitude = -36.39;
     policy.longitude = 145.36;
 
-    assert(infiltratr_temporal_posix_policy_save(&policy) == 0);
+    CHECK(infiltratr_temporal_posix_policy_save(&policy) == 0);
     found = false;
-    assert(infiltratr_temporal_posix_policy_load(&loaded, &found) ==
+    CHECK(infiltratr_temporal_posix_policy_load(&loaded, &found) ==
            INFILTRATR_IO_OK);
-    assert(found);
-    assert(strcmp(loaded.clock_mode, "standard-24") == 0);
-    assert(strcmp(loaded.calendar, "hebrew") == 0);
-    assert(loaded.show_seconds);
-    assert(loaded.location_configured);
-    assert(loaded.latitude == -36.39);
-    assert(loaded.longitude == 145.36);
+    CHECK(found);
+    CHECK(strcmp(loaded.clock_mode, "standard-24") == 0);
+    CHECK(strcmp(loaded.calendar, "hebrew") == 0);
+    CHECK(loaded.show_seconds);
+    CHECK(loaded.location_configured);
+    CHECK(loaded.latitude == -36.39);
+    CHECK(loaded.longitude == 145.36);
 
-    assert(unlink(expected) == 0);
+    CHECK(unlink(expected) == 0);
     {
         char directory[4096];
-        assert(snprintf(directory, sizeof(directory), "%s/infiltrator", root) > 0);
-        assert(rmdir(directory) == 0);
+        CHECK(snprintf(directory, sizeof(directory), "%s/infiltrator", root) > 0);
+        CHECK(rmdir(directory) == 0);
     }
-    assert(rmdir(root) == 0);
+    CHECK(rmdir(root) == 0);
 
     puts("Infiltratr Common POSIX temporal policy contract passed.");
     return 0;
