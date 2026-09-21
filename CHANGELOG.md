@@ -6,6 +6,15 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.21 — 2026-09-22
+
+- Harden the existing temporal-policy v3 parser so current authority documents must contain one unambiguous value for every existing v3 field; duplicate or incomplete v3 documents are rejected while legacy v1/v2 migration remains unchanged.
+- Validate the existing fixed-size clock/calendar ID fields are NUL-terminated before serialisation performs catalogue lookups.
+- Bound the existing POSIX temporal policy and provider-marker reads to the schema's 1024-byte document capacity while preserving embedded-NUL rejection and rich I/O outcomes.
+- Accelerate the existing exact cycle-partition implementation with a checked direct-multiply path when the product fits in uint64_t, retaining the overflow-safe wide fallback unchanged.
+- Strengthen tests for existing clock/calendar catalogue count/at/find invariants, bounded temporal files, embedded NULs and both cycle-partition arithmetic paths.
+- No public functions, types or APIs were added or removed.
+
 ## 1.19.20 — 2026-09-21
 
 - Validate the temporal provider marker's provider identity, policy version and contract instead of treating any readable file at the marker path as authority.
