@@ -73,6 +73,25 @@ int main(void)
     }
     CHECK(infiltratr_temporal_posix_provider_available());
 
+    {
+        FILE *provider = fopen(provider_path, "wb");
+        CHECK(provider != NULL);
+        for (size_t index = 0U; index < 2048U; ++index)
+            CHECK(fputc('x', provider) != EOF);
+        CHECK(fclose(provider) == 0);
+    }
+    CHECK(!infiltratr_temporal_posix_provider_available());
+
+    {
+        FILE *provider = fopen(provider_path, "wb");
+        CHECK(provider != NULL);
+        CHECK(fputs("provider=infiltrator-system-settings\n"
+                    "policy-version=3\n"
+                    "contract=infiltratr-temporal-v3\n", provider) >= 0);
+        CHECK(fclose(provider) == 0);
+    }
+    CHECK(infiltratr_temporal_posix_provider_available());
+
     CHECK(infiltratr_temporal_posix_policy_load(&loaded, &found) ==
            INFILTRATR_IO_OK);
     CHECK(!found);
@@ -98,6 +117,47 @@ int main(void)
     CHECK(loaded.location_configured);
     CHECK(loaded.latitude == -36.39);
     CHECK(loaded.longitude == 145.36);
+
+    {
+        FILE *policy_file = fopen(expected, "wb");
+        CHECK(policy_file != NULL);
+        for (size_t index = 0U; index < 2048U; ++index)
+            CHECK(fputc('x', policy_file) != EOF);
+        CHECK(fclose(policy_file) == 0);
+    }
+    found = true;
+    CHECK(infiltratr_temporal_posix_policy_load(&loaded, &found) ==
+           INFILTRATR_IO_TRUNCATED);
+    CHECK(!found);
+    CHECK(strcmp(loaded.clock_mode, "standard") == 0);
+    CHECK(strcmp(loaded.calendar, "gregorian") == 0);
+
+    {
+        static const char prefix[] =
+            "version=3\n"
+            "clock-mode=standard\n";
+        static const char suffix[] =
+            "calendar=gregorian\n"
+            "show-seconds=false\n"
+            "location-configured=false\n"
+            "latitude=0.000000\n"
+            "longitude=0.000000\n";
+        FILE *policy_file = fopen(expected, "wb");
+
+        CHECK(policy_file != NULL);
+        CHECK(fwrite(prefix, 1U, sizeof(prefix) - 1U, policy_file) ==
+              sizeof(prefix) - 1U);
+        CHECK(fputc('\0', policy_file) != EOF);
+        CHECK(fwrite(suffix, 1U, sizeof(suffix) - 1U, policy_file) ==
+              sizeof(suffix) - 1U);
+        CHECK(fclose(policy_file) == 0);
+    }
+    found = true;
+    CHECK(infiltratr_temporal_posix_policy_load(&loaded, &found) ==
+           INFILTRATR_IO_INVALID_VALUE);
+    CHECK(!found);
+    CHECK(strcmp(loaded.clock_mode, "standard") == 0);
+    CHECK(strcmp(loaded.calendar, "gregorian") == 0);
 
     CHECK(unlink(expected) == 0);
     CHECK(unlink(provider_path) == 0);

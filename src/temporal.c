@@ -624,9 +624,20 @@ static bool migrate_v2_document(const char *text,
 bool infiltratr_temporal_policy_v3_parse(const char *text,
                                          InfiltratrTemporalPolicyV3 *policy)
 {
+    enum {
+        V3_SEEN_VERSION = 1U << 0,
+        V3_SEEN_CLOCK_MODE = 1U << 1,
+        V3_SEEN_CALENDAR = 1U << 2,
+        V3_SEEN_SHOW_SECONDS = 1U << 3,
+        V3_SEEN_LOCATION_CONFIGURED = 1U << 4,
+        V3_SEEN_LATITUDE = 1U << 5,
+        V3_SEEN_LONGITUDE = 1U << 6,
+        V3_REQUIRED_FIELDS = (1U << 7) - 1U
+    };
     InfiltratrTemporalPolicyV3 parsed;
     const char *cursor;
     unsigned int version = 0U;
+    unsigned int seen = 0U;
 
     if (text == NULL || policy == NULL ||
         !temporal_document_version(text, &version)) {
@@ -667,39 +678,53 @@ bool infiltratr_temporal_policy_v3_parse(const char *text,
 
         if (status == INFILTRATR_CONFIG_LINE_ENTRY) {
             if (strcmp(key, "version") == 0) {
-                if (strcmp(value, "3") != 0) {
+                if ((seen & V3_SEEN_VERSION) != 0U ||
+                    strcmp(value, "3") != 0) {
                     return false;
                 }
+                seen |= V3_SEEN_VERSION;
             } else if (strcmp(key, "clock-mode") == 0) {
-                if (infiltratr_temporal_clock_mode_find(value) == NULL ||
+                if ((seen & V3_SEEN_CLOCK_MODE) != 0U ||
+                    infiltratr_temporal_clock_mode_find(value) == NULL ||
                     !copy_temporal_id(parsed.clock_mode, value)) {
                     return false;
                 }
+                seen |= V3_SEEN_CLOCK_MODE;
             } else if (strcmp(key, "calendar") == 0) {
-                if (infiltratr_temporal_calendar_find(value) == NULL ||
+                if ((seen & V3_SEEN_CALENDAR) != 0U ||
+                    infiltratr_temporal_calendar_find(value) == NULL ||
                     !copy_temporal_id(parsed.calendar, value)) {
                     return false;
                 }
+                seen |= V3_SEEN_CALENDAR;
             } else if (strcmp(key, "show-seconds") == 0) {
-                if (!infiltratr_config_parse_bool(
+                if ((seen & V3_SEEN_SHOW_SECONDS) != 0U ||
+                    !infiltratr_config_parse_bool(
                         value, &parsed.show_seconds)) {
                     return false;
                 }
+                seen |= V3_SEEN_SHOW_SECONDS;
             } else if (strcmp(key, "location-configured") == 0) {
-                if (!infiltratr_config_parse_bool(
+                if ((seen & V3_SEEN_LOCATION_CONFIGURED) != 0U ||
+                    !infiltratr_config_parse_bool(
                         value, &parsed.location_configured)) {
                     return false;
                 }
+                seen |= V3_SEEN_LOCATION_CONFIGURED;
             } else if (strcmp(key, "latitude") == 0) {
-                if (!infiltratr_parse_double_range(
+                if ((seen & V3_SEEN_LATITUDE) != 0U ||
+                    !infiltratr_parse_double_range(
                         value, -90.0, 90.0, &parsed.latitude)) {
                     return false;
                 }
+                seen |= V3_SEEN_LATITUDE;
             } else if (strcmp(key, "longitude") == 0) {
-                if (!infiltratr_parse_double_range(
+                if ((seen & V3_SEEN_LONGITUDE) != 0U ||
+                    !infiltratr_parse_double_range(
                         value, -180.0, 180.0, &parsed.longitude)) {
                     return false;
                 }
+                seen |= V3_SEEN_LONGITUDE;
             }
         }
 
@@ -709,7 +734,8 @@ bool infiltratr_temporal_policy_v3_parse(const char *text,
         cursor = newline + 1;
     }
 
-    if (infiltratr_temporal_clock_mode_find(parsed.clock_mode) == NULL ||
+    if (seen != V3_REQUIRED_FIELDS ||
+        infiltratr_temporal_clock_mode_find(parsed.clock_mode) == NULL ||
         infiltratr_temporal_calendar_find(parsed.calendar) == NULL) {
         return false;
     }
@@ -732,6 +758,8 @@ bool infiltratr_temporal_policy_v3_serialize(
     if (policy == NULL || buffer == NULL ||
         policy->struct_size < sizeof(*policy) ||
         policy->version != INFILTRATR_TEMPORAL_POLICY_V3_VERSION ||
+        memchr(policy->clock_mode, '\0', sizeof(policy->clock_mode)) == NULL ||
+        memchr(policy->calendar, '\0', sizeof(policy->calendar)) == NULL ||
         infiltratr_temporal_clock_mode_find(policy->clock_mode) == NULL ||
         infiltratr_temporal_calendar_find(policy->calendar) == NULL ||
         !isfinite(policy->latitude) ||

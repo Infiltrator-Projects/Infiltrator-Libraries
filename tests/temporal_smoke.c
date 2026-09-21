@@ -26,6 +26,47 @@ static void test_catalogue(void)
     CHECK(strcmp(infiltratr_clock_profile_name(profile),
                   "Decimal time (10-hour day)") == 0);
     CHECK(!infiltratr_clock_profile_from_id("missing", &profile));
+
+    for (size_t index = 0U;
+         index < infiltratr_temporal_clock_mode_count(); ++index) {
+        const InfiltratrTemporalClockModeInfo *info =
+            infiltratr_temporal_clock_mode_at(index);
+
+        CHECK(info != NULL);
+        CHECK(info->id != NULL && info->id[0] != '\0');
+        CHECK(info->name != NULL && info->name[0] != '\0');
+        CHECK(infiltratr_temporal_clock_mode_find(info->id) == info);
+        for (size_t other = index + 1U;
+             other < infiltratr_temporal_clock_mode_count(); ++other) {
+            const InfiltratrTemporalClockModeInfo *candidate =
+                infiltratr_temporal_clock_mode_at(other);
+            CHECK(candidate != NULL);
+            CHECK(strcmp(info->id, candidate->id) != 0);
+        }
+    }
+
+    for (size_t index = 0U;
+         index < infiltratr_temporal_calendar_count(); ++index) {
+        const InfiltratrTemporalCalendarInfo *info =
+            infiltratr_temporal_calendar_at(index);
+
+        CHECK(info != NULL);
+        CHECK(info->id != NULL && info->id[0] != '\0');
+        CHECK(info->name != NULL && info->name[0] != '\0');
+        CHECK(infiltratr_temporal_calendar_find(info->id) == info);
+        for (size_t other = index + 1U;
+             other < infiltratr_temporal_calendar_count(); ++other) {
+            const InfiltratrTemporalCalendarInfo *candidate =
+                infiltratr_temporal_calendar_at(other);
+            CHECK(candidate != NULL);
+            CHECK(strcmp(info->id, candidate->id) != 0);
+        }
+    }
+
+    CHECK(infiltratr_temporal_clock_mode_at(
+              infiltratr_temporal_clock_mode_count()) == NULL);
+    CHECK(infiltratr_temporal_calendar_at(
+              infiltratr_temporal_calendar_count()) == NULL);
 }
 
 static void test_policy_round_trip(void)
@@ -111,6 +152,34 @@ static void test_policy_v3(void)
 
     CHECK(!infiltratr_temporal_policy_v3_parse(
         "version=3\ncalendar=none\n", &parsed));
+    CHECK(!infiltratr_temporal_policy_v3_parse(
+        "version=3\n"
+        "clock-mode=standard\n"
+        "calendar=gregorian\n"
+        "show-seconds=false\n"
+        "location-configured=false\n"
+        "latitude=0.000000\n",
+        &parsed));
+    CHECK(!infiltratr_temporal_policy_v3_parse(
+        "version=3\n"
+        "clock-mode=standard\n"
+        "clock-mode=standard-24\n"
+        "calendar=gregorian\n"
+        "show-seconds=false\n"
+        "location-configured=false\n"
+        "latitude=0.000000\n"
+        "longitude=0.000000\n",
+        &parsed));
+
+    CHECK(infiltratr_temporal_policy_v3_default(&policy));
+    memset(policy.clock_mode, 'x', sizeof(policy.clock_mode));
+    CHECK(!infiltratr_temporal_policy_v3_serialize(
+        &policy, text, sizeof(text), &length));
+    CHECK(infiltratr_temporal_policy_v3_default(&policy));
+    memset(policy.calendar, 'x', sizeof(policy.calendar));
+    CHECK(!infiltratr_temporal_policy_v3_serialize(
+        &policy, text, sizeof(text), &length));
+
     CHECK(infiltratr_temporal_calendar_count() == 30U);
     CHECK(infiltratr_temporal_calendar_find("none") == NULL);
 }

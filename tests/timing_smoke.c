@@ -134,6 +134,7 @@ static void test_exact_cycle_partitions(void)
     uint64_t index = 77U;
     uint64_t until_next = 77U;
 
+    /* Calendar's ordinary civil-day partition takes the checked direct path. */
     assert(infiltratr_cycle_partition_u64(
         0U, day_microseconds, 100000U, &index, &until_next));
     assert(index == 0U);
@@ -154,6 +155,7 @@ static void test_exact_cycle_partitions(void)
     assert(index == 0U);
     assert(until_next == 1318360U);
 
+    /* This product cannot fit in uint64_t and exercises the wide fallback. */
     assert(infiltratr_cycle_partition_u64(
         UINT64_MAX - 1U, UINT64_MAX, UINT64_MAX, &index, &until_next));
     assert(index == UINT64_MAX - 1U);

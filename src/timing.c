@@ -37,6 +37,26 @@ static bool u64_product_divmod(uint64_t multiplicand,
         return false;
     }
 
+    {
+        uint64_t product = 0U;
+
+        /*
+         * Most consumer partitions fit in uint64_t (Calendar's civil-day
+         * clocks are typical). Take the direct exact path first and retain the
+         * quotient/remainder doubling algorithm only for true wide products.
+         */
+        if (infiltratr_u64_multiply_checked(
+                multiplicand, multiplier, &product)) {
+            if (quotient) {
+                *quotient = product / divisor;
+            }
+            if (remainder) {
+                *remainder = product % divisor;
+            }
+            return true;
+        }
+    }
+
     add_quotient = multiplicand / divisor;
     add_remainder = multiplicand % divisor;
 

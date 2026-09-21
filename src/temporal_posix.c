@@ -9,6 +9,7 @@
 #include "infiltratr/config.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -223,30 +224,30 @@ static bool provider_document_valid(const char *text)
 
 bool infiltratr_temporal_posix_provider_available(void)
 {
-    char *text = NULL;
-    size_t length = 0U;
-    const InfiltratrIoResult result =
-        infiltratr_read_text_file_alloc(
-            provider_marker_value(), &text, &length);
-    bool available = false;
+    char text[TEMPORAL_DOCUMENT_CAPACITY];
+    size_t used = 0U;
+    bool complete = true;
+    const int descriptor =
+        open(provider_marker_value(), O_RDONLY | O_CLOEXEC);
 
-    if (result == INFILTRATR_IO_OK &&
-        text != NULL && strlen(text) == length) {
-        available = provider_document_valid(text);
+    if (descriptor < 0) {
+        return false;
     }
 
-    free(text);
-    return available;
-}
+    while (used + 1U < sizeof(text)) {
+        ssize_t amount;
 
-InfiltratrIoResult infiltratr_temporal_posix_policy_load(
+        do {
+            amount = read(descriptor, text + used,
+                          sizeof(InfiltratrIoResult infiltratr_temporal_posix_policy_load(
     InfiltratrTemporalPolicyV3 *policy,
     bool *found)
 {
     char *path = NULL;
-    char *text = NULL;
-    size_t length = 0U;
-    InfiltratrIoResult result;
+    char text[TEMPORAL_DOCUMENT_CAPACITY];
+    size_t used = 0U;
+    InfiltratrIoResult result = INFILTRATR_IO_OK;
+    int descriptor;
 
     if (policy == NULL || found == NULL ||
         !infiltratr_temporal_policy_v3_default(policy)) {
@@ -259,24 +260,74 @@ InfiltratrIoResult infiltratr_temporal_posix_policy_load(
         return INFILTRATR_IO_ERROR;
     }
 
-    result = infiltratr_read_text_file_alloc(path, &text, &length);
+    descriptor = open(path, O_RDONLY | O_CLOEXEC);
     free(path);
-    if (result == INFILTRATR_IO_NOT_FOUND) {
-        return INFILTRATR_IO_OK;
-    }
-    if (result != INFILTRATR_IO_OK) {
-        free(text);
-        return result;
+    if (descriptor < 0) {
+        if (errno == ENOENT || errno == ENOTDIR) {
+            return INFILTRATR_IO_OK;
+        }
+        if (errno == EACCES || errno == EPERM) {
+            return INFILTRATR_IO_PERMISSION_DENIED;
+        }
+        return INFILTRATR_IO_ERROR;
     }
 
-    if (text == NULL || strlen(text) != length ||
-        !infiltratr_temporal_policy_v3_parse(text, policy)) {
-        free(text);
+    while (used + 1U < sizeof(text)) {
+        ssize_t amount;
+
+        do {
+            amount = read(descriptor, text + used,
+                          sizeof(text) - used - 1U);
+        } while (amount < 0 && errno == EINTR);
+
+        if (amount < 0) {
+            result = (errno == EACCES || errno == EPERM)
+                ? INFILTRATR_IO_PERMISSION_DENIED
+                : INFILTRATR_IO_ERROR;
+            break;
+        }
+        if (amount == 0) {
+            break;
+        }
+        used += (size_t)amount;
+    }
+
+    if (result == INFILTRATR_IO_OK && used + 1U == sizeof(text)) {
+        char extra;
+        ssize_t amount;
+
+        do {
+            amount = read(descriptor, &extra, 1U);
+        } while (amount < 0 && errno == EINTR);
+
+        if (amount < 0) {
+            result = (errno == EACCES || errno == EPERM)
+                ? INFILTRATR_IO_PERMISSION_DENIED
+                : INFILTRATR_IO_ERROR;
+        } else if (amount > 0) {
+            result = INFILTRATR_IO_TRUNCATED;
+        }
+    }
+
+    if (close(descriptor) != 0 && result == INFILTRATR_IO_OK) {
+        result = INFILTRATR_IO_ERROR;
+    }
+    if (result != INFILTRATR_IO_OK) {
+        return result;
+    }
+    if (used == 0U) {
+        return INFILTRATR_IO_EMPTY;
+    }
+    if (memchr(text, '\0', used) != NULL) {
+        return INFILTRATR_IO_INVALID_VALUE;
+    }
+
+    text[used] = '\0';
+    if (!infiltratr_temporal_policy_v3_parse(text, policy)) {
         (void)infiltratr_temporal_policy_v3_default(policy);
         return INFILTRATR_IO_INVALID_VALUE;
     }
 
-    free(text);
     *found = true;
     return INFILTRATR_IO_OK;
 }
