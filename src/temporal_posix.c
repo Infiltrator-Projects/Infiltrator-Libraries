@@ -3,6 +3,8 @@
  * @file temporal_posix.c
  * @brief POSIX temporal policy persistence and provider capability.
  */
+#define _POSIX_C_SOURCE 200809L
+
 #include "infiltratr/temporal_posix.h"
 
 #include "infiltratr/arithmetic.h"
@@ -239,7 +241,43 @@ bool infiltratr_temporal_posix_provider_available(void)
 
         do {
             amount = read(descriptor, text + used,
-                          sizeof(InfiltratrIoResult infiltratr_temporal_posix_policy_load(
+                          sizeof(text) - used - 1U);
+        } while (amount < 0 && errno == EINTR);
+
+        if (amount < 0) {
+            complete = false;
+            break;
+        }
+        if (amount == 0) {
+            break;
+        }
+        used += (size_t)amount;
+    }
+
+    if (complete && used + 1U == sizeof(text)) {
+        char extra;
+        ssize_t amount;
+
+        do {
+            amount = read(descriptor, &extra, 1U);
+        } while (amount < 0 && errno == EINTR);
+        if (amount != 0) {
+            complete = false;
+        }
+    }
+
+    if (close(descriptor) != 0) {
+        complete = false;
+    }
+    if (!complete || used == 0U || memchr(text, '\0', used) != NULL) {
+        return false;
+    }
+
+    text[used] = '\0';
+    return provider_document_valid(text);
+}
+
+InfiltratrIoResult infiltratr_temporal_posix_policy_load(
     InfiltratrTemporalPolicyV3 *policy,
     bool *found)
 {
