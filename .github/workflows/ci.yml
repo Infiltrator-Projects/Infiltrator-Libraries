@@ -31,8 +31,8 @@ jobs:
           if grep -Eq '^  pull_request:|^  merge_group:' .github/workflows/ci.yml; then exit 1; fi
 
   design-contract:
-    name: Local design contract
-    runs-on: [self-hosted, Linux, X64, linux-native]
+    name: Hosted design contract
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
           for command_name in jq bash grep; do
             command -v "$command_name" >/dev/null 2>&1 || {
-              echo "Self-hosted runner is missing $command_name." >&2
+              echo "Hosted runner is missing $command_name." >&2
               exit 1
             }
           done
@@ -55,8 +55,8 @@ jobs:
         run: bash tests/check_spdx.sh
 
   strict-build:
-    name: Local ${{ matrix.compiler }} strict build
-    runs-on: [self-hosted, Linux, X64, linux-native]
+    name: Hosted ${{ matrix.compiler }} strict build
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -92,8 +92,8 @@ jobs:
           ./cmake-consumer-build/infiltratr-common-consumer
 
   sanitizers:
-    name: Local Clang ASan + UBSan
-    runs-on: [self-hosted, Linux, X64, linux-native]
+    name: Hosted Clang ASan + UBSan
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
