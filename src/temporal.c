@@ -11,6 +11,7 @@
 #include "infiltratr/format.h"
 #include "infiltratr/timing.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -733,6 +734,10 @@ bool infiltratr_temporal_policy_v3_serialize(
         policy->version != INFILTRATR_TEMPORAL_POLICY_V3_VERSION ||
         infiltratr_temporal_clock_mode_find(policy->clock_mode) == NULL ||
         infiltratr_temporal_calendar_find(policy->calendar) == NULL ||
+        !isfinite(policy->latitude) ||
+        policy->latitude < -90.0 || policy->latitude > 90.0 ||
+        !isfinite(policy->longitude) ||
+        policy->longitude < -180.0 || policy->longitude > 180.0 ||
         !infiltratr_format_fixed_ascii(policy->latitude, 6U,
                                        latitude, sizeof(latitude)) ||
         !infiltratr_format_fixed_ascii(policy->longitude, 6U,
