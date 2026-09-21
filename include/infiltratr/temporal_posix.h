@@ -17,8 +17,10 @@
 extern "C" {
 #endif
 
+#ifndef INFILTRATR_TEMPORAL_PROVIDER_MARKER
 #define INFILTRATR_TEMPORAL_PROVIDER_MARKER \
     "/usr/share/infiltrator/policy-providers/temporal-v3"
+#endif
 
 /** Resolve the per-user directory containing presentation.conf. */
 bool infiltratr_temporal_posix_policy_directory(char *destination,
@@ -27,11 +29,20 @@ bool infiltratr_temporal_posix_policy_directory(char *destination,
 /** Resolve the canonical per-user temporal policy document path. */
 bool infiltratr_temporal_posix_policy_path(char *destination, size_t size);
 
-/** Return the canonical installed temporal-provider capability marker path. */
+/**
+ * Resolve the installed temporal-provider capability marker path.
+ *
+ * The compiled default may be overridden by the absolute
+ * INFILTRATR_TEMPORAL_PROVIDER_MARKER_PATH environment value. This is intended
+ * for staged/custom-prefix installations and deterministic qualification.
+ */
 bool infiltratr_temporal_posix_provider_marker_path(char *destination,
                                                     size_t size);
 
-/** True only when the authoritative System Settings provider marker exists. */
+/**
+ * True only when the provider marker exists and declares the exact supported
+ * provider, policy version and temporal contract.
+ */
 bool infiltratr_temporal_posix_provider_available(void);
 
 /**
