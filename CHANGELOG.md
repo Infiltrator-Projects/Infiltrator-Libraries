@@ -6,6 +6,12 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.19 — 2026-09-21
+
+- Added the shared POSIX temporal-policy persistence adapter so Linux consumers no longer duplicate the XDG `presentation.conf` path, parsing, validation, directory creation or atomic write mechanics.
+- Added the canonical installed temporal-provider capability marker `/usr/share/infiltrator/policy-providers/temporal-v3`, allowing consumers to distinguish an active System Settings authority from stale per-user policy files without probing executable names or PATH.
+- Added contract tests for missing-policy defaults, canonical paths, atomic save/load round trips and provider-marker identity.
+
 ## 1.19.18 — 2026-09-20
 
 - Removed the retired public temporal-policy v2 ABI instead of carrying compatibility baggage.
