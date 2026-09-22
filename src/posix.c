@@ -7,6 +7,9 @@
  * @copyright Copyright (c) 1993-2026 Shannon Smith
  * @license GPL-3.0-or-later
  */
+#if defined(__linux__)
+#define _GNU_SOURCE 1
+#endif
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 700
 
@@ -345,8 +348,22 @@ InfiltratrIoResult infiltratr_read_text_file_ex(const char *path,
         result = infiltratr_posix_io_result_from_errno(errno);
 
     buffer[used] = '\0';
-    infiltratr_trim_line_end(buffer);
-    if (length) *length = strlen(buffer);
+    if ((result == INFILTRATR_IO_OK ||
+         result == INFILTRATR_IO_TRUNCATED) &&
+        memchr(buffer, '\0', used) != NULL) {
+        buffer[0] = '\0';
+        if (length) *length = 0U;
+        return INFILTRATR_IO_INVALID_VALUE;
+    }
+
+    size_t retained = used;
+    while (retained > 0U &&
+           (buffer[retained - 1U] == '\r' ||
+            buffer[retained - 1U] == '\n')) {
+        retained--;
+    }
+    buffer[retained] = '\0';
+    if (length) *length = retained;
     if (result != INFILTRATR_IO_OK) return result;
     return used == 0U ? INFILTRATR_IO_EMPTY : INFILTRATR_IO_OK;
 }
@@ -483,9 +500,36 @@ static char *atomic_temporary_template(const char *parent)
     return temporary;
 }
 
-static int atomic_completed_mode(const char *path,
-                                 InfiltratrAtomicFileMode mode,
-                                 mode_t *permissions)
+static const char *atomic_entry_name(const char *path)
+{
+    const char *separator = strrchr(path, '/');
+    return separator != NULL ? separator + 1 : path;
+}
+
+static int atomic_open_directory(const char *path)
+{
+    const int descriptor = open(path, O_RDONLY | O_CLOEXEC);
+    if (descriptor < 0) return -1;
+
+    struct stat status;
+    if (fstat(descriptor, &status) != 0) {
+        const int failure = errno;
+        (void)close(descriptor);
+        errno = failure;
+        return -1;
+    }
+    if (!S_ISDIR(status.st_mode)) {
+        (void)close(descriptor);
+        errno = ENOTDIR;
+        return -1;
+    }
+    return descriptor;
+}
+
+static int atomic_completed_mode_at(int parent_descriptor,
+                                    const char *entry_name,
+                                    InfiltratrAtomicFileMode mode,
+                                    mode_t *permissions)
 {
     if (!permissions) return EINVAL;
     if (mode == INFILTRATR_ATOMIC_FILE_PRIVATE) {
@@ -495,7 +539,8 @@ static int atomic_completed_mode(const char *path,
     if (mode != INFILTRATR_ATOMIC_FILE_PRESERVE_PERMISSIONS) return EINVAL;
 
     struct stat status;
-    if (lstat(path, &status) == 0) {
+    if (fstatat(parent_descriptor, entry_name, &status,
+                AT_SYMLINK_NOFOLLOW) == 0) {
         *permissions = S_ISREG(status.st_mode)
             ? status.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO)
             : S_IRUSR | S_IWUSR;
@@ -506,6 +551,7 @@ static int atomic_completed_mode(const char *path,
     return 0;
 }
 
+#if !defined(__linux__)
 static int atomic_mark_close_on_exec(int descriptor)
 {
     const int flags = fcntl(descriptor, F_GETFD);
@@ -513,19 +559,45 @@ static int atomic_mark_close_on_exec(int descriptor)
         return errno;
     return 0;
 }
+#endif
 
-static int atomic_sync_directory(const char *path)
+static int atomic_create_temporary(char *temporary)
 {
-    const int descriptor = open(path, O_RDONLY);
-    if (descriptor < 0) return errno;
+#if defined(__linux__)
+    return mkostemp(temporary, O_CLOEXEC);
+#else
+    const int descriptor = mkstemp(temporary);
+    if (descriptor < 0) return -1;
 
-    int failure = atomic_mark_close_on_exec(descriptor);
-    struct stat status;
-    if (failure == 0 && fstat(descriptor, &status) != 0) failure = errno;
-    if (failure == 0 && !S_ISDIR(status.st_mode)) failure = ENOTDIR;
-    if (failure == 0 && fsync(descriptor) != 0) failure = errno;
-    if (close(descriptor) != 0 && failure == 0) failure = errno;
-    return failure;
+    const int failure = atomic_mark_close_on_exec(descriptor);
+    if (failure != 0) {
+        (void)close(descriptor);
+        (void)unlink(temporary);
+        errno = failure;
+        return -1;
+    }
+    return descriptor;
+#endif
+}
+
+static int atomic_verify_temporary(int parent_descriptor,
+                                   const char *entry_name,
+                                   int descriptor)
+{
+    struct stat opened;
+    struct stat anchored;
+
+    if (fstat(descriptor, &opened) != 0) return errno;
+    if (fstatat(parent_descriptor, entry_name, &anchored,
+                AT_SYMLINK_NOFOLLOW) != 0) {
+        return errno;
+    }
+    if (!S_ISREG(opened.st_mode) || !S_ISREG(anchored.st_mode) ||
+        opened.st_dev != anchored.st_dev ||
+        opened.st_ino != anchored.st_ino) {
+        return EIO;
+    }
+    return 0;
 }
 
 static int atomic_finish_stream(FILE *stream, bool content_complete)
@@ -545,28 +617,41 @@ int infiltratr_atomic_file_write(const char *path,
 {
     if (!path || !*path || !writer) return EINVAL;
 
-    mode_t permissions = 0;
-    int failure = atomic_completed_mode(path, mode, &permissions);
-    if (failure != 0) return failure;
-
     char *parent = atomic_parent_directory(path);
     if (!parent) return errno ? errno : ENOMEM;
-    char *temporary = atomic_temporary_template(parent);
-    if (!temporary) {
-        failure = errno ? errno : ENOMEM;
+    const char *entry_name = atomic_entry_name(path);
+
+    const int parent_descriptor = atomic_open_directory(parent);
+    if (parent_descriptor < 0) {
+        const int failure = errno;
         free(parent);
         return failure;
     }
 
-    const int descriptor = mkstemp(temporary);
-    if (descriptor < 0) {
-        failure = errno;
-        free(temporary);
-        free(parent);
-        return failure;
+    mode_t permissions = 0;
+    int failure = atomic_completed_mode_at(
+        parent_descriptor, entry_name, mode, &permissions);
+    char *temporary = NULL;
+    const char *temporary_name = NULL;
+    int descriptor = -1;
+    bool temporary_anchored = false;
+
+    if (failure == 0) {
+        temporary = atomic_temporary_template(parent);
+        if (!temporary) failure = errno ? errno : ENOMEM;
     }
-    failure = atomic_mark_close_on_exec(descriptor);
-    if (failure == 0 && fchmod(descriptor, permissions) != 0) failure = errno;
+    if (failure == 0) {
+        descriptor = atomic_create_temporary(temporary);
+        if (descriptor < 0) failure = errno;
+    }
+    if (failure == 0) {
+        temporary_name = atomic_entry_name(temporary);
+        failure = atomic_verify_temporary(
+            parent_descriptor, temporary_name, descriptor);
+        temporary_anchored = failure == 0;
+    }
+    if (failure == 0 && fchmod(descriptor, permissions) != 0)
+        failure = errno;
 
     FILE *stream = NULL;
     if (failure == 0) {
@@ -574,17 +659,24 @@ int infiltratr_atomic_file_write(const char *path,
         if (!stream) failure = errno;
     }
     if (!stream) {
-        (void)close(descriptor);
+        if (descriptor >= 0) (void)close(descriptor);
     } else {
         errno = 0;
         const bool content_complete = writer(stream, user_data);
         failure = atomic_finish_stream(stream, content_complete);
     }
 
-    if (failure == 0 && rename(temporary, path) != 0) failure = errno;
-    if (failure == 0) failure = atomic_sync_directory(parent);
-    if (failure != 0) (void)unlink(temporary);
+    if (failure == 0 &&
+        renameat(parent_descriptor, temporary_name,
+                 parent_descriptor, entry_name) != 0) {
+        failure = errno;
+    }
+    if (failure == 0 && fsync(parent_descriptor) != 0) failure = errno;
 
+    if (failure != 0 && temporary_anchored)
+        (void)unlinkat(parent_descriptor, temporary_name, 0);
+
+    if (close(parent_descriptor) != 0 && failure == 0) failure = errno;
     free(temporary);
     free(parent);
     return failure;
@@ -612,15 +704,27 @@ int infiltratr_unlink_durable(const char *path, bool missing_ok)
 
     char *parent = atomic_parent_directory(path);
     if (!parent) return errno ? errno : ENOMEM;
+    const char *entry_name = atomic_entry_name(path);
 
-    if (unlink(path) != 0) {
+    const int parent_descriptor = atomic_open_directory(parent);
+    if (parent_descriptor < 0) {
         const int failure = errno;
         free(parent);
         if (failure == ENOENT && missing_ok) return 0;
         return failure;
     }
 
-    const int failure = atomic_sync_directory(parent);
+    if (unlinkat(parent_descriptor, entry_name, 0) != 0) {
+        const int failure = errno;
+        (void)close(parent_descriptor);
+        free(parent);
+        if (failure == ENOENT && missing_ok) return 0;
+        return failure;
+    }
+
+    int failure = 0;
+    if (fsync(parent_descriptor) != 0) failure = errno;
+    if (close(parent_descriptor) != 0 && failure == 0) failure = errno;
     free(parent);
     return failure;
 }

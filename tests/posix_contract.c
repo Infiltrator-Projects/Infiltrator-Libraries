@@ -300,6 +300,21 @@ static void test_text_io(void)
            INFILTRATR_IO_INVALID_ARGUMENT);
     assert(invalid_buffer == 'Q');
     assert(length == 0U);
+
+    char nul_text_name[] = "infiltratr-contract-text-nul-XXXXXX";
+    const int nul_text_fd = mkstemp(nul_text_name);
+    assert(nul_text_fd >= 0);
+    static const char bounded_nul_text[] = {'a', 'b', '\0', 'c', '\n'};
+    write_all(nul_text_fd, bounded_nul_text, sizeof(bounded_nul_text));
+    assert(close(nul_text_fd) == 0);
+    strcpy(read_buffer, "old");
+    length = 99U;
+    assert(infiltratr_read_text_file_ex(
+               nul_text_name, read_buffer, sizeof(read_buffer), &length) ==
+           INFILTRATR_IO_INVALID_VALUE);
+    assert(strcmp(read_buffer, "") == 0);
+    assert(length == 0U);
+    assert(unlink(nul_text_name) == 0);
 }
 
 static void test_typed_io(void)
@@ -431,6 +446,28 @@ static void test_atomic_replacement(void)
                fail_after_partial_write, NULL) == ENOSPC);
     expect_contents(path, second);
     expect_no_atomic_temporaries(directory);
+
+    char victim[256];
+    char link_path[256];
+    assert(snprintf(victim, sizeof(victim), "%s/victim", directory) > 0);
+    assert(snprintf(link_path, sizeof(link_path), "%s/link", directory) > 0);
+    FILE *victim_stream = fopen(victim, "wb");
+    assert(victim_stream);
+    assert(fputs("must-not-change", victim_stream) >= 0);
+    assert(fclose(victim_stream) == 0);
+    assert(symlink("victim", link_path) == 0);
+
+    static const char replacement[] = "replacement-of-link\n";
+    assert(infiltratr_atomic_file_write_bytes(
+               link_path, INFILTRATR_ATOMIC_FILE_PRIVATE,
+               replacement, sizeof(replacement) - 1U) == 0);
+    expect_contents(victim, "must-not-change");
+    struct stat link_status;
+    assert(lstat(link_path, &link_status) == 0);
+    assert(S_ISREG(link_status.st_mode));
+    expect_contents(link_path, replacement);
+    assert(unlink(link_path) == 0);
+    assert(unlink(victim) == 0);
 
     assert(infiltratr_atomic_file_write_bytes(
                NULL, INFILTRATR_ATOMIC_FILE_PRIVATE,

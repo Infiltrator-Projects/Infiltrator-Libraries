@@ -121,7 +121,10 @@ bool infiltratr_first_readable_path(const char *base,
  * is cleared before opening the path. Reads retry after `EINTR`, reserve one
  * byte for NUL termination and perform an additional one-byte probe when the
  * buffer fills so exact-fit input can be distinguished from truncation.
- * Trailing CR/LF bytes in the retained text are removed.
+ * Embedded NUL bytes in the retained byte range are rejected as
+ * `INFILTRATR_IO_INVALID_VALUE` rather than allowing later C-string handling
+ * to hide trailing file content. Trailing CR/LF bytes in valid retained text
+ * are removed using the known byte count rather than rediscovering its length.
  *
  * `length`, when non-NULL, is set to zero before argument validation and then
  * receives the retained post-line-ending length. A zero-byte file returns
