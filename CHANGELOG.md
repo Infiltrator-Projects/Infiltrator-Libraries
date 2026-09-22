@@ -6,6 +6,16 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.22 — 2026-09-22
+
+- Harden the existing bounded POSIX text reader to reject embedded NUL bytes in its retained byte range and trim trailing CR/LF directly from the known byte count instead of rediscovering length with `strlen()`.
+- Reuse that bounded-reader contract for temporal provider and policy documents, removing duplicated open/read/probe/close loops while retaining the 1024-byte schema limit and existing rich I/O results.
+- Anchor atomic file replacement and durable unlink to one opened parent-directory descriptor for target inspection, namespace mutation and final directory `fsync()`, closing the pathname re-resolution identity gap.
+- Create atomic-writer temporary descriptors with `O_CLOEXEC` atomically on Linux via `mkostemp()`, retain the portable `mkstemp()+fcntl()` fallback elsewhere, and verify the temporary entry belongs to the anchored parent before publication.
+- Add bounded embedded-NUL and symlink-target replacement regressions; the symlink test proves atomic replacement changes the link entry without modifying its victim.
+- Leave `infiltratr_mkdir_parents()` unchanged; descriptor-relative traversal remains deferred until its existing generic pathname, symlink and permission semantics can be preserved exactly.
+- No public functions, types or APIs were added or removed.
+
 ## 1.19.21 — 2026-09-22
 
 - Harden the existing temporal-policy v3 parser so current authority documents must contain one unambiguous value for every existing v3 field; duplicate or incomplete v3 documents are rejected while legacy v1/v2 migration remains unchanged.
