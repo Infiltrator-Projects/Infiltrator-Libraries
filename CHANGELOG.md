@@ -6,6 +6,14 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.24 — 2026-09-22
+
+- Harden the existing graphics rectangle/copy/blit paths so signed caller coordinates are clipped before endpoint arithmetic, eliminating overflow-prone `origin + length` calculations at extreme inputs.
+- Make self-copy an explicit no-op success and snapshot aliased sources for in-place region copy, blitting, scaling and rotation so overlapping writes cannot destroy pixels that are still required as input.
+- Reuse Common's existing exact cycle-partition arithmetic for nearest-neighbour scale mapping instead of forming a potentially overflowing `index * source_span` product.
+- Add regression coverage for `INT_MIN`/`INT_MAX` clipping and overlapping in-place surface operations.
+- No public functions, types or APIs were added or removed.
+
 ## 1.19.23 — 2026-09-22
 
 - Expose Common's existing exact local-civil microsecond-of-day calculation as a public temporal primitive so Calendar and future consumers do not maintain a duplicate negative-safe day-phase algorithm.

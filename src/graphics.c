@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <infiltratr/graphics.h>
+#include <infiltratr/timing.h>
 
 #include <math.h>
 #include <stdlib.h>
@@ -10,6 +11,160 @@ static int valid_dimensions(size_t width, size_t height, size_t *count) {
     if (width > SIZE_MAX / height) return 0;
     *count = width * height;
     if (*count > SIZE_MAX / sizeof(uint32_t)) return 0;
+    return 1;
+}
+
+static uintmax_t negative_int_magnitude(int value) {
+    return value < 0 ? (uintmax_t)(-(value + 1)) + 1U : 0U;
+}
+
+static int clip_axis_span(int origin, size_t length, size_t limit,
+                          size_t *local_start, size_t *surface_start,
+                          size_t *count) {
+    const uintmax_t span = (uintmax_t)length;
+    const uintmax_t skipped = negative_int_magnitude(origin);
+    uintmax_t start;
+    uintmax_t visible;
+    uintmax_t available;
+
+    if (!local_start || !surface_start || !count || length == 0U || limit == 0U)
+        return 0;
+    if (skipped >= span) return 0;
+
+    start = origin >= 0 ? (uintmax_t)origin : 0U;
+    if (start >= (uintmax_t)limit) return 0;
+
+    visible = span - skipped;
+    available = (uintmax_t)limit - start;
+    if (visible > available) visible = available;
+    if (visible == 0U) return 0;
+
+    *local_start = (size_t)skipped;
+    *surface_start = (size_t)start;
+    *count = (size_t)visible;
+    return 1;
+}
+
+static int clip_blit_axis(int source_origin, int destination_origin,
+                          size_t length, size_t source_limit,
+                          size_t destination_limit, size_t *source_start,
+                          size_t *destination_start, size_t *count) {
+    const uintmax_t span = (uintmax_t)length;
+    const uintmax_t source_negative = negative_int_magnitude(source_origin);
+    const uintmax_t destination_negative =
+        negative_int_magnitude(destination_origin);
+    const uintmax_t skipped =
+        source_negative > destination_negative
+            ? source_negative : destination_negative;
+    uintmax_t source_position;
+    uintmax_t destination_position;
+    uintmax_t visible;
+    uintmax_t available;
+
+    if (!source_start || !destination_start || !count ||
+        length == 0U || source_limit == 0U || destination_limit == 0U)
+        return 0;
+    if (skipped >= span) return 0;
+
+    source_position = source_origin >= 0
+        ? (uintmax_t)source_origin + skipped
+        : skipped - source_negative;
+    destination_position = destination_origin >= 0
+        ? (uintmax_t)destination_origin + skipped
+        : skipped - destination_negative;
+
+    if (source_position >= (uintmax_t)source_limit ||
+        destination_position >= (uintmax_t)destination_limit)
+        return 0;
+
+    visible = span - skipped;
+    available = (uintmax_t)source_limit - source_position;
+    if (visible > available) visible = available;
+    available = (uintmax_t)destination_limit - destination_position;
+    if (visible > available) visible = available;
+    if (visible == 0U) return 0;
+
+    *source_start = (size_t)source_position;
+    *destination_start = (size_t)destination_position;
+    *count = (size_t)visible;
+    return 1;
+}
+
+static int coordinate_from_local(int origin, size_t local, size_t limit,
+                                 size_t *coordinate) {
+    const uintmax_t negative = negative_int_magnitude(origin);
+    uintmax_t position;
+
+    if (!coordinate) return 0;
+    if (origin >= 0)
+        position = (uintmax_t)origin + (uintmax_t)local;
+    else {
+        if ((uintmax_t)local < negative) return 0;
+        position = (uintmax_t)local - negative;
+    }
+
+    if (position >= (uintmax_t)limit) return 0;
+    *coordinate = (size_t)position;
+    return 1;
+}
+
+static int scaled_offset(size_t local, size_t source_span,
+                         size_t destination_span, size_t *offset) {
+    uint64_t partition = 0U;
+
+    if (!offset || source_span == 0U || destination_span == 0U)
+        return 0;
+#if SIZE_MAX > UINT64_MAX
+    if (local > UINT64_MAX || source_span > UINT64_MAX ||
+        destination_span > UINT64_MAX)
+        return 0;
+#endif
+    if (!infiltratr_cycle_partition_u64(
+            (uint64_t)local, (uint64_t)destination_span,
+            (uint64_t)source_span, &partition, NULL))
+        return 0;
+
+    *offset = (size_t)partition;
+    return 1;
+}
+
+static int clip_centered_axis(int center, size_t radius, size_t limit,
+                              size_t *start, size_t *count) {
+    const uintmax_t negative = negative_int_magnitude(center);
+    uintmax_t first = 0U;
+    uintmax_t last;
+    uintmax_t c;
+
+    if (!start || !count || limit == 0U) return 0;
+
+    if (center >= 0) {
+        c = (uintmax_t)center;
+        first = (uintmax_t)radius > c ? 0U : c - (uintmax_t)radius;
+        last = (uintmax_t)radius > UINTMAX_MAX - c
+            ? UINTMAX_MAX : c + (uintmax_t)radius;
+    } else {
+        if ((uintmax_t)radius < negative) return 0;
+        last = (uintmax_t)radius - negative;
+    }
+
+    if (first >= (uintmax_t)limit) return 0;
+    if (last >= (uintmax_t)limit - 1U)
+        last = (uintmax_t)limit - 1U;
+    if (last < first) return 0;
+
+    *start = (size_t)first;
+    *count = (size_t)(last - first + 1U);
+    return 1;
+}
+
+static int snapshot_source_if_needed(
+    InfiltratrSurface *destination, const InfiltratrSurface *source,
+    const InfiltratrSurface **effective_source, InfiltratrSurface *snapshot) {
+    if (!effective_source || !snapshot) return 0;
+    *effective_source = source;
+    if (destination != source) return 1;
+    if (!infiltratr_surface_copy(snapshot, source)) return 0;
+    *effective_source = snapshot;
     return 1;
 }
 
@@ -61,8 +216,10 @@ void infiltratr_surface_release(InfiltratrSurface *surface) {
 
 int infiltratr_surface_copy(InfiltratrSurface *destination, const InfiltratrSurface *source) {
     if (!destination || !source || !source->pixels || source->pixel_count == 0) return 0;
+    if (destination == source) return 1;
     if (!infiltratr_surface_resize(destination, source->width, source->height)) return 0;
-    memcpy(destination->pixels, source->pixels, source->pixel_count * sizeof(uint32_t));
+    memmove(destination->pixels, source->pixels,
+            source->pixel_count * sizeof(uint32_t));
     return 1;
 }
 
@@ -70,23 +227,38 @@ int infiltratr_surface_copy_region(InfiltratrSurface *destination,
                                    const InfiltratrSurface *source,
                                    int source_x, int source_y,
                                    int width, int height) {
-    int y;
+    InfiltratrSurface snapshot = {0};
+    const InfiltratrSurface *input = source;
     InfiltratrColor transparent = {0, 0, 0, 0};
-    if (!destination || !source || !source->pixels || width <= 0 || height <= 0) return 0;
-    if (!infiltratr_surface_resize(destination, (size_t)width, (size_t)height)) return 0;
+    size_t local_x, local_y, source_start_x, source_start_y;
+    size_t copy_width, copy_height;
+    int result = 0;
+
+    if (!destination || !source || !source->pixels || width <= 0 || height <= 0)
+        return 0;
+    if (!snapshot_source_if_needed(destination, source, &input, &snapshot))
+        return 0;
+    if (!infiltratr_surface_resize(destination, (size_t)width, (size_t)height))
+        goto out;
+
     infiltratr_surface_clear(destination, transparent);
-    for (y = 0; y < height; ++y) {
-        const int sy = source_y + y;
-        int x;
-        if (sy < 0 || (size_t)sy >= source->height) continue;
-        for (x = 0; x < width; ++x) {
-            const int sx = source_x + x;
-            if (sx < 0 || (size_t)sx >= source->width) continue;
-            destination->pixels[(size_t)y * destination->width + (size_t)x] =
-                source->pixels[(size_t)sy * source->width + (size_t)sx];
+    if (clip_axis_span(source_x, (size_t)width, input->width,
+                       &local_x, &source_start_x, &copy_width) &&
+        clip_axis_span(source_y, (size_t)height, input->height,
+                       &local_y, &source_start_y, &copy_height)) {
+        for (size_t row = 0U; row < copy_height; ++row) {
+            memmove(destination->pixels +
+                        (local_y + row) * destination->width + local_x,
+                    input->pixels +
+                        (source_start_y + row) * input->width + source_start_x,
+                    copy_width * sizeof(uint32_t));
         }
     }
-    return 1;
+    result = 1;
+
+out:
+    infiltratr_surface_release(&snapshot);
+    return result;
 }
 
 int infiltratr_surface_copy_luma_tinted(InfiltratrSurface *destination,
@@ -130,21 +302,23 @@ InfiltratrColor infiltratr_surface_get_pixel(const InfiltratrSurface *surface, i
 
 void infiltratr_surface_fill_rect(InfiltratrSurface *surface, int x, int y, int width, int height,
                                   InfiltratrColor color) {
-    int x0, y0, x1, y1, yy;
+    size_t local_x, local_y, start_x, start_y, fill_width, fill_height;
     uint32_t pixel;
+
     if (!surface || !surface->pixels || width <= 0 || height <= 0) return;
-    x0 = x < 0 ? 0 : x;
-    y0 = y < 0 ? 0 : y;
-    x1 = x + width;
-    y1 = y + height;
-    if (x1 > (int)surface->width) x1 = (int)surface->width;
-    if (y1 > (int)surface->height) y1 = (int)surface->height;
-    if (x0 >= x1 || y0 >= y1) return;
+    if (!clip_axis_span(x, (size_t)width, surface->width,
+                        &local_x, &start_x, &fill_width) ||
+        !clip_axis_span(y, (size_t)height, surface->height,
+                        &local_y, &start_y, &fill_height))
+        return;
+
+    (void)local_x;
+    (void)local_y;
     pixel = infiltratr_color_pack(color);
-    for (yy = y0; yy < y1; ++yy) {
-        int xx;
-        uint32_t *row = surface->pixels + (size_t)yy * surface->width;
-        for (xx = x0; xx < x1; ++xx) row[xx] = pixel;
+    for (size_t yy = 0U; yy < fill_height; ++yy) {
+        uint32_t *row = surface->pixels + (start_y + yy) * surface->width;
+        for (size_t xx = 0U; xx < fill_width; ++xx)
+            row[start_x + xx] = pixel;
     }
 }
 
@@ -177,48 +351,96 @@ static InfiltratrColor composite_source_over(InfiltratrColor source,
 
 void infiltratr_surface_blend_rect(InfiltratrSurface *surface, int x, int y, int width, int height,
                                    InfiltratrColor color) {
-    int x0, y0, x1, y1, yy;
+    size_t local_x, local_y, start_x, start_y, blend_width, blend_height;
+
     if (!surface || !surface->pixels || width <= 0 || height <= 0 || color.a == 0) return;
     if (color.a == 255) {
         infiltratr_surface_fill_rect(surface, x, y, width, height, color);
         return;
     }
-    x0 = x < 0 ? 0 : x;
-    y0 = y < 0 ? 0 : y;
-    x1 = x + width;
-    y1 = y + height;
-    if (x1 > (int)surface->width) x1 = (int)surface->width;
-    if (y1 > (int)surface->height) y1 = (int)surface->height;
-    if (x0 >= x1 || y0 >= y1) return;
-    for (yy = y0; yy < y1; ++yy) {
-        int xx;
-        uint32_t *row = surface->pixels + (size_t)yy * surface->width;
-        for (xx = x0; xx < x1; ++xx) {
-            const InfiltratrColor destination = infiltratr_color_unpack(row[xx]);
-            row[xx] = infiltratr_color_pack(composite_source_over(color, destination));
+    if (!clip_axis_span(x, (size_t)width, surface->width,
+                        &local_x, &start_x, &blend_width) ||
+        !clip_axis_span(y, (size_t)height, surface->height,
+                        &local_y, &start_y, &blend_height))
+        return;
+
+    (void)local_x;
+    (void)local_y;
+    for (size_t yy = 0U; yy < blend_height; ++yy) {
+        uint32_t *row = surface->pixels + (start_y + yy) * surface->width;
+        for (size_t xx = 0U; xx < blend_width; ++xx) {
+            const size_t column = start_x + xx;
+            const InfiltratrColor destination =
+                infiltratr_color_unpack(row[column]);
+            row[column] =
+                infiltratr_color_pack(composite_source_over(color, destination));
         }
     }
 }
 
-static void blend_pixel(InfiltratrSurface *destination, int x, int y, InfiltratrColor source) {
+static void blend_pixel_at(InfiltratrSurface *destination, size_t x, size_t y,
+                           InfiltratrColor source) {
     InfiltratrColor existing;
-    if (source.a == 0 || !destination || !destination->pixels || x < 0 || y < 0 ||
-        (size_t)x >= destination->width || (size_t)y >= destination->height) return;
+
+    if (source.a == 0 || !destination || !destination->pixels ||
+        x >= destination->width || y >= destination->height)
+        return;
     if (source.a == 255) {
-        destination->pixels[(size_t)y * destination->width + (size_t)x] = infiltratr_color_pack(source);
+        destination->pixels[y * destination->width + x] =
+            infiltratr_color_pack(source);
         return;
     }
-    existing = infiltratr_surface_get_pixel(destination, x, y);
-    destination->pixels[(size_t)y * destination->width + (size_t)x] =
+
+    existing = infiltratr_color_unpack(
+        destination->pixels[y * destination->width + x]);
+    destination->pixels[y * destination->width + x] =
         infiltratr_color_pack(composite_source_over(source, existing));
+}
+
+static void surface_blit_region_core(
+    InfiltratrSurface *destination, const InfiltratrSurface *source,
+    int source_x, int source_y, size_t source_width, size_t source_height,
+    int destination_x, int destination_y) {
+    InfiltratrSurface snapshot = {0};
+    const InfiltratrSurface *input = source;
+    size_t source_start_x, source_start_y;
+    size_t destination_start_x, destination_start_y;
+    size_t copy_width, copy_height;
+
+    if (!destination || !destination->pixels || !source || !source->pixels ||
+        source_width == 0U || source_height == 0U)
+        return;
+    if (!snapshot_source_if_needed(destination, source, &input, &snapshot))
+        return;
+
+    if (!clip_blit_axis(source_x, destination_x, source_width,
+                        input->width, destination->width,
+                        &source_start_x, &destination_start_x, &copy_width) ||
+        !clip_blit_axis(source_y, destination_y, source_height,
+                        input->height, destination->height,
+                        &source_start_y, &destination_start_y, &copy_height))
+        goto out;
+
+    for (size_t y = 0U; y < copy_height; ++y) {
+        for (size_t x = 0U; x < copy_width; ++x) {
+            blend_pixel_at(
+                destination, destination_start_x + x, destination_start_y + y,
+                infiltratr_color_unpack(
+                    input->pixels[(source_start_y + y) * input->width +
+                                  source_start_x + x]));
+        }
+    }
+
+out:
+    infiltratr_surface_release(&snapshot);
 }
 
 void infiltratr_surface_blit(InfiltratrSurface *destination, const InfiltratrSurface *source,
                              int destination_x, int destination_y) {
-    infiltratr_surface_blit_region(destination, source, 0, 0,
-                                   source ? (int)source->width : 0,
-                                   source ? (int)source->height : 0,
-                                   destination_x, destination_y);
+    if (!source) return;
+    surface_blit_region_core(destination, source, 0, 0,
+                             source->width, source->height,
+                             destination_x, destination_y);
 }
 
 void infiltratr_surface_blit_region(InfiltratrSurface *destination,
@@ -226,31 +448,79 @@ void infiltratr_surface_blit_region(InfiltratrSurface *destination,
                                     int source_x, int source_y,
                                     int source_width, int source_height,
                                     int destination_x, int destination_y) {
-    int y;
+    if (source_width <= 0 || source_height <= 0) return;
+    surface_blit_region_core(destination, source, source_x, source_y,
+                             (size_t)source_width, (size_t)source_height,
+                             destination_x, destination_y);
+}
+
+static void surface_blit_region_scaled_nearest_core(
+    InfiltratrSurface *destination, const InfiltratrSurface *source,
+    int source_x, int source_y, size_t source_width, size_t source_height,
+    int destination_x, int destination_y,
+    size_t destination_width, size_t destination_height) {
+    InfiltratrSurface snapshot = {0};
+    const InfiltratrSurface *input = source;
+    size_t local_start_x, local_start_y;
+    size_t destination_start_x, destination_start_y;
+    size_t visible_width, visible_height;
+
     if (!destination || !destination->pixels || !source || !source->pixels ||
-        source_width <= 0 || source_height <= 0) return;
-    for (y = 0; y < source_height; ++y) {
-        const int sy = source_y + y;
-        int x;
-        if (sy < 0 || (size_t)sy >= source->height) continue;
-        for (x = 0; x < source_width; ++x) {
-            const int sx = source_x + x;
-            if (sx < 0 || (size_t)sx >= source->width) continue;
-            blend_pixel(destination, destination_x + x, destination_y + y,
-                        infiltratr_color_unpack(source->pixels[(size_t)sy * source->width + (size_t)sx]));
+        source_width == 0U || source_height == 0U ||
+        destination_width == 0U || destination_height == 0U)
+        return;
+    if (!snapshot_source_if_needed(destination, source, &input, &snapshot))
+        return;
+
+    if (!clip_axis_span(destination_x, destination_width, destination->width,
+                        &local_start_x, &destination_start_x, &visible_width) ||
+        !clip_axis_span(destination_y, destination_height, destination->height,
+                        &local_start_y, &destination_start_y, &visible_height))
+        goto out;
+
+    for (size_t y = 0U; y < visible_height; ++y) {
+        size_t source_offset_y;
+        size_t source_position_y;
+        const size_t local_y = local_start_y + y;
+
+        if (!scaled_offset(local_y, source_height, destination_height,
+                           &source_offset_y) ||
+            !coordinate_from_local(source_y, source_offset_y, input->height,
+                                   &source_position_y))
+            continue;
+
+        for (size_t x = 0U; x < visible_width; ++x) {
+            size_t source_offset_x;
+            size_t source_position_x;
+            const size_t local_x = local_start_x + x;
+
+            if (!scaled_offset(local_x, source_width, destination_width,
+                               &source_offset_x) ||
+                !coordinate_from_local(source_x, source_offset_x, input->width,
+                                       &source_position_x))
+                continue;
+
+            blend_pixel_at(
+                destination, destination_start_x + x, destination_start_y + y,
+                infiltratr_color_unpack(
+                    input->pixels[source_position_y * input->width +
+                                  source_position_x]));
         }
     }
+
+out:
+    infiltratr_surface_release(&snapshot);
 }
 
 void infiltratr_surface_blit_scaled_nearest(InfiltratrSurface *destination,
                                             const InfiltratrSurface *source,
                                             int destination_x, int destination_y,
                                             int destination_width, int destination_height) {
-    infiltratr_surface_blit_region_scaled_nearest(destination, source, 0, 0,
-                                                  source ? (int)source->width : 0,
-                                                  source ? (int)source->height : 0,
-                                                  destination_x, destination_y,
-                                                  destination_width, destination_height);
+    if (!source || destination_width <= 0 || destination_height <= 0) return;
+    surface_blit_region_scaled_nearest_core(
+        destination, source, 0, 0, source->width, source->height,
+        destination_x, destination_y,
+        (size_t)destination_width, (size_t)destination_height);
 }
 
 void infiltratr_surface_blit_region_scaled_nearest(InfiltratrSurface *destination,
@@ -259,20 +529,14 @@ void infiltratr_surface_blit_region_scaled_nearest(InfiltratrSurface *destinatio
                                                    int source_width, int source_height,
                                                    int destination_x, int destination_y,
                                                    int destination_width, int destination_height) {
-    int y;
-    if (!destination || !destination->pixels || !source || !source->pixels ||
-        source_width <= 0 || source_height <= 0 || destination_width <= 0 || destination_height <= 0) return;
-    for (y = 0; y < destination_height; ++y) {
-        const int sy = source_y + (int)(((size_t)y * (size_t)source_height) / (size_t)destination_height);
-        int x;
-        if (sy < 0 || (size_t)sy >= source->height) continue;
-        for (x = 0; x < destination_width; ++x) {
-            const int sx = source_x + (int)(((size_t)x * (size_t)source_width) / (size_t)destination_width);
-            if (sx < 0 || (size_t)sx >= source->width) continue;
-            blend_pixel(destination, destination_x + x, destination_y + y,
-                        infiltratr_color_unpack(source->pixels[(size_t)sy * source->width + (size_t)sx]));
-        }
-    }
+    if (source_width <= 0 || source_height <= 0 ||
+        destination_width <= 0 || destination_height <= 0)
+        return;
+    surface_blit_region_scaled_nearest_core(
+        destination, source, source_x, source_y,
+        (size_t)source_width, (size_t)source_height,
+        destination_x, destination_y,
+        (size_t)destination_width, (size_t)destination_height);
 }
 
 static InfiltratrColor sample_surface_i64(const InfiltratrSurface *source,
@@ -334,15 +598,62 @@ static InfiltratrColor bilinear_sample(const InfiltratrSurface *source,
     return result;
 }
 
+static void surface_blit_region_scaled_bilinear_core(
+    InfiltratrSurface *destination, const InfiltratrSurface *source,
+    int source_x, int source_y, size_t source_width, size_t source_height,
+    int destination_x, int destination_y,
+    size_t destination_width, size_t destination_height) {
+    InfiltratrSurface snapshot = {0};
+    const InfiltratrSurface *input = source;
+    size_t local_start_x, local_start_y;
+    size_t destination_start_x, destination_start_y;
+    size_t visible_width, visible_height;
+
+    if (!destination || !destination->pixels || !source || !source->pixels ||
+        source_width == 0U || source_height == 0U ||
+        destination_width == 0U || destination_height == 0U)
+        return;
+    if (!snapshot_source_if_needed(destination, source, &input, &snapshot))
+        return;
+
+    if (!clip_axis_span(destination_x, destination_width, destination->width,
+                        &local_start_x, &destination_start_x, &visible_width) ||
+        !clip_axis_span(destination_y, destination_height, destination->height,
+                        &local_start_y, &destination_start_y, &visible_height))
+        goto out;
+
+    for (size_t y = 0U; y < visible_height; ++y) {
+        const size_t local_y = local_start_y + y;
+        const double fy = destination_height == 1U ? 0.0 :
+            (double)local_y * (double)(source_height - 1U) /
+            (double)(destination_height - 1U);
+
+        for (size_t x = 0U; x < visible_width; ++x) {
+            const size_t local_x = local_start_x + x;
+            const double fx = destination_width == 1U ? 0.0 :
+                (double)local_x * (double)(source_width - 1U) /
+                (double)(destination_width - 1U);
+            const InfiltratrColor sample =
+                bilinear_sample(input, (double)source_x + fx,
+                                (double)source_y + fy);
+            blend_pixel_at(destination, destination_start_x + x,
+                           destination_start_y + y, sample);
+        }
+    }
+
+out:
+    infiltratr_surface_release(&snapshot);
+}
+
 void infiltratr_surface_blit_scaled_bilinear(InfiltratrSurface *destination,
                                              const InfiltratrSurface *source,
                                              int destination_x, int destination_y,
                                              int destination_width, int destination_height) {
-    infiltratr_surface_blit_region_scaled_bilinear(
-        destination, source, 0, 0,
-        source ? (int)source->width : 0,
-        source ? (int)source->height : 0,
-        destination_x, destination_y, destination_width, destination_height);
+    if (!source || destination_width <= 0 || destination_height <= 0) return;
+    surface_blit_region_scaled_bilinear_core(
+        destination, source, 0, 0, source->width, source->height,
+        destination_x, destination_y,
+        (size_t)destination_width, (size_t)destination_height);
 }
 
 void infiltratr_surface_blit_region_scaled_bilinear(InfiltratrSurface *destination,
@@ -351,54 +662,72 @@ void infiltratr_surface_blit_region_scaled_bilinear(InfiltratrSurface *destinati
                                                     int source_width, int source_height,
                                                     int destination_x, int destination_y,
                                                     int destination_width, int destination_height) {
-    int y;
-    if (!destination || !destination->pixels || !source || !source->pixels ||
-        source_width <= 0 || source_height <= 0 ||
-        destination_width <= 0 || destination_height <= 0) return;
-
-    for (y = 0; y < destination_height; ++y) {
-        const double fy = destination_height == 1 ? 0.0 :
-            (double)y * (double)(source_height - 1) /
-            (double)(destination_height - 1);
-        int x;
-        for (x = 0; x < destination_width; ++x) {
-            const double fx = destination_width == 1 ? 0.0 :
-                (double)x * (double)(source_width - 1) /
-                (double)(destination_width - 1);
-            const InfiltratrColor sample =
-                bilinear_sample(source, (double)source_x + fx,
-                                (double)source_y + fy);
-            blend_pixel(destination, destination_x + x, destination_y + y, sample);
-        }
-    }
+    if (source_width <= 0 || source_height <= 0 ||
+        destination_width <= 0 || destination_height <= 0)
+        return;
+    surface_blit_region_scaled_bilinear_core(
+        destination, source, source_x, source_y,
+        (size_t)source_width, (size_t)source_height,
+        destination_x, destination_y,
+        (size_t)destination_width, (size_t)destination_height);
 }
 
 void infiltratr_surface_blit_rotated(InfiltratrSurface *destination,
                                      const InfiltratrSurface *source,
                                      int center_x, int center_y,
                                      double angle_radians) {
+    InfiltratrSurface snapshot = {0};
+    const InfiltratrSurface *input = source;
+    size_t start_x, start_y, count_x, count_y;
+    size_t radius_x, radius_y;
+
+    if (!destination || !destination->pixels || !source || !source->pixels ||
+        source->width == 0U || source->height == 0U)
+        return;
+    if (!snapshot_source_if_needed(destination, source, &input, &snapshot))
+        return;
+
+    radius_x = input->width / 2U + input->width % 2U;
+    radius_y = input->height / 2U + input->height % 2U;
+    if (!clip_centered_axis(center_x, radius_x, destination->width,
+                            &start_x, &count_x) ||
+        !clip_centered_axis(center_y, radius_y, destination->height,
+                            &start_y, &count_y))
+        goto out;
+
     const double cosine = cos(angle_radians);
     const double sine = sin(angle_radians);
-    const double source_cx = source ? ((double)source->width - 1.0) * 0.5 : 0.0;
-    const double source_cy = source ? ((double)source->height - 1.0) * 0.5 : 0.0;
-    const int radius_x = source ? (int)((source->width + 1U) / 2U) : 0;
-    const int radius_y = source ? (int)((source->height + 1U) / 2U) : 0;
-    int y;
-    if (!destination || !destination->pixels || !source || !source->pixels) return;
-    for (y = center_y - radius_y; y <= center_y + radius_y; ++y) {
-        int x;
-        for (x = center_x - radius_x; x <= center_x + radius_x; ++x) {
-            const double dx = (double)(x - center_x);
-            const double dy = (double)(y - center_y);
+    const double source_cx = ((double)input->width - 1.0) * 0.5;
+    const double source_cy = ((double)input->height - 1.0) * 0.5;
+
+    for (size_t y = 0U; y < count_y; ++y) {
+        const size_t destination_y = start_y + y;
+        const double dy = (double)destination_y - (double)center_y;
+
+        for (size_t x = 0U; x < count_x; ++x) {
+            const size_t destination_x = start_x + x;
+            const double dx = (double)destination_x - (double)center_x;
             const double sx = source_cx + cosine * dx + sine * dy;
             const double sy = source_cy - sine * dx + cosine * dy;
-            int isx, isy;
-            if (sx < 0.0 || sy < 0.0 || sx >= (double)source->width || sy >= (double)source->height) continue;
-            isx = (int)floor(sx + 0.5);
-            isy = (int)floor(sy + 0.5);
-            if ((size_t)isx >= source->width || (size_t)isy >= source->height) continue;
-            blend_pixel(destination, x, y,
-                        infiltratr_color_unpack(source->pixels[(size_t)isy * source->width + (size_t)isx]));
+
+            if (sx < 0.0 || sy < 0.0 ||
+                sx >= (double)input->width || sy >= (double)input->height)
+                continue;
+
+            const int64_t isx = (int64_t)floor(sx + 0.5);
+            const int64_t isy = (int64_t)floor(sy + 0.5);
+            if (isx < 0 || isy < 0 ||
+                (uintmax_t)isx >= (uintmax_t)input->width ||
+                (uintmax_t)isy >= (uintmax_t)input->height)
+                continue;
+
+            blend_pixel_at(
+                destination, destination_x, destination_y,
+                infiltratr_color_unpack(
+                    input->pixels[(size_t)isy * input->width + (size_t)isx]));
         }
     }
+
+out:
+    infiltratr_surface_release(&snapshot);
 }

@@ -5,6 +5,7 @@
 #undef NDEBUG
 #endif
 #include <assert.h>
+#include <limits.h>
 
 int main(void) {
     InfiltratrSurface a = {0};
@@ -13,6 +14,7 @@ int main(void) {
     InfiltratrSurface tinted = {0};
     InfiltratrSurface smooth_source = {0};
     InfiltratrSurface smooth_target = {0};
+    InfiltratrSurface edge = {0};
     InfiltratrColor red = {255, 0, 0, 255};
     InfiltratrColor blue_half = {0, 0, 255, 128};
     InfiltratrColor c;
@@ -77,11 +79,87 @@ int main(void) {
     c = infiltratr_surface_get_pixel(&smooth_target, 1, 1);
     assert(c.r == 255 && c.b == 0 && c.a >= 63 && c.a <= 64);
 
+
+    /*
+     * Source/destination aliasing must behave as a snapshot, not as an
+     * overlapping forward copy. This exercises the exact in-place cases that
+     * previously allowed source pixels to be destroyed before they were read.
+     */
+    assert(infiltratr_surface_init(&edge, 4, 1));
+    infiltratr_surface_set_pixel(&edge, 0, 0, (InfiltratrColor){10, 0, 0, 255});
+    infiltratr_surface_set_pixel(&edge, 1, 0, (InfiltratrColor){20, 0, 0, 255});
+    infiltratr_surface_set_pixel(&edge, 2, 0, (InfiltratrColor){30, 0, 0, 255});
+    infiltratr_surface_set_pixel(&edge, 3, 0, (InfiltratrColor){40, 0, 0, 255});
+    assert(infiltratr_surface_copy(&edge, &edge));
+    assert(infiltratr_surface_get_pixel(&edge, 3, 0).r == 40);
+
+    infiltratr_surface_blit_region(&edge, &edge, 0, 0, 3, 1, 1, 0);
+    assert(infiltratr_surface_get_pixel(&edge, 0, 0).r == 10);
+    assert(infiltratr_surface_get_pixel(&edge, 1, 0).r == 10);
+    assert(infiltratr_surface_get_pixel(&edge, 2, 0).r == 20);
+    assert(infiltratr_surface_get_pixel(&edge, 3, 0).r == 30);
+
+    infiltratr_surface_set_pixel(&edge, 0, 0, (InfiltratrColor){10, 0, 0, 255});
+    infiltratr_surface_set_pixel(&edge, 1, 0, (InfiltratrColor){20, 0, 0, 255});
+    infiltratr_surface_set_pixel(&edge, 2, 0, (InfiltratrColor){30, 0, 0, 255});
+    infiltratr_surface_set_pixel(&edge, 3, 0, (InfiltratrColor){40, 0, 0, 255});
+    assert(infiltratr_surface_copy_region(&edge, &edge, 1, 0, 2, 1));
+    assert(edge.width == 2U && edge.height == 1U);
+    assert(infiltratr_surface_get_pixel(&edge, 0, 0).r == 20);
+    assert(infiltratr_surface_get_pixel(&edge, 1, 0).r == 30);
+
+    /*
+     * EXT-style range validation clips before constructing signed endpoints.
+     * Extreme coordinates therefore remain defined and either intersect the
+     * surface correctly or become clean no-ops.
+     */
+    assert(infiltratr_surface_resize(&edge, 2, 2));
+    infiltratr_surface_clear(&edge, (InfiltratrColor){1, 2, 3, 255});
+    infiltratr_surface_fill_rect(&edge, INT_MAX, 0, INT_MAX, 1, red);
+    c = infiltratr_surface_get_pixel(&edge, 0, 0);
+    assert(c.r == 1 && c.g == 2 && c.b == 3);
+    infiltratr_surface_fill_rect(&edge, INT_MIN, 0, INT_MAX, 1, red);
+    c = infiltratr_surface_get_pixel(&edge, 1, 0);
+    assert(c.r == 1 && c.g == 2 && c.b == 3);
+    infiltratr_surface_fill_rect(&edge, -1, 0, INT_MAX, 1, red);
+    assert(infiltratr_surface_get_pixel(&edge, 0, 0).r == 255);
+    assert(infiltratr_surface_get_pixel(&edge, 1, 0).r == 255);
+
+    infiltratr_surface_clear(&edge, (InfiltratrColor){1, 2, 3, 255});
+    infiltratr_surface_blend_rect(&edge, INT_MAX, INT_MAX, INT_MAX, INT_MAX,
+                                  blue_half);
+    c = infiltratr_surface_get_pixel(&edge, 0, 0);
+    assert(c.r == 1 && c.g == 2 && c.b == 3);
+
+    infiltratr_surface_blit_region(&edge, &smooth_source, 0, 0, 1, 1,
+                                   INT_MAX, 0);
+    c = infiltratr_surface_get_pixel(&edge, 0, 0);
+    assert(c.r == 1 && c.g == 2 && c.b == 3);
+    infiltratr_surface_blit_region(&edge, &smooth_source, INT_MAX, 0,
+                                   INT_MAX, 1, 0, 0);
+    c = infiltratr_surface_get_pixel(&edge, 0, 0);
+    assert(c.r == 1 && c.g == 2 && c.b == 3);
+
+    infiltratr_surface_blit_region_scaled_nearest(
+        &edge, &smooth_source, 0, 0, 2, 2, INT_MAX, 0, INT_MAX, 1);
+    c = infiltratr_surface_get_pixel(&edge, 0, 0);
+    assert(c.r == 1 && c.g == 2 && c.b == 3);
+    infiltratr_surface_blit_region_scaled_bilinear(
+        &edge, &smooth_source, 0, 0, 2, 2, INT_MAX, 0, INT_MAX, 1);
+    c = infiltratr_surface_get_pixel(&edge, 0, 0);
+    assert(c.r == 1 && c.g == 2 && c.b == 3);
+
+    infiltratr_surface_blit_rotated(&edge, &smooth_source,
+                                    INT_MAX, INT_MAX, 0.0);
+    c = infiltratr_surface_get_pixel(&edge, 0, 0);
+    assert(c.r == 1 && c.g == 2 && c.b == 3);
+
     infiltratr_surface_release(&a);
     infiltratr_surface_release(&b);
     infiltratr_surface_release(&region);
     infiltratr_surface_release(&tinted);
     infiltratr_surface_release(&smooth_source);
     infiltratr_surface_release(&smooth_target);
+    infiltratr_surface_release(&edge);
     return 0;
 }
