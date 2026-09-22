@@ -184,6 +184,21 @@ static void test_policy_v3(void)
     CHECK(infiltratr_temporal_calendar_find("none") == NULL);
 }
 
+static void test_local_microseconds_of_day(void)
+{
+    CHECK(infiltratr_temporal_local_microseconds_of_day(0, 0) == INT64_C(0));
+    CHECK(infiltratr_temporal_local_microseconds_of_day(-1, 0) ==
+          INT64_C(86399999999));
+    CHECK(infiltratr_temporal_local_microseconds_of_day(0, 3600) ==
+          INT64_C(3600000000));
+    CHECK(infiltratr_temporal_local_microseconds_of_day(0, -3600) ==
+          INT64_C(82800000000));
+    CHECK(infiltratr_temporal_local_microseconds_of_day(
+              INT64_MIN, INT32_MIN) == INT64_C(60297224192));
+    CHECK(infiltratr_temporal_local_microseconds_of_day(
+              INT64_MAX, INT32_MAX) == INT64_C(26101775807));
+}
+
 static void test_clock_formats(void)
 {
     char text[64];
@@ -237,6 +252,7 @@ int main(void)
     test_catalogue();
     test_policy_round_trip();
     test_policy_v3();
+    test_local_microseconds_of_day();
     test_clock_formats();
     return 0;
 }

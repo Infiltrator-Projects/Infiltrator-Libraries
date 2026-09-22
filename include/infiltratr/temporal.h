@@ -109,6 +109,18 @@ bool infiltratr_temporal_policy_serialize(const InfiltratrTemporalPolicy *policy
                                           size_t *length);
 
 /**
+ * Return the local civil microsecond phase within one 24-hour day.
+ *
+ * @unix_microseconds is a canonical Unix-microsecond instant.
+ * @utc_offset_seconds is the caller-supplied civil UTC offset including DST.
+ * The result is always in the inclusive range 0 through 86,399,999,999,
+ * including for negative instants and extreme signed inputs.
+ */
+int64_t infiltratr_temporal_local_microseconds_of_day(
+    int64_t unix_microseconds,
+    int32_t utc_offset_seconds);
+
+/**
  * Format a local civil clock from a canonical Unix-microsecond instant.
  *
  * Explicit 12-hour, 24-hour and decimal-10 profiles are supported. SYSTEM is

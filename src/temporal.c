@@ -105,8 +105,9 @@ static int64_t positive_phase(int64_t value, int64_t period)
     return remainder;
 }
 
-static int64_t local_microseconds_of_day(int64_t unix_microseconds,
-                                         int32_t utc_offset_seconds)
+int64_t infiltratr_temporal_local_microseconds_of_day(
+    int64_t unix_microseconds,
+    int32_t utc_offset_seconds)
 {
     const int64_t instant_phase =
         positive_phase(unix_microseconds, MICROSECONDS_PER_DAY);
@@ -297,7 +298,8 @@ bool infiltratr_temporal_format_clock(InfiltratrClockProfile profile,
 {
     char temporary[64];
     const int64_t local =
-        local_microseconds_of_day(unix_microseconds, utc_offset_seconds);
+        infiltratr_temporal_local_microseconds_of_day(
+            unix_microseconds, utc_offset_seconds);
     int written = -1;
 
     if (buffer == NULL || capacity == 0U || !profile_valid(profile) ||

@@ -6,6 +6,11 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.23 — 2026-09-22
+
+- Expose Common's existing exact local-civil microsecond-of-day calculation as a public temporal primitive so Calendar and future consumers do not maintain a duplicate negative-safe day-phase algorithm.
+- Preserve the formatter's existing behaviour by routing it through the promoted helper and add boundary coverage for negative instants, positive/negative UTC offsets and signed integer extremes.
+
 ## 1.19.22 — 2026-09-22
 
 - Harden the existing bounded POSIX text reader to reject embedded NUL bytes in its retained byte range and trim trailing CR/LF directly from the known byte count instead of rediscovering length with `strlen()`.
