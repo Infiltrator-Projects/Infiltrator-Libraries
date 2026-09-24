@@ -31,8 +31,8 @@ jobs:
           if grep -Eq '^  pull_request:|^  merge_group:' .github/workflows/ci.yml; then exit 1; fi
 
   design-contract:
-    name: Hosted design contract
-    runs-on: ubuntu-latest
+    name: Design contract
+    runs-on: ${{ startsWith(github.event.head_commit.message, 'Release ') && 'ubuntu-latest' || 'linux-native' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -42,7 +42,7 @@ jobs:
           set -euo pipefail
           for command_name in jq bash grep; do
             command -v "$command_name" >/dev/null 2>&1 || {
-              echo "Hosted runner is missing $command_name." >&2
+              echo "Runner is missing $command_name." >&2
               exit 1
             }
           done
@@ -55,8 +55,8 @@ jobs:
         run: bash tests/check_spdx.sh
 
   strict-build:
-    name: Hosted ${{ matrix.compiler }} strict build
-    runs-on: ubuntu-latest
+    name: ${{ matrix.compiler }} strict build
+    runs-on: ${{ startsWith(github.event.head_commit.message, 'Release ') && 'ubuntu-latest' || 'linux-native' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -92,8 +92,8 @@ jobs:
           ./cmake-consumer-build/infiltratr-common-consumer
 
   sanitizers:
-    name: Hosted Clang ASan + UBSan
-    runs-on: ubuntu-latest
+    name: Clang ASan + UBSan
+    runs-on: ${{ startsWith(github.event.head_commit.message, 'Release ') && 'ubuntu-latest' || 'linux-native' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
