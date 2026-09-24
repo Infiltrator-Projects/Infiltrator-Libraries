@@ -248,6 +248,133 @@ static void test_clock_formats(void)
 }
 
 
+static void test_duration_mode_formats(void)
+{
+    char text[192];
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "standard", UINT64_C(3661) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "01:01:01") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "decimal", UINT64_C(86) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "0:00:99") == 0);
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "decimal", UINT64_C(87) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "0:01:00") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "internet", UINT64_C(87) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "@001.00") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "unix", UINT64_C(61) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "61 s") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "binary", UINT64_C(61) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "00000:000001:000001") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "hexadecimal", UINT64_C(43200) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "8000") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "julian", UINT64_C(43200) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "JD +0.50000 d") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "modified-julian", UINT64_C(43200) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        false, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "MJD +0.500 d") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "sidereal", UINT64_C(43200) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, true, -36.39, 145.36,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "12:01:58 LST") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "chinese-time", UINT64_C(7200) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        false, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "時辰 01/12") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "chinese-ke", UINT64_C(864) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        false, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "刻 01/100") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "indian-ghati", UINT64_C(1440) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        false, false, true, -36.39, 145.36,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "GH 01:00") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "roman-temporal", UINT64_C(3661) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        false, false, true, -36.39, 145.36,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "01:01") == 0);
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "japanese-temporal", UINT64_C(3661) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        false, false, true, -36.39, 145.36,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "01:01") == 0);
+
+    for (size_t index = 0U;
+         index < infiltratr_temporal_clock_mode_count(); ++index) {
+        const InfiltratrTemporalClockModeInfo *info =
+            infiltratr_temporal_clock_mode_at(index);
+        CHECK(info != NULL);
+        CHECK(infiltratr_temporal_format_duration_mode(
+            info->id,
+            UINT64_C(98765) * UINT64_C(1000000),
+            INT64_C(1789990000) * INT64_C(1000000),
+            true, false, true, -36.39, 145.36,
+            text, sizeof(text), NULL));
+        CHECK(text[0] != '\0');
+    }
+
+    CHECK(!infiltratr_temporal_format_duration_mode(
+        "missing-mode", UINT64_C(1), INT64_C(0),
+        true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+}
+
 static void test_clock_mode_formats(void)
 {
     char text[192];
@@ -318,6 +445,7 @@ int main(void)
     test_policy_v3();
     test_local_microseconds_of_day();
     test_clock_formats();
+    test_duration_mode_formats();
     test_clock_mode_formats();
     return 0;
 }

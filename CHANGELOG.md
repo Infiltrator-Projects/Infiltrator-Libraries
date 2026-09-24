@@ -6,6 +6,14 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.26 — 2026-09-24
+
+- Add one canonical elapsed-duration formatter keyed by the same system-wide clock-mode IDs used for civil-clock presentation.
+- Give fixed-unit systems their actual elapsed representation: French decimal 10/100/100 time, Internet beats, binary H:M:S, hexadecimal 65,536-tick days, Julian/MJD fractional days, sidereal rate, Chinese double-hours/hundred-kè and Indian ghaṭī/vighaṭī.
+- Anchor apparent-solar elapsed presentation to the interval end instant so equation-of-time drift is represented instead of silently treating apparent solar time as a fixed-rate clock.
+- Keep equal-hour origin systems on their real 60/60 units, and deliberately retain conventional SI H:M:S for Roman and Edo seasonal period labels because their unequal day/night periods do not define one context-free duration unit.
+- Preserve canonical SI/monotonic accounting; this API changes presentation only.
+
 ## 1.19.25 — 2026-09-24
 
 - Add one portable formatter for every explicit clock mode in the shared temporal catalogue, including decimal, Internet, binary/hexadecimal, astronomical, solar-origin, Roman/Japanese seasonal and other historical systems.

@@ -8,7 +8,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.25
+**Current library version:** 1.19.26
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -41,6 +41,10 @@ Common
 Common owns portable mechanics and algorithms that have real use across the project family. Product-neutral automotive diagnostic and shared application behaviour belongs in LINK; manufacturer-specific vehicle knowledge, branding and product-specific behaviour remain in MBLINK, JAGLINK, BMWLINK, AUDILINK and FORDLINK. Filesystem semantics, calendar rules and other domain-specific behaviour remain in their owning repositories rather than moving into Common merely because they are reusable within one product family.
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
+
+## Common 1.19.26
+
+1.19.26 adds canonical elapsed-duration presentation for every system clock mode. Fixed-unit systems now expose their real duration units (decimal, Internet beats, binary, hexadecimal, Julian-day fractions, sidereal, Chinese day partitions and Indian ghaṭī), apparent-solar duration is anchored to the supplied end instant, equal-hour origin systems preserve their equal SI units, and unequal Roman/Edo seasonal period labels deliberately retain conventional elapsed H:M:S rather than inventing a false fixed unit.
 
 ## Common 1.19.25
 

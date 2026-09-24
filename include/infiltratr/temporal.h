@@ -162,6 +162,40 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
                                            size_t capacity,
                                            size_t *length);
 
+/**
+ * Format an elapsed interval using the selected clock mode's meaningful units.
+ *
+ * The measured interval remains canonical SI microseconds. Fixed-unit systems
+ * are projected into their own elapsed representation: decimal time uses
+ * 10/100/100 units, Internet Time uses beats, hexadecimal uses 65,536 ticks
+ * per day, binary uses binary H:M:S fields, Julian modes use fractional days,
+ * sidereal time uses the shared sidereal rate, Chinese kè/double-hours use
+ * their day partitions, and Indian ghaṭī uses 60 ghaṭī/day and 60
+ * vighaṭī/ghaṭī.
+ *
+ * @end_unix_microseconds anchors modes whose rate depends on civil date, such
+ * as apparent solar time. Equal-hour origin systems keep conventional
+ * hour/minute/second units because sunrise/sunset changes only their zero
+ * point. Roman and Edo seasonal clocks use unequal labelled periods and have
+ * no single context-free elapsed unit, so durations remain conventional SI
+ * H:M:S under those modes rather than inventing a false conversion.
+ *
+ * Location requirements follow the corresponding clock mode. @vertical only
+ * changes separators; it never changes the represented interval.
+ */
+bool infiltratr_temporal_format_duration_mode(
+    const char *mode,
+    uint64_t elapsed_microseconds,
+    int64_t end_unix_microseconds,
+    bool show_seconds,
+    bool vertical,
+    bool location_configured,
+    double latitude,
+    double longitude,
+    char *buffer,
+    size_t capacity,
+    size_t *length);
+
 /** Complete system-wide clock catalogue shared by Settings and Calendar. */
 size_t infiltratr_temporal_clock_mode_count(void);
 const InfiltratrTemporalClockModeInfo *

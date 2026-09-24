@@ -29,7 +29,12 @@
 #define MICROSECONDS_PER_DAY (SECONDS_PER_DAY * MICROSECONDS_PER_SECOND)
 #define INTERNET_TICKS_PER_DAY UINT64_C(1000)
 #define HEX_TICKS_PER_DAY UINT64_C(65536)
+#define DECIMAL_SECONDS_PER_DAY UINT64_C(100000)
+#define CHINESE_DOUBLE_HOURS_PER_DAY UINT64_C(12)
+#define CHINESE_KE_PER_DAY UINT64_C(100)
+#define VIGHATI_PER_DAY UINT64_C(3600)
 #define JULIAN_DATE_UNIX_EPOCH 2440587.5L
+#define SIDEREAL_RATE_PER_SI_SECOND (24.06570982441908L / 24.0L)
 #define JULIAN_DATE_J2000 2451545.0L
 #define INFILTRATR_PI 3.141592653589793238462643383279502884L
 
@@ -589,6 +594,586 @@ static bool mode_location_valid(const InfiltratrTemporalClockModeInfo *info,
     }
     return (!info->requires_latitude || isfinite(latitude)) &&
            (!info->requires_longitude || isfinite(longitude));
+}
+
+
+static bool format_duration_hms(uint64_t whole_seconds,
+                                bool show_seconds,
+                                bool vertical,
+                                const char *suffix,
+                                char *buffer,
+                                size_t capacity,
+                                size_t *length)
+{
+    const uint64_t days = whole_seconds / UINT64_C(86400);
+    const uint64_t phase = whole_seconds % UINT64_C(86400);
+    const unsigned hour = (unsigned)(phase / UINT64_C(3600));
+    const unsigned minute =
+        (unsigned)((phase / UINT64_C(60)) % UINT64_C(60));
+    const unsigned second = (unsigned)(phase % UINT64_C(60));
+    const char *separator = vertical ? "\n" : ":";
+    const char *field_separator = vertical ? "\n" : " ";
+    const bool has_suffix = suffix != NULL && suffix[0] != '\0';
+
+    if (days > 0U) {
+        if (show_seconds) {
+            return write_printf(
+                buffer, capacity, length,
+                has_suffix
+                    ? (vertical ? "%llud\n%02u%s%02u%s%02u\n%s"
+                                : "%llud %02u%s%02u%s%02u %s")
+                    : (vertical ? "%llud\n%02u%s%02u%s%02u"
+                                : "%llud %02u%s%02u%s%02u"),
+                (unsigned long long)days,
+                hour, separator, minute, separator, second,
+                has_suffix ? suffix : "");
+        }
+        return write_printf(
+            buffer, capacity, length,
+            has_suffix
+                ? (vertical ? "%llud\n%02u%s%02u\n%s"
+                            : "%llud %02u%s%02u %s")
+                : (vertical ? "%llud\n%02u%s%02u"
+                            : "%llud %02u%s%02u"),
+            (unsigned long long)days,
+            hour, separator, minute,
+            has_suffix ? suffix : "");
+    }
+
+    if (show_seconds) {
+        return write_printf(
+            buffer, capacity, length,
+            has_suffix
+                ? (vertical ? "%02u%s%02u%s%02u\n%s"
+                            : "%02u%s%02u%s%02u %s")
+                : "%02u%s%02u%s%02u",
+            hour, separator, minute, separator, second,
+            has_suffix ? suffix : "");
+    }
+
+    if (has_suffix) {
+        return write_printf(
+            buffer, capacity, length,
+            vertical ? "%02u%s%02u\n%s" : "%02u%s%02u %s",
+            hour, separator, minute, suffix);
+    }
+    (void)field_separator;
+    return write_printf(
+        buffer, capacity, length, "%02u%s%02u",
+        hour, separator, minute);
+}
+
+static bool duration_partition(uint64_t phase_microseconds,
+                               uint64_t ticks_per_day,
+                               uint64_t *tick)
+{
+    return infiltratr_cycle_partition_u64(
+        phase_microseconds,
+        (uint64_t)MICROSECONDS_PER_DAY,
+        ticks_per_day,
+        tick,
+        NULL);
+}
+
+static bool format_duration_decimal(uint64_t elapsed_microseconds,
+                                    bool show_seconds,
+                                    bool vertical,
+                                    char *buffer,
+                                    size_t capacity,
+                                    size_t *length)
+{
+    const uint64_t day_us = (uint64_t)MICROSECONDS_PER_DAY;
+    const uint64_t days = elapsed_microseconds / day_us;
+    const uint64_t phase = elapsed_microseconds % day_us;
+    const uint64_t ticks_per_day =
+        show_seconds ? DECIMAL_SECONDS_PER_DAY : UINT64_C(1000);
+    uint64_t tick = 0U;
+    uint64_t hour;
+    uint64_t minute;
+    uint64_t second = 0U;
+    const char *separator = vertical ? "\n" : ":";
+
+    if (!duration_partition(phase, ticks_per_day, &tick)) {
+        return false;
+    }
+    if (show_seconds) {
+        hour = tick / UINT64_C(10000);
+        minute = (tick / UINT64_C(100)) % UINT64_C(100);
+        second = tick % UINT64_C(100);
+    } else {
+        hour = tick / UINT64_C(100);
+        minute = tick % UINT64_C(100);
+    }
+
+    if (days > 0U) {
+        return show_seconds
+            ? write_printf(buffer, capacity, length,
+                           vertical ? "%llud\n%llu%s%02llu%s%02llu"
+                                    : "%llud %llu%s%02llu%s%02llu",
+                           (unsigned long long)days,
+                           (unsigned long long)hour, separator,
+                           (unsigned long long)minute, separator,
+                           (unsigned long long)second)
+            : write_printf(buffer, capacity, length,
+                           vertical ? "%llud\n%llu%s%02llu"
+                                    : "%llud %llu%s%02llu",
+                           (unsigned long long)days,
+                           (unsigned long long)hour, separator,
+                           (unsigned long long)minute);
+    }
+    return show_seconds
+        ? write_printf(buffer, capacity, length, "%llu%s%02llu%s%02llu",
+                       (unsigned long long)hour, separator,
+                       (unsigned long long)minute, separator,
+                       (unsigned long long)second)
+        : write_printf(buffer, capacity, length, "%llu%s%02llu",
+                       (unsigned long long)hour, separator,
+                       (unsigned long long)minute);
+}
+
+static bool format_duration_binary(uint64_t elapsed_microseconds,
+                                   bool show_seconds,
+                                   bool vertical,
+                                   char *buffer,
+                                   size_t capacity,
+                                   size_t *length)
+{
+    const uint64_t whole_seconds =
+        elapsed_microseconds / (uint64_t)MICROSECONDS_PER_SECOND;
+    const uint64_t days = whole_seconds / UINT64_C(86400);
+    const uint64_t phase = whole_seconds % UINT64_C(86400);
+    const unsigned hour = (unsigned)(phase / UINT64_C(3600));
+    const unsigned minute =
+        (unsigned)((phase / UINT64_C(60)) % UINT64_C(60));
+    const unsigned second = (unsigned)(phase % UINT64_C(60));
+    char hour_bits[6];
+    char minute_bits[7];
+    char second_bits[7];
+    const char *separator = vertical ? "\n" : ":";
+    unsigned bit;
+
+    for (bit = 0U; bit < 5U; ++bit) {
+        hour_bits[bit] =
+            (hour & (1U << (4U - bit))) != 0U ? '1' : '0';
+    }
+    hour_bits[5] = '\0';
+    for (bit = 0U; bit < 6U; ++bit) {
+        minute_bits[bit] =
+            (minute & (1U << (5U - bit))) != 0U ? '1' : '0';
+        second_bits[bit] =
+            (second & (1U << (5U - bit))) != 0U ? '1' : '0';
+    }
+    minute_bits[6] = '\0';
+    second_bits[6] = '\0';
+
+    if (days > 0U) {
+        return show_seconds
+            ? write_printf(
+                buffer, capacity, length,
+                vertical ? "%llud\n%s%s%s%s%s"
+                         : "%llud %s%s%s%s%s",
+                (unsigned long long)days,
+                hour_bits, separator, minute_bits, separator, second_bits)
+            : write_printf(
+                buffer, capacity, length,
+                vertical ? "%llud\n%s%s%s" : "%llud %s%s%s",
+                (unsigned long long)days,
+                hour_bits, separator, minute_bits);
+    }
+    return show_seconds
+        ? write_printf(buffer, capacity, length, "%s%s%s%s%s",
+                       hour_bits, separator, minute_bits, separator, second_bits)
+        : write_printf(buffer, capacity, length, "%s%s%s",
+                       hour_bits, separator, minute_bits);
+}
+
+static bool format_duration_day_ticks(uint64_t elapsed_microseconds,
+                                      uint64_t ticks_per_day,
+                                      const char *prefix,
+                                      const char *suffix,
+                                      unsigned width,
+                                      bool hexadecimal,
+                                      bool vertical,
+                                      char *buffer,
+                                      size_t capacity,
+                                      size_t *length)
+{
+    const uint64_t day_us = (uint64_t)MICROSECONDS_PER_DAY;
+    const uint64_t days = elapsed_microseconds / day_us;
+    const uint64_t phase = elapsed_microseconds % day_us;
+    uint64_t tick = 0U;
+
+    if (!duration_partition(phase, ticks_per_day, &tick)) {
+        return false;
+    }
+
+    if (hexadecimal) {
+        if (days > 0U) {
+            return write_printf(
+                buffer, capacity, length,
+                vertical ? "%llud\n%0*llX" : "%llud %0*llX",
+                (unsigned long long)days, (int)width,
+                (unsigned long long)tick);
+        }
+        return write_printf(
+            buffer, capacity, length, "%0*llX",
+            (int)width, (unsigned long long)tick);
+    }
+
+    if (days > 0U) {
+        return write_printf(
+            buffer, capacity, length,
+            vertical ? "%llud\n%s%0*llu%s" : "%llud %s%0*llu%s",
+            (unsigned long long)days,
+            prefix != NULL ? prefix : "",
+            (int)width, (unsigned long long)tick,
+            suffix != NULL ? suffix : "");
+    }
+    return write_printf(
+        buffer, capacity, length, "%s%0*llu%s",
+        prefix != NULL ? prefix : "",
+        (int)width, (unsigned long long)tick,
+        suffix != NULL ? suffix : "");
+}
+
+static bool format_duration_julian(const char *mode,
+                                   uint64_t elapsed_microseconds,
+                                   bool show_seconds,
+                                   bool vertical,
+                                   char *buffer,
+                                   size_t capacity,
+                                   size_t *length)
+{
+    const uint64_t day_us = (uint64_t)MICROSECONDS_PER_DAY;
+    const uint64_t days = elapsed_microseconds / day_us;
+    const uint64_t phase = elapsed_microseconds % day_us;
+    const uint64_t scale =
+        show_seconds ? UINT64_C(100000) : UINT64_C(1000);
+    uint64_t fraction = 0U;
+    const int digits = show_seconds ? 5 : 3;
+    const char *label =
+        strcmp(mode, "modified-julian") == 0 ? "MJD" : "JD";
+
+    if (!duration_partition(phase, scale, &fraction)) {
+        return false;
+    }
+    return write_printf(
+        buffer, capacity, length,
+        vertical ? "%s\n+%llu.%0*llu d" : "%s +%llu.%0*llu d",
+        label, (unsigned long long)days, digits,
+        (unsigned long long)fraction);
+}
+
+static bool format_duration_internet(uint64_t elapsed_microseconds,
+                                     bool show_seconds,
+                                     bool vertical,
+                                     char *buffer,
+                                     size_t capacity,
+                                     size_t *length)
+{
+    const uint64_t day_us = (uint64_t)MICROSECONDS_PER_DAY;
+    const uint64_t days = elapsed_microseconds / day_us;
+    const uint64_t phase = elapsed_microseconds % day_us;
+    const uint64_t ticks_per_day =
+        show_seconds
+            ? INTERNET_TICKS_PER_DAY * UINT64_C(100)
+            : INTERNET_TICKS_PER_DAY;
+    uint64_t tick = 0U;
+
+    if (!duration_partition(phase, ticks_per_day, &tick)) {
+        return false;
+    }
+    if (days > 0U) {
+        return show_seconds
+            ? write_printf(
+                buffer, capacity, length,
+                vertical ? "%llud\n@%03llu.%02llu"
+                         : "%llud @%03llu.%02llu",
+                (unsigned long long)days,
+                (unsigned long long)(tick / UINT64_C(100)),
+                (unsigned long long)(tick % UINT64_C(100)))
+            : write_printf(
+                buffer, capacity, length,
+                vertical ? "%llud\n@%03llu" : "%llud @%03llu",
+                (unsigned long long)days,
+                (unsigned long long)tick);
+    }
+    return show_seconds
+        ? write_printf(buffer, capacity, length, "@%03llu.%02llu",
+                       (unsigned long long)(tick / UINT64_C(100)),
+                       (unsigned long long)(tick % UINT64_C(100)))
+        : write_printf(buffer, capacity, length, "@%03llu",
+                       (unsigned long long)tick);
+}
+
+static bool format_duration_sidereal(uint64_t elapsed_microseconds,
+                                     bool show_seconds,
+                                     bool vertical,
+                                     char *buffer,
+                                     size_t capacity,
+                                     size_t *length)
+{
+    const long double sidereal_seconds =
+        (long double)elapsed_microseconds /
+        (long double)MICROSECONDS_PER_SECOND *
+        SIDEREAL_RATE_PER_SI_SECOND;
+
+    if (!isfinite((double)sidereal_seconds) ||
+        sidereal_seconds < 0.0L ||
+        sidereal_seconds > (long double)UINT64_MAX) {
+        return false;
+    }
+    return format_duration_hms(
+        (uint64_t)floorl(sidereal_seconds),
+        show_seconds, vertical, "LST",
+        buffer, capacity, length);
+}
+
+static bool format_duration_apparent_solar(uint64_t elapsed_microseconds,
+                                           int64_t end_unix_microseconds,
+                                           bool show_seconds,
+                                           bool vertical,
+                                           char *buffer,
+                                           size_t capacity,
+                                           size_t *length)
+{
+    double start_equation_minutes = 0.0;
+    double end_equation_minutes = 0.0;
+    int64_t start_unix_microseconds;
+    long double apparent_microseconds;
+    long double apparent_seconds;
+
+    if (elapsed_microseconds > (uint64_t)INT64_MAX ||
+        end_unix_microseconds <
+            INT64_MIN + (int64_t)elapsed_microseconds) {
+        return format_duration_hms(
+            elapsed_microseconds / (uint64_t)MICROSECONDS_PER_SECOND,
+            show_seconds, vertical, "SOL",
+            buffer, capacity, length);
+    }
+
+    start_unix_microseconds =
+        end_unix_microseconds - (int64_t)elapsed_microseconds;
+    if (!solar_terms(start_unix_microseconds,
+                     &start_equation_minutes, NULL) ||
+        !solar_terms(end_unix_microseconds,
+                     &end_equation_minutes, NULL)) {
+        return false;
+    }
+
+    apparent_microseconds =
+        (long double)elapsed_microseconds +
+        ((long double)end_equation_minutes -
+         (long double)start_equation_minutes) *
+            60.0L * (long double)MICROSECONDS_PER_SECOND;
+    if (apparent_microseconds < 0.0L) {
+        apparent_microseconds = 0.0L;
+    }
+    apparent_seconds =
+        floorl(apparent_microseconds /
+               (long double)MICROSECONDS_PER_SECOND);
+    if (apparent_seconds > (long double)UINT64_MAX) {
+        return false;
+    }
+    return format_duration_hms(
+        (uint64_t)apparent_seconds,
+        show_seconds, vertical, "SOL",
+        buffer, capacity, length);
+}
+
+static bool format_duration_ghati(uint64_t elapsed_microseconds,
+                                  bool vertical,
+                                  char *buffer,
+                                  size_t capacity,
+                                  size_t *length)
+{
+    const uint64_t day_us = (uint64_t)MICROSECONDS_PER_DAY;
+    const uint64_t days = elapsed_microseconds / day_us;
+    const uint64_t phase = elapsed_microseconds % day_us;
+    uint64_t vighati = 0U;
+    uint64_t ghati;
+
+    if (!duration_partition(phase, VIGHATI_PER_DAY, &vighati)) {
+        return false;
+    }
+    ghati = vighati / UINT64_C(60);
+    vighati %= UINT64_C(60);
+
+    if (days > 0U) {
+        return write_printf(
+            buffer, capacity, length,
+            vertical ? "%llud\nGH\n%02llu:%02llu"
+                     : "%llud GH %02llu:%02llu",
+            (unsigned long long)days,
+            (unsigned long long)ghati,
+            (unsigned long long)vighati);
+    }
+    return write_printf(
+        buffer, capacity, length,
+        vertical ? "GH\n%02llu:%02llu" : "GH %02llu:%02llu",
+        (unsigned long long)ghati,
+        (unsigned long long)vighati);
+}
+
+bool infiltratr_temporal_format_duration_mode(
+    const char *mode,
+    uint64_t elapsed_microseconds,
+    int64_t end_unix_microseconds,
+    bool show_seconds,
+    bool vertical,
+    bool location_configured,
+    double latitude,
+    double longitude,
+    char *buffer,
+    size_t capacity,
+    size_t *length)
+{
+    const InfiltratrTemporalClockModeInfo *info;
+    const uint64_t whole_seconds =
+        elapsed_microseconds / (uint64_t)MICROSECONDS_PER_SECOND;
+
+    if (mode == NULL || buffer == NULL || capacity == 0U) {
+        return false;
+    }
+    buffer[0] = '\0';
+    info = infiltratr_temporal_clock_mode_find(mode);
+    if (info == NULL) {
+        return false;
+    }
+
+    /*
+     * Duration conversion is deliberately narrower than civil-clock
+     * conversion. Origin-only systems keep their equal SI hour/minute/second
+     * units; Roman and Edo seasonal clocks are period labelling systems whose
+     * unequal day/night units do not define one context-free elapsed unit.
+     */
+    if (strcmp(mode, "standard") == 0 ||
+        strcmp(mode, "standard-24") == 0 ||
+        strcmp(mode, "standard-12") == 0 ||
+        strcmp(mode, "roman-temporal") == 0 ||
+        strcmp(mode, "japanese-temporal") == 0) {
+        return format_duration_hms(
+            whole_seconds, show_seconds, vertical, NULL,
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "decimal") == 0) {
+        return format_duration_decimal(
+            elapsed_microseconds, show_seconds, vertical,
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "internet") == 0) {
+        return format_duration_internet(
+            elapsed_microseconds, show_seconds, vertical,
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "unix") == 0) {
+        return write_printf(
+            buffer, capacity, length, "%llu s",
+            (unsigned long long)whole_seconds);
+    }
+
+    if (strcmp(mode, "binary") == 0) {
+        return format_duration_binary(
+            elapsed_microseconds, show_seconds, vertical,
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "hexadecimal") == 0) {
+        return format_duration_day_ticks(
+            elapsed_microseconds, HEX_TICKS_PER_DAY,
+            NULL, NULL, 4U, true, vertical,
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "julian") == 0 ||
+        strcmp(mode, "modified-julian") == 0) {
+        return format_duration_julian(
+            mode, elapsed_microseconds, show_seconds, vertical,
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "sidereal") == 0) {
+        return format_duration_sidereal(
+            elapsed_microseconds, show_seconds, vertical,
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "solar") == 0) {
+        if (!location_configured || !isfinite(longitude)) {
+            return false;
+        }
+        return format_duration_apparent_solar(
+            elapsed_microseconds, end_unix_microseconds,
+            show_seconds, vertical, buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "mean-solar") == 0) {
+        if (!location_configured || !isfinite(longitude)) {
+            return false;
+        }
+        return format_duration_hms(
+            whole_seconds, show_seconds, vertical, "LMT",
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "chinese-time") == 0) {
+        return format_duration_day_ticks(
+            elapsed_microseconds, CHINESE_DOUBLE_HOURS_PER_DAY,
+            "時辰 ", "/12", 2U, false, vertical,
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "chinese-ke") == 0) {
+        return format_duration_day_ticks(
+            elapsed_microseconds, CHINESE_KE_PER_DAY,
+            "刻 ", "/100", 2U, false, vertical,
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "italian-hours") == 0) {
+        if (!location_configured ||
+            !isfinite(latitude) || !isfinite(longitude)) {
+            return false;
+        }
+        return format_duration_hms(
+            whole_seconds, show_seconds, vertical, "IT",
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "babylonian-hours") == 0) {
+        if (!location_configured ||
+            !isfinite(latitude) || !isfinite(longitude)) {
+            return false;
+        }
+        return format_duration_hms(
+            whole_seconds, show_seconds, vertical, "BAB",
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "indian-ghati") == 0) {
+        if (!location_configured ||
+            !isfinite(latitude) || !isfinite(longitude)) {
+            return false;
+        }
+        return format_duration_ghati(
+            elapsed_microseconds, vertical,
+            buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "nuremberg-hours") == 0) {
+        if (!location_configured ||
+            !isfinite(latitude) || !isfinite(longitude)) {
+            return false;
+        }
+        return format_duration_hms(
+            whole_seconds, show_seconds, vertical, "NUR",
+            buffer, capacity, length);
+    }
+
+    return false;
 }
 
 bool infiltratr_temporal_format_clock_mode(const char *mode,
