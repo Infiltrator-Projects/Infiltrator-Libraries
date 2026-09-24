@@ -247,6 +247,70 @@ static void test_clock_formats(void)
         0, 0, false, text, sizeof(text), NULL));
 }
 
+
+static void test_clock_mode_formats(void)
+{
+    char text[192];
+    size_t length = 0U;
+
+    CHECK(!infiltratr_temporal_format_clock_mode(
+        "standard", INT64_C(0), 0, true, false, false,
+        0.0, 0.0, text, sizeof(text), &length));
+
+    CHECK(infiltratr_temporal_format_clock_mode(
+        "standard-24",
+        INT64_C(19) * INT64_C(3600) * INT64_C(1000000) +
+            INT64_C(42) * INT64_C(60) * INT64_C(1000000),
+        0, false, false, false, 0.0, 0.0,
+        text, sizeof(text), &length));
+    CHECK(strcmp(text, "19:42") == 0);
+    CHECK(length == strlen(text));
+
+    CHECK(infiltratr_temporal_format_clock_mode(
+        "decimal",
+        INT64_C(43200) * INT64_C(1000000),
+        0, true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "5:00:00") == 0);
+
+    for (size_t index = 0U;
+         index < infiltratr_temporal_clock_mode_count(); ++index) {
+        const InfiltratrTemporalClockModeInfo *info =
+            infiltratr_temporal_clock_mode_at(index);
+        const bool standard =
+            info != NULL && strcmp(info->id, "standard") == 0;
+
+        CHECK(info != NULL);
+        CHECK(infiltratr_temporal_format_clock_mode(
+                  info->id,
+                  INT64_C(1789990000) * INT64_C(1000000),
+                  36000, true, false, true, -36.39, 145.36,
+                  text, sizeof(text), NULL) != standard);
+        if (!standard) {
+            CHECK(text[0] != '\0');
+        }
+        if (info->requires_latitude || info->requires_longitude) {
+            CHECK(!infiltratr_temporal_format_clock_mode(
+                info->id,
+                INT64_C(1789990000) * INT64_C(1000000),
+                36000, true, false, false, -36.39, 145.36,
+                text, sizeof(text), NULL));
+        }
+    }
+
+    CHECK(infiltratr_temporal_format_clock_mode(
+        "roman-temporal",
+        INT64_C(1789990000) * INT64_C(1000000),
+        36000, false, false, true, -36.39, 145.36,
+        text, sizeof(text), NULL));
+    CHECK(strncmp(text, "Hora ", 5U) == 0 ||
+          strncmp(text, "Vigilia ", 8U) == 0);
+
+    CHECK(!infiltratr_temporal_format_clock_mode(
+        "missing-mode", INT64_C(0), 0, false, false, false,
+        0.0, 0.0, text, sizeof(text), NULL));
+}
+
 int main(void)
 {
     test_catalogue();
@@ -254,5 +318,6 @@ int main(void)
     test_policy_v3();
     test_local_microseconds_of_day();
     test_clock_formats();
+    test_clock_mode_formats();
     return 0;
 }

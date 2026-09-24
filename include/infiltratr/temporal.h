@@ -138,6 +138,30 @@ bool infiltratr_temporal_format_clock(InfiltratrClockProfile profile,
                                       size_t capacity,
                                       size_t *length);
 
+/**
+ * Format any explicit clock mode in the system-wide temporal catalogue.
+ *
+ * "standard" deliberately returns false because OS-locale rendering belongs
+ * to the platform adapter. Explicit 12/24-hour modes and every extended clock
+ * mode are portable and deterministic. Location-aware modes require
+ * @location_configured plus finite coordinates when their catalogue metadata
+ * declares latitude and/or longitude.
+ *
+ * @vertical selects newline-separated clock fields for narrow presentations.
+ * Applications that render ordinary rows or timestamps should pass false.
+ */
+bool infiltratr_temporal_format_clock_mode(const char *mode,
+                                           int64_t unix_microseconds,
+                                           int32_t utc_offset_seconds,
+                                           bool show_seconds,
+                                           bool vertical,
+                                           bool location_configured,
+                                           double latitude,
+                                           double longitude,
+                                           char *buffer,
+                                           size_t capacity,
+                                           size_t *length);
+
 /** Complete system-wide clock catalogue shared by Settings and Calendar. */
 size_t infiltratr_temporal_clock_mode_count(void);
 const InfiltratrTemporalClockModeInfo *

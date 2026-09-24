@@ -4,7 +4,10 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 ## Unreleased
 
-No unreleased changes.
+- Add one portable formatter for every explicit clock mode in the shared temporal catalogue, including decimal, Internet, binary/hexadecimal, astronomical, solar-origin, Roman/Japanese seasonal and other historical systems.
+- Keep the `standard` OS-locale mode deliberately platform-owned while making explicit 12/24-hour and extended modes deterministic across consumers.
+- Require configured geographic context for location-dependent modes so applications cannot silently substitute Greenwich or another fabricated location.
+- Add catalogue-wide regression coverage so System Settings cannot publish a selectable explicit mode that Common cannot render.
 
 ## 1.19.24 — 2026-09-22
 
