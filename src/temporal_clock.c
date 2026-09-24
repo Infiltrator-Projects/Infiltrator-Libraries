@@ -12,6 +12,9 @@
 #include "infiltratr/temporal.h"
 
 #include "infiltratr/arithmetic.h"
+#include "infiltratr/compiler.h"
+#include "infiltratr/core.h"
+#include "infiltratr/timing.h"
 
 #include <math.h>
 #include <stdarg.h>
@@ -49,6 +52,9 @@ static bool write_text(char *buffer, size_t capacity, size_t *length,
     return true;
 }
 
+static bool write_printf(char *buffer, size_t capacity, size_t *length,
+                         const char *format, ...)
+    INFILTRATR_PRINTF_FORMAT(4, 5);
 static bool write_printf(char *buffer, size_t capacity, size_t *length,
                          const char *format, ...)
 {
