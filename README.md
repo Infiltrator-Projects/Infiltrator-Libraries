@@ -8,7 +8,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.26
+**Current library version:** 1.19.27
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -41,6 +41,10 @@ Common
 Common owns portable mechanics and algorithms that have real use across the project family. Product-neutral automotive diagnostic and shared application behaviour belongs in LINK; manufacturer-specific vehicle knowledge, branding and product-specific behaviour remain in MBLINK, JAGLINK, BMWLINK, AUDILINK and FORDLINK. Filesystem semantics, calendar rules and other domain-specific behaviour remain in their owning repositories rather than moving into Common merely because they are reusable within one product family.
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
+
+## Common 1.19.27
+
+1.19.27 centralises Unicode scalar-to-UTF-8 encoding beside Common's existing strict UTF-8 validator. The new allocation-free encoder rejects surrogate code points and values above U+10FFFF, reports exact one-to-four-byte output length and leaves caller storage unchanged on failure. Calculator and filesystem consumers can now retain their own Unicode-policy decisions while sharing one canonical byte encoder.
 
 ## Common 1.19.26
 

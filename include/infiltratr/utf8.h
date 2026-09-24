@@ -75,6 +75,54 @@ static inline bool infiltratr_utf8_validate(const void *bytes, size_t length)
     return true;
 }
 
+/**
+ * Encode one Unicode scalar value as its canonical UTF-8 byte sequence.
+ *
+ * Valid input is U+0000 through U+10FFFF excluding the UTF-16 surrogate
+ * range U+D800 through U+DFFF. The encoded sequence is one through four bytes
+ * and is not NUL-terminated; U+0000 therefore legitimately emits one zero
+ * byte. Output storage and @length remain unchanged when the scalar is invalid
+ * or @capacity is insufficient. @length may be NULL.
+ */
+static inline bool infiltratr_utf8_encode_codepoint(uint32_t codepoint,
+                                                     char *output,
+                                                     size_t capacity,
+                                                     size_t *length)
+{
+    uint8_t encoded[4];
+    size_t used = 0U;
+
+    if (codepoint <= 0x7fU) {
+        encoded[0] = (uint8_t)codepoint;
+        used = 1U;
+    } else if (codepoint <= 0x7ffU) {
+        encoded[0] = (uint8_t)(0xc0U | (codepoint >> 6U));
+        encoded[1] = (uint8_t)(0x80U | (codepoint & 0x3fU));
+        used = 2U;
+    } else if (codepoint >= 0xd800U && codepoint <= 0xdfffU) {
+        return false;
+    } else if (codepoint <= 0xffffU) {
+        encoded[0] = (uint8_t)(0xe0U | (codepoint >> 12U));
+        encoded[1] = (uint8_t)(0x80U | ((codepoint >> 6U) & 0x3fU));
+        encoded[2] = (uint8_t)(0x80U | (codepoint & 0x3fU));
+        used = 3U;
+    } else if (codepoint <= 0x10ffffU) {
+        encoded[0] = (uint8_t)(0xf0U | (codepoint >> 18U));
+        encoded[1] = (uint8_t)(0x80U | ((codepoint >> 12U) & 0x3fU));
+        encoded[2] = (uint8_t)(0x80U | ((codepoint >> 6U) & 0x3fU));
+        encoded[3] = (uint8_t)(0x80U | (codepoint & 0x3fU));
+        used = 4U;
+    } else {
+        return false;
+    }
+
+    if (!output || capacity < used) return false;
+    for (size_t index = 0U; index < used; ++index)
+        output[index] = (char)encoded[index];
+    if (length) *length = used;
+    return true;
+}
+
 #ifdef __cplusplus
 }
 #endif

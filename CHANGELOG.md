@@ -6,6 +6,13 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.27 — 2026-09-25
+
+- Add a strict allocation-free Unicode scalar-to-UTF-8 encoder beside the existing validator.
+- Reject UTF-16 surrogate code points and values above U+10FFFF while preserving exact one-through-four-byte canonical UTF-8 output.
+- Keep filesystem, JSON and application-specific malformed-input/replacement policy in consumers; Common owns only the product-neutral scalar encoding step.
+- Add contract coverage for ASCII, three-byte and maximum four-byte scalars plus invalid-scalar and insufficient-capacity unchanged-output failures.
+
 ## 1.19.26 — 2026-09-24
 
 - Add one canonical elapsed-duration formatter keyed by the same system-wide clock-mode IDs used for civil-clock presentation.

@@ -62,6 +62,37 @@ static void test_utf8(void)
     assert(!infiltratr_utf8_validate(too_large, sizeof(too_large)));
     assert(!infiltratr_utf8_validate(truncated, sizeof(truncated)));
     assert(!infiltratr_utf8_validate(stray, sizeof(stray)));
+
+    char encoded[4] = {(char)0xaa, (char)0xbb, (char)0xcc, (char)0xdd};
+    size_t encoded_length = 99U;
+    assert(infiltratr_utf8_encode_codepoint(0x24U, encoded,
+                                             sizeof(encoded), &encoded_length));
+    assert(encoded_length == 1U && (unsigned char)encoded[0] == 0x24U);
+    assert(infiltratr_utf8_encode_codepoint(0x20acU, encoded,
+                                             sizeof(encoded), &encoded_length));
+    assert(encoded_length == 3U &&
+           (unsigned char)encoded[0] == 0xe2U &&
+           (unsigned char)encoded[1] == 0x82U &&
+           (unsigned char)encoded[2] == 0xacU);
+    assert(infiltratr_utf8_encode_codepoint(0x10ffffU, encoded,
+                                             sizeof(encoded), &encoded_length));
+    assert(encoded_length == 4U &&
+           (unsigned char)encoded[0] == 0xf4U &&
+           (unsigned char)encoded[1] == 0x8fU &&
+           (unsigned char)encoded[2] == 0xbfU &&
+           (unsigned char)encoded[3] == 0xbfU);
+
+    encoded[0] = (char)0x55;
+    encoded_length = 77U;
+    assert(!infiltratr_utf8_encode_codepoint(0xd800U, encoded,
+                                              sizeof(encoded), &encoded_length));
+    assert((unsigned char)encoded[0] == 0x55U && encoded_length == 77U);
+    assert(!infiltratr_utf8_encode_codepoint(0x110000U, encoded,
+                                              sizeof(encoded), &encoded_length));
+    assert((unsigned char)encoded[0] == 0x55U && encoded_length == 77U);
+    assert(!infiltratr_utf8_encode_codepoint(0x20acU, encoded, 2U,
+                                              &encoded_length));
+    assert((unsigned char)encoded[0] == 0x55U && encoded_length == 77U);
 }
 
 int main(void)
