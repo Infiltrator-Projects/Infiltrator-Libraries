@@ -397,7 +397,7 @@ static void test_duration_mode_formats(void)
         INT64_C(1789990000) * INT64_C(1000000),
         true, false, true, 49.45, 11.08,
         text, sizeof(text), NULL));
-    CHECK(strstr(text, "simānu") != NULL);
+    CHECK(strstr(text, "bēru") != NULL);
     CHECK(infiltratr_temporal_format_duration_mode(
         "japanese-temporal", UINT64_C(86400) * UINT64_C(1000000),
         INT64_C(1789990000) * INT64_C(1000000),
@@ -455,7 +455,7 @@ static void test_clock_mode_formats(void)
         INT64_C(1789990000) * INT64_C(1000000),
         0, true, false, true, 49.45, 11.08,
         text, sizeof(text), NULL));
-    CHECK(strstr(text, "simānu") != NULL);
+    CHECK(strstr(text, "bēru") != NULL);
     CHECK(strstr(text, "DAY") != NULL || strstr(text, "NIGHT") != NULL);
 
     CHECK(infiltratr_temporal_format_clock_mode(
