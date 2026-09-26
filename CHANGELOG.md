@@ -6,6 +6,13 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.33 — 2026-09-26
+
+- Audit every clock/calendar catalogue label for comprehensibility and expose important model assumptions directly in the selector instead of relying on specialist knowledge.
+- Clarify Roman seasonal, Edo unequal-hour, historical Italian, Renaissance European “Babylonian”, ancient Babylonian, Chinese, Nuremberg, solar/sidereal/scientific and Unix clock labels without changing stable persisted IDs.
+- Clarify model-sensitive historical calendars including Roman civil dating, Byzantine Anno Mundi, Egyptian and Armenian wandering years, Mayan GMT correlation, French Republican continuation, Swedish reform chronology and Positivist epoch.
+- Replace cryptic Indian `GH hh:mm` presentation with native `ghaṭī · pala` units; elapsed durations normalize complete 60-ghaṭī days as `dina`.
+
 ## 1.19.32 — 2026-09-26
 
 - Remove redundant `italian-modern`: modern Italian civil time is the existing standard 24-hour civil clock, not a separate time system.

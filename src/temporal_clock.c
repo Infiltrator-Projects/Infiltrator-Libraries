@@ -1538,29 +1538,29 @@ static bool format_duration_ghati(uint64_t elapsed_microseconds,
     const uint64_t day_us = (uint64_t)MICROSECONDS_PER_DAY;
     const uint64_t days = elapsed_microseconds / day_us;
     const uint64_t phase = elapsed_microseconds % day_us;
-    uint64_t vighati = 0U;
+    uint64_t pala = 0U;
     uint64_t ghati;
+    const char *separator = vertical ? "\n" : " · ";
 
-    if (!duration_partition(phase, VIGHATI_PER_DAY, &vighati)) {
+    if (!duration_partition(phase, VIGHATI_PER_DAY, &pala)) {
         return false;
     }
-    ghati = vighati / UINT64_C(60);
-    vighati %= UINT64_C(60);
+    ghati = pala / UINT64_C(60);
+    pala %= UINT64_C(60);
 
     if (days > 0U) {
         return write_printf(
             buffer, capacity, length,
-            vertical ? "%llud\nGH\n%02llu:%02llu"
-                     : "%llud GH %02llu:%02llu",
-            (unsigned long long)days,
-            (unsigned long long)ghati,
-            (unsigned long long)vighati);
+            "%llu dina%s%llu ghaṭī%s%llu pala",
+            (unsigned long long)days, separator,
+            (unsigned long long)ghati, separator,
+            (unsigned long long)pala);
     }
     return write_printf(
         buffer, capacity, length,
-        vertical ? "GH\n%02llu:%02llu" : "GH %02llu:%02llu",
-        (unsigned long long)ghati,
-        (unsigned long long)vighati);
+        "%llu ghaṭī%s%llu pala",
+        (unsigned long long)ghati, separator,
+        (unsigned long long)pala);
 }
 
 bool infiltratr_temporal_format_duration_mode(
@@ -2092,7 +2092,7 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
             (int)((elapsed_seconds / INT64_C(24)) % INT64_C(60));
         return write_printf(
             buffer, capacity, length,
-            vertical ? "GH\n%02d:%02d" : "GH %02d:%02d",
+            vertical ? "%d ghaṭī\n%d pala" : "%d ghaṭī · %d pala",
             ghati, vighati);
     }
 

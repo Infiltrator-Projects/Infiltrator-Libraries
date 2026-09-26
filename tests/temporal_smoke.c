@@ -39,6 +39,18 @@ static void test_catalogue(void)
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("nuremberg-hours")->name,
         "Historical Nuremberg Great Clock (fixed Wendetage)") == 0);
+    CHECK(strcmp(
+        infiltratr_temporal_clock_mode_find("roman-temporal")->name,
+        "Roman seasonal time (12 daylight hours / 4 night watches)") == 0);
+    CHECK(strcmp(
+        infiltratr_temporal_clock_mode_find("indian-ghati")->name,
+        "Indian ghaṭī time (60 ghaṭī per sunrise day)") == 0);
+    CHECK(strcmp(
+        infiltratr_temporal_calendar_find("mayan")->name,
+        "Mayan Long Count (GMT 584283 correlation)") == 0);
+    CHECK(strcmp(
+        infiltratr_temporal_calendar_find("positivist")->name,
+        "Positivist calendar (Comte; Year 1 = 1789)") == 0);
     CHECK(infiltratr_temporal_clock_mode_find("nuremberg-solar") != NULL);
 
     for (size_t index = 0U;
@@ -354,7 +366,7 @@ static void test_duration_mode_formats(void)
         INT64_C(1789990000) * INT64_C(1000000),
         false, false, true, -36.39, 145.36,
         text, sizeof(text), NULL));
-    CHECK(strcmp(text, "GH 01:00") == 0);
+    CHECK(strcmp(text, "1 ghaṭī · 0 pala") == 0);
 
     CHECK(infiltratr_temporal_format_duration_mode(
         "roman-temporal", UINT64_C(3661) * UINT64_C(1000000),
