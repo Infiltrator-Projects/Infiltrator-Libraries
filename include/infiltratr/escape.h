@@ -6,6 +6,10 @@
  * These helpers escape string content only; they do not add surrounding JSON
  * quotes, HTML elements/attributes, or URI syntax. Bytes >= 0x80 are preserved
  * for HTML/JSON and percent-encoded byte-for-byte for URI components.
+ *
+ * Input text must not overlap writable output storage. This is a deliberate
+ * allocation-free contract: callers that need in-place transformation must
+ * provide separate scratch/output storage.
  */
 #ifndef INFILTRATR_COMMON_ESCAPE_H
 #define INFILTRATR_COMMON_ESCAPE_H
@@ -32,7 +36,8 @@ bool infiltratr_escape_uri_component(const char *input, char *output, size_t siz
  * Bytes >= 0x80 are preserved. When `spreadsheet_safe` is true, a leading
  * apostrophe is inserted if the first non-whitespace/control byte is one of
  * '=', '+', '-' or '@', preventing common spreadsheet formula interpretation.
- * `required_size` includes the terminating NUL.
+ * Input text must not overlap writable output storage. `required_size`
+ * includes the terminating NUL.
  */
 bool infiltratr_escape_csv_field(const char *input, bool spreadsheet_safe,
                                  char *output, size_t size,
