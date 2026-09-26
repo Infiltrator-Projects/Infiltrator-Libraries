@@ -173,12 +173,16 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
  * their day partitions, and Indian ghaṭī uses 60 ghaṭī/day and 60
  * vighaṭī/ghaṭī.
  *
- * @end_unix_microseconds anchors modes whose rate depends on civil date, such
- * as apparent solar time. Equal-hour origin systems keep conventional
- * hour/minute/second units because sunrise/sunset changes only their zero
- * point. Roman and Edo seasonal clocks use unequal labelled periods and have
- * no single context-free elapsed unit, so durations remain conventional SI
- * H:M:S under those modes rather than inventing a false conversion.
+ * @end_unix_microseconds anchors modes whose rate depends on civil date.
+ * Apparent-solar intervals include equation-of-time drift. Roman and Edo
+ * seasonal intervals integrate their real astronomical day/night unit lengths:
+ * Roman presentation reports daylight horae and night vigiliae (with unciae
+ * when fractional precision is requested), while Edo presentation reports
+ * seasonal koku/toki with the historically attested half-period marker.
+ * INT64_MIN denotes an unanchored accumulated quantity; seasonal modes then
+ * remain explicit SI H:M:S because no honest civil-seasonal conversion exists.
+ * Equal-hour origin systems keep conventional hour/minute/second units because
+ * sunrise/sunset changes only their zero point.
  *
  * Location requirements follow the corresponding clock mode. @vertical only
  * changes separators; it never changes the represented interval.

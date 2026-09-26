@@ -345,15 +345,44 @@ static void test_duration_mode_formats(void)
     CHECK(infiltratr_temporal_format_duration_mode(
         "roman-temporal", UINT64_C(3661) * UINT64_C(1000000),
         INT64_C(1789990000) * INT64_C(1000000),
-        false, false, true, -36.39, 145.36,
+        true, false, true, -36.39, 145.36,
         text, sizeof(text), NULL));
-    CHECK(strcmp(text, "01:01") == 0);
+    CHECK(strstr(text, "hora") != NULL || strstr(text, "vigilia") != NULL);
+    CHECK(strchr(text, ':') == NULL);
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "roman-temporal", UINT64_C(3661) * UINT64_C(1000000),
+        INT64_MIN,
+        true, false, true, -36.39, 145.36,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "01:01:01 SI") == 0);
+
     CHECK(infiltratr_temporal_format_duration_mode(
         "japanese-temporal", UINT64_C(3661) * UINT64_C(1000000),
         INT64_C(1789990000) * INT64_C(1000000),
-        false, false, true, -36.39, 145.36,
+        true, false, true, -36.39, 145.36,
         text, sizeof(text), NULL));
-    CHECK(strcmp(text, "01:01") == 0);
+    CHECK(strstr(text, "刻") != NULL);
+    CHECK(strchr(text, ':') == NULL);
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "japanese-temporal", UINT64_C(3661) * UINT64_C(1000000),
+        INT64_MIN,
+        true, false, true, -36.39, 145.36,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "01:01:01 SI") == 0);
+
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "roman-temporal", UINT64_C(86400) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, true, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strstr(text, "hora") != NULL);
+    CHECK(strstr(text, "vigilia") != NULL);
+    CHECK(infiltratr_temporal_format_duration_mode(
+        "japanese-temporal", UINT64_C(86400) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, true, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strstr(text, "刻") != NULL);
 
     for (size_t index = 0U;
          index < infiltratr_temporal_clock_mode_count(); ++index) {

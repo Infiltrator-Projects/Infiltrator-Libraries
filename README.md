@@ -8,7 +8,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.27
+**Current library version:** 1.19.28
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -42,13 +42,17 @@ Common owns portable mechanics and algorithms that have real use across the proj
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
 
+## Common 1.19.28
+
+1.19.28 makes anchored elapsed durations culturally native for the two unequal seasonal clock families. Roman intervals now integrate the actual local daylight horae and night vigiliae across their changing astronomical boundaries, using unciae for fractional precision. Edo intervals integrate the six daytime and six nighttime seasonal koku/toki and use the historically attested half-period marker rather than modern minutes or seconds. Unanchored accumulated quantities remain explicitly labelled SI because a seasonal conversion without a civil interval would be fabricated.
+
 ## Common 1.19.27
 
 1.19.27 centralises Unicode scalar-to-UTF-8 encoding beside Common's existing strict UTF-8 validator. The new allocation-free encoder rejects surrogate code points and values above U+10FFFF, reports exact one-to-four-byte output length and leaves caller storage unchanged on failure. Calculator and filesystem consumers can now retain their own Unicode-policy decisions while sharing one canonical byte encoder.
 
 ## Common 1.19.26
 
-1.19.26 adds canonical elapsed-duration presentation for every system clock mode. Fixed-unit systems now expose their real duration units (decimal, Internet beats, binary, hexadecimal, Julian-day fractions, sidereal, Chinese day partitions and Indian ghaṭī), apparent-solar duration is anchored to the supplied end instant, equal-hour origin systems preserve their equal SI units, and unequal Roman/Edo seasonal period labels deliberately retain conventional elapsed H:M:S rather than inventing a false fixed unit.
+1.19.26 adds canonical elapsed-duration presentation for every system clock mode. Fixed-unit systems now expose their real duration units (decimal, Internet beats, binary, hexadecimal, Julian-day fractions, sidereal, Chinese day partitions and Indian ghaṭī), apparent-solar duration is anchored to the supplied end instant, equal-hour origin systems preserve their equal SI units, and anchored Roman/Edo seasonal intervals are integrated across their real day/night unit lengths, while unanchored accumulated quantities remain explicitly SI rather than inventing a false seasonal conversion.
 
 ## Common 1.19.25
 

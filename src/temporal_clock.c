@@ -494,6 +494,307 @@ static bool seasonal_period_at(int64_t unix_microseconds,
     return true;
 }
 
+typedef struct SeasonalProgress {
+    long double daylight_units;
+    long double night_units;
+} SeasonalProgress;
+
+static bool solar_boundaries_for_day_index(
+    int64_t day_index,
+    double latitude,
+    double longitude,
+    double solar_depression_degrees,
+    int64_t *dawn_microseconds,
+    int64_t *dusk_microseconds)
+{
+    int64_t day_start;
+    int64_t noon;
+
+    if (!infiltratr_i64_multiply_checked(
+            day_index, MICROSECONDS_PER_DAY, &day_start) ||
+        !infiltratr_i64_add_checked(
+            day_start, MICROSECONDS_PER_DAY / 2, &noon)) {
+        return false;
+    }
+    return solar_boundary_instants(
+        noon, latitude, longitude, solar_depression_degrees,
+        dawn_microseconds, dusk_microseconds);
+}
+
+/*
+ * Map a civil instant onto two monotonic seasonal-unit coordinates. Every
+ * complete dawn-to-dawn cycle contributes exactly daylight_parts daylight
+ * units and night_parts night units, while the current partial unit is scaled
+ * by that day's real astronomical dawn/dusk span. Taking the difference of two
+ * coordinates therefore integrates an elapsed interval without pretending an
+ * unequal Roman hora, Roman vigilia or Edo toki has a fixed SI duration.
+ */
+static bool seasonal_progress_at(int64_t unix_microseconds,
+                                 double latitude,
+                                 double longitude,
+                                 double solar_depression_degrees,
+                                 unsigned daylight_parts,
+                                 unsigned night_parts,
+                                 SeasonalProgress *progress)
+{
+    const int64_t approximate_day =
+        floor_divide(unix_microseconds, MICROSECONDS_PER_DAY);
+    int64_t best_dawn = INT64_MIN;
+    int64_t best_dusk = INT64_MIN;
+    int64_t best_day = 0;
+    int offset;
+
+    if (progress == NULL || daylight_parts == 0U || night_parts == 0U) {
+        return false;
+    }
+
+    for (offset = -2; offset <= 2; ++offset) {
+        int64_t candidate_day;
+        int64_t dawn;
+        int64_t dusk;
+
+        if (!infiltratr_i64_add_checked(
+                approximate_day, (int64_t)offset, &candidate_day) ||
+            !solar_boundaries_for_day_index(
+                candidate_day, latitude, longitude,
+                solar_depression_degrees, &dawn, &dusk)) {
+            continue;
+        }
+        if (dawn <= unix_microseconds && dawn > best_dawn) {
+            best_dawn = dawn;
+            best_dusk = dusk;
+            best_day = candidate_day;
+        }
+    }
+
+    if (best_dawn == INT64_MIN || best_dusk <= best_dawn) {
+        return false;
+    }
+
+    if (unix_microseconds < best_dusk) {
+        const long double fraction =
+            (long double)(unix_microseconds - best_dawn) /
+            (long double)(best_dusk - best_dawn);
+        progress->daylight_units =
+            (long double)best_day * daylight_parts +
+            fraction * daylight_parts;
+        progress->night_units =
+            (long double)best_day * night_parts;
+        return true;
+    }
+
+    {
+        int64_t next_day;
+        int64_t next_dawn;
+        int64_t next_dusk;
+        long double fraction;
+
+        if (!infiltratr_i64_add_checked(best_day, INT64_C(1), &next_day) ||
+            !solar_boundaries_for_day_index(
+                next_day, latitude, longitude,
+                solar_depression_degrees, &next_dawn, &next_dusk) ||
+            next_dawn <= best_dusk) {
+            return false;
+        }
+        (void)next_dusk;
+        fraction =
+            (long double)(unix_microseconds - best_dusk) /
+            (long double)(next_dawn - best_dusk);
+        progress->daylight_units =
+            (long double)best_day * daylight_parts + daylight_parts;
+        progress->night_units =
+            (long double)best_day * night_parts +
+            fraction * night_parts;
+        return true;
+    }
+}
+
+static bool seasonal_interval_progress(
+    uint64_t elapsed_microseconds,
+    int64_t end_unix_microseconds,
+    double latitude,
+    double longitude,
+    double solar_depression_degrees,
+    unsigned daylight_parts,
+    unsigned night_parts,
+    long double *daylight_units,
+    long double *night_units)
+{
+    SeasonalProgress start;
+    SeasonalProgress end;
+    int64_t start_unix_microseconds;
+
+    if (daylight_units == NULL || night_units == NULL ||
+        end_unix_microseconds == INT64_MIN ||
+        elapsed_microseconds > (uint64_t)INT64_MAX ||
+        !infiltratr_i64_add_checked(
+            end_unix_microseconds, -(int64_t)elapsed_microseconds,
+            &start_unix_microseconds) ||
+        !seasonal_progress_at(
+            start_unix_microseconds, latitude, longitude,
+            solar_depression_degrees, daylight_parts, night_parts, &start) ||
+        !seasonal_progress_at(
+            end_unix_microseconds, latitude, longitude,
+            solar_depression_degrees, daylight_parts, night_parts, &end)) {
+        return false;
+    }
+
+    *daylight_units = end.daylight_units - start.daylight_units;
+    *night_units = end.night_units - start.night_units;
+    if (*daylight_units < -1.0e-9L || *night_units < -1.0e-9L) {
+        return false;
+    }
+    if (*daylight_units < 0.0L) *daylight_units = 0.0L;
+    if (*night_units < 0.0L) *night_units = 0.0L;
+    return true;
+}
+
+static bool seasonal_quantise(long double units,
+                              uint64_t subdivisions,
+                              bool include_fraction,
+                              uint64_t *ticks)
+{
+    long double scaled;
+
+    if (ticks == NULL || subdivisions == 0U ||
+        !isfinite((double)units) || units < 0.0L) {
+        return false;
+    }
+    scaled = include_fraction
+        ? units * (long double)subdivisions
+        : floorl(units) * (long double)subdivisions;
+    if (scaled < 0.0L || scaled > (long double)UINT64_MAX) {
+        return false;
+    }
+    *ticks = include_fraction
+        ? (uint64_t)llroundl(scaled)
+        : (uint64_t)scaled;
+    return true;
+}
+
+static bool format_duration_roman_temporal(
+    uint64_t elapsed_microseconds,
+    int64_t end_unix_microseconds,
+    bool show_seconds,
+    bool vertical,
+    double latitude,
+    double longitude,
+    char *buffer,
+    size_t capacity,
+    size_t *length)
+{
+    long double horae;
+    long double vigiliae;
+    uint64_t hora_twelfths;
+    uint64_t vigilia_twelfths;
+    uint64_t whole_horae;
+    uint64_t whole_vigiliae;
+    unsigned hora_unciae;
+    unsigned vigilia_unciae;
+    const char *separator = vertical ? "\n" : " · ";
+
+    if (!seasonal_interval_progress(
+            elapsed_microseconds, end_unix_microseconds,
+            latitude, longitude, 0.833, 12U, 4U,
+            &horae, &vigiliae) ||
+        !seasonal_quantise(
+            horae, UINT64_C(12), show_seconds, &hora_twelfths) ||
+        !seasonal_quantise(
+            vigiliae, UINT64_C(12), show_seconds, &vigilia_twelfths)) {
+        return false;
+    }
+
+    whole_horae = hora_twelfths / UINT64_C(12);
+    whole_vigiliae = vigilia_twelfths / UINT64_C(12);
+    hora_unciae = (unsigned)(hora_twelfths % UINT64_C(12));
+    vigilia_unciae = (unsigned)(vigilia_twelfths % UINT64_C(12));
+
+    if (hora_twelfths == 0U && vigilia_twelfths == 0U) {
+        return write_text(buffer, capacity, length, "0 horae");
+    }
+    if (hora_twelfths == 0U) {
+        return show_seconds && vigilia_unciae != 0U
+            ? write_printf(buffer, capacity, length,
+                           "%llu %s %u unciae",
+                           (unsigned long long)whole_vigiliae,
+                           whole_vigiliae == 1U ? "vigilia" : "vigiliae",
+                           vigilia_unciae)
+            : write_printf(buffer, capacity, length,
+                           "%llu %s",
+                           (unsigned long long)whole_vigiliae,
+                           whole_vigiliae == 1U ? "vigilia" : "vigiliae");
+    }
+    if (vigilia_twelfths == 0U) {
+        return show_seconds && hora_unciae != 0U
+            ? write_printf(buffer, capacity, length,
+                           "%llu %s %u unciae",
+                           (unsigned long long)whole_horae,
+                           whole_horae == 1U ? "hora" : "horae",
+                           hora_unciae)
+            : write_printf(buffer, capacity, length,
+                           "%llu %s",
+                           (unsigned long long)whole_horae,
+                           whole_horae == 1U ? "hora" : "horae");
+    }
+
+    if (show_seconds) {
+        return write_printf(
+            buffer, capacity, length,
+            "%llu %s %u unciae%s%llu %s %u unciae",
+            (unsigned long long)whole_horae,
+            whole_horae == 1U ? "hora" : "horae",
+            hora_unciae, separator,
+            (unsigned long long)whole_vigiliae,
+            whole_vigiliae == 1U ? "vigilia" : "vigiliae",
+            vigilia_unciae);
+    }
+    return write_printf(
+        buffer, capacity, length, "%llu %s%s%llu %s",
+        (unsigned long long)whole_horae,
+        whole_horae == 1U ? "hora" : "horae",
+        separator,
+        (unsigned long long)whole_vigiliae,
+        whole_vigiliae == 1U ? "vigilia" : "vigiliae");
+}
+
+static bool format_duration_japanese_temporal(
+    uint64_t elapsed_microseconds,
+    int64_t end_unix_microseconds,
+    bool show_seconds,
+    double latitude,
+    double longitude,
+    char *buffer,
+    size_t capacity,
+    size_t *length)
+{
+    const double depression =
+        7.0 + 21.0 / 60.0 + 40.0 / 3600.0;
+    long double daylight_toki;
+    long double night_toki;
+    uint64_t half_toki;
+    uint64_t whole_toki;
+
+    if (!seasonal_interval_progress(
+            elapsed_microseconds, end_unix_microseconds,
+            latitude, longitude, depression, 6U, 6U,
+            &daylight_toki, &night_toki) ||
+        !seasonal_quantise(
+            daylight_toki + night_toki, UINT64_C(2),
+            show_seconds, &half_toki)) {
+        return false;
+    }
+
+    whole_toki = half_toki / UINT64_C(2);
+    if (show_seconds && (half_toki % UINT64_C(2)) != 0U) {
+        return whole_toki == 0U
+            ? write_text(buffer, capacity, length, "半刻")
+            : write_printf(buffer, capacity, length,
+                           "%llu刻半", (unsigned long long)whole_toki);
+    }
+    return write_printf(buffer, capacity, length,
+                        "%llu刻", (unsigned long long)whole_toki);
+}
+
 typedef enum SolarOrigin {
     SOLAR_ORIGIN_SUNRISE,
     SOLAR_ORIGIN_SUNSET
@@ -1041,20 +1342,39 @@ bool infiltratr_temporal_format_duration_mode(
         return false;
     }
 
-    /*
-     * Duration conversion is deliberately narrower than civil-clock
-     * conversion. Origin-only systems keep their equal SI hour/minute/second
-     * units; Roman and Edo seasonal clocks are period labelling systems whose
-     * unequal day/night units do not define one context-free elapsed unit.
-     */
     if (strcmp(mode, "standard") == 0 ||
         strcmp(mode, "standard-24") == 0 ||
-        strcmp(mode, "standard-12") == 0 ||
-        strcmp(mode, "roman-temporal") == 0 ||
-        strcmp(mode, "japanese-temporal") == 0) {
+        strcmp(mode, "standard-12") == 0) {
         return format_duration_hms(
             whole_seconds, show_seconds, vertical, NULL,
             buffer, capacity, length);
+    }
+
+    if (strcmp(mode, "roman-temporal") == 0 ||
+        strcmp(mode, "japanese-temporal") == 0) {
+        if (!location_configured ||
+            !isfinite(latitude) || !isfinite(longitude)) {
+            return false;
+        }
+        /*
+         * Seasonal civil durations are meaningful only when anchored to a real
+         * interval. For abstract accumulated quantities there is no historical
+         * seasonal unit to apply honestly, so retain SI duration and label it.
+         */
+        if (end_unix_microseconds == INT64_MIN) {
+            return format_duration_hms(
+                whole_seconds, show_seconds, vertical, "SI",
+                buffer, capacity, length);
+        }
+        return strcmp(mode, "roman-temporal") == 0
+            ? format_duration_roman_temporal(
+                elapsed_microseconds, end_unix_microseconds,
+                show_seconds, vertical, latitude, longitude,
+                buffer, capacity, length)
+            : format_duration_japanese_temporal(
+                elapsed_microseconds, end_unix_microseconds,
+                show_seconds, latitude, longitude,
+                buffer, capacity, length);
     }
 
     if (strcmp(mode, "decimal") == 0) {

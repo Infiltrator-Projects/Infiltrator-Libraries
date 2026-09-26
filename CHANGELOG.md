@@ -6,6 +6,15 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.28 — 2026-09-26
+
+- Strengthen the existing elapsed-duration contract for Roman temporal and Edo Japanese seasonal modes instead of leaving their anchored intervals in disguised modern H:M:S.
+- Integrate seasonal duration directly between the real civil interval endpoints: Roman daylight accumulates twelve variable horae, Roman night accumulates four variable vigiliae, and Edo day/night each accumulate six variable koku/toki.
+- Express Roman fractional seasonal units as unciae (twelfths) and Edo fractional precision with the historically attested half-period marker rather than fabricating modern minutes or seconds.
+- Keep unanchored accumulated quantities explicitly labelled SI because no honest seasonal conversion exists without a civil interval.
+- Preserve canonical Unix/SI storage, monotonic accounting and all existing public API signatures; this is a presentation-contract correction.
+- Add regression coverage for anchored Roman/Edo output, explicit-SI unanchored fallback and full-day seasonal intervals.
+
 ## 1.19.27 — 2026-09-25
 
 - Add a strict allocation-free Unicode scalar-to-UTF-8 encoder beside the existing validator.
