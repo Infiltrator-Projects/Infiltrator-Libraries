@@ -248,37 +248,94 @@ bool infiltratr_xdg_data_home(char *destination, size_t size)
     return xdg_home("XDG_DATA_HOME", ".local/share", destination, size);
 }
 
-static int ensure_directory(const char *path, mode_t mode)
+static int open_directory_relative(int directory_fd,
+                                   const char *component)
 {
-    if (mkdir(path, mode) == 0) return 0;
-    if (errno != EEXIST) return errno;
+    int flags = O_CLOEXEC | O_DIRECTORY;
+#if defined(O_PATH)
+    flags |= O_PATH;
+#elif defined(O_SEARCH)
+    flags |= O_SEARCH;
+#else
+    flags |= O_RDONLY;
+#endif
+    return openat(directory_fd, component, flags);
+}
 
-    struct stat status;
-    if (stat(path, &status) != 0) return errno;
-    return S_ISDIR(status.st_mode) ? 0 : ENOTDIR;
+static int open_directory_anchor(const char *path)
+{
+    int flags = O_CLOEXEC | O_DIRECTORY;
+#if defined(O_PATH)
+    flags |= O_PATH;
+#elif defined(O_SEARCH)
+    flags |= O_SEARCH;
+#else
+    flags |= O_RDONLY;
+#endif
+    return open(path, flags);
 }
 
 int infiltratr_mkdir_parents(const char *path, unsigned int mode)
 {
+    char *copy;
+    char *cursor;
+    int directory_fd;
+    int failure = 0;
+    const mode_t permissions = (mode_t)(mode & 07777U);
+
     if (!path || !path[0]) return EINVAL;
 
-    char *copy = strdup(path);
+    copy = strdup(path);
     if (!copy) return errno ? errno : ENOMEM;
 
     size_t length = strlen(copy);
     while (length > 1U && copy[length - 1U] == '/')
         copy[--length] = '\0';
 
-    const mode_t permissions = (mode_t)(mode & 07777U);
-    int failure = 0;
-    for (char *cursor = copy + (copy[0] == '/' ? 1 : 0);
-         *cursor && failure == 0; cursor++) {
-        if (*cursor != '/') continue;
-        *cursor = '\0';
-        if (copy[0]) failure = ensure_directory(copy, permissions);
-        *cursor = '/';
+    directory_fd = open_directory_anchor(copy[0] == '/' ? "/" : ".");
+    if (directory_fd < 0) {
+        failure = errno;
+        free(copy);
+        return failure;
     }
-    if (failure == 0) failure = ensure_directory(copy, permissions);
+
+    cursor = copy + (copy[0] == '/' ? 1 : 0);
+    while (*cursor && failure == 0) {
+        char *separator;
+        int next_fd;
+
+        while (*cursor == '/') ++cursor;
+        if (!*cursor) break;
+
+        separator = strchr(cursor, '/');
+        if (separator) *separator = '\0';
+
+        if (mkdirat(directory_fd, cursor, permissions) != 0 &&
+            errno != EEXIST) {
+            failure = errno;
+        } else {
+            next_fd = open_directory_relative(directory_fd, cursor);
+            if (next_fd < 0) {
+                failure = errno;
+            } else {
+                if (close(directory_fd) != 0) {
+                    failure = errno;
+                    (void)close(next_fd);
+                } else {
+                    directory_fd = next_fd;
+                }
+            }
+        }
+
+        if (!separator) break;
+        cursor = separator + 1;
+    }
+
+    if (failure == 0 && close(directory_fd) != 0)
+        failure = errno;
+    else if (failure != 0)
+        (void)close(directory_fd);
+
     free(copy);
     return failure;
 }
