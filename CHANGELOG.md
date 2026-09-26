@@ -6,6 +6,13 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.34 — 2026-09-26
+
+- Split Edo Japanese unequal time into the existing late-Edo 1797 twilight model and a distinct early-Edo sunrise/sunset model; both retain six daylight and six night periods and the historical zodiacal labels.
+- State explicitly that apparent solar time uses Common's compact Sun-position approximation rather than presenting the calculation as exact ephemeris output.
+- Clarify the Chinese hundred-kè historical variant, ancient Babylonian equal bēru/UŠ hierarchy and Indian ghaṭī unit size in the selector.
+- Clarify calendar model/range assumptions for Hebrew arithmetic, Umm al-Qura table coverage, Persian arithmetic, modern Badíʿ Naw-Rúz, computational Chinese/Dangi calendars and the modern Meiji–Reiwa Japanese-era implementation.
+
 ## 1.19.33 — 2026-09-26
 
 - Audit every clock/calendar catalogue label for comprehensibility and expose important model assumptions directly in the selector instead of relying on specialist knowledge.

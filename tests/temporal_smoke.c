@@ -35,7 +35,7 @@ static void test_catalogue(void)
         "Renaissance 'Babylonian' hours (24 equal hours from sunrise)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("babylonian-ancient")->name,
-        "Ancient Babylonian bēru (12 equal double-hours from sunset)") == 0);
+        "Ancient Babylonian equal bēru (12 double-hours from sunset; 30 UŠ each)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("nuremberg-hours")->name,
         "Historical Nuremberg Great Clock (fixed Wendetage)") == 0);
@@ -43,8 +43,23 @@ static void test_catalogue(void)
         infiltratr_temporal_clock_mode_find("roman-temporal")->name,
         "Roman seasonal time (12 daylight hours / 4 night watches)") == 0);
     CHECK(strcmp(
+        infiltratr_temporal_clock_mode_find("japanese-temporal")->name,
+        "Late Edo Japanese unequal hours (1797 twilight; 6 day / 6 night)") == 0);
+    CHECK(strcmp(
+        infiltratr_temporal_clock_mode_find("japanese-temporal-early")->name,
+        "Early Edo Japanese unequal hours (sunrise/sunset; 6 day / 6 night)") == 0);
+    CHECK(strcmp(
+        infiltratr_temporal_clock_mode_find("solar")->name,
+        "Apparent solar time (compact Sun-position approximation)") == 0);
+    CHECK(strcmp(
+        infiltratr_temporal_calendar_find("japanese")->name,
+        "Japanese imperial era (modern Meiji–Reiwa)") == 0);
+    CHECK(strcmp(
+        infiltratr_temporal_calendar_find("bahai")->name,
+        "Bahá’í (Badíʿ; modern Naw-Rúz from Tehran equinox)") == 0);
+    CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("indian-ghati")->name,
-        "Indian ghaṭī time (60 ghaṭī per sunrise day)") == 0);
+        "Indian ghaṭī time (60 per sunrise day; 1 ghaṭī = 24 min)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_calendar_find("mayan")->name,
         "Mayan Long Count (GMT 584283 correlation)") == 0);

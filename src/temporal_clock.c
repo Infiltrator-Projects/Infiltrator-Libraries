@@ -827,14 +827,13 @@ static bool format_duration_japanese_temporal(
     uint64_t elapsed_microseconds,
     int64_t end_unix_microseconds,
     bool show_seconds,
+    double solar_depression_degrees,
     double latitude,
     double longitude,
     char *buffer,
     size_t capacity,
     size_t *length)
 {
-    const double depression =
-        7.0 + 21.0 / 60.0 + 40.0 / 3600.0;
     long double daylight_toki;
     long double night_toki;
     uint64_t half_toki;
@@ -842,7 +841,7 @@ static bool format_duration_japanese_temporal(
 
     if (!seasonal_interval_progress(
             elapsed_microseconds, end_unix_microseconds,
-            latitude, longitude, depression, 6U, 6U,
+            latitude, longitude, solar_depression_degrees, 6U, 6U,
             &daylight_toki, &night_toki) ||
         !seasonal_quantise(
             daylight_toki + night_toki, UINT64_C(2),
@@ -1598,7 +1597,8 @@ bool infiltratr_temporal_format_duration_mode(
     }
 
     if (strcmp(mode, "roman-temporal") == 0 ||
-        strcmp(mode, "japanese-temporal") == 0) {
+        strcmp(mode, "japanese-temporal") == 0 ||
+        strcmp(mode, "japanese-temporal-early") == 0) {
         if (!location_configured ||
             !isfinite(latitude) || !isfinite(longitude)) {
             return false;
@@ -1613,15 +1613,20 @@ bool infiltratr_temporal_format_duration_mode(
                 whole_seconds, show_seconds, vertical, "SI",
                 buffer, capacity, length);
         }
-        return strcmp(mode, "roman-temporal") == 0
-            ? format_duration_roman_temporal(
+        if (strcmp(mode, "roman-temporal") == 0) {
+            return format_duration_roman_temporal(
                 elapsed_microseconds, end_unix_microseconds,
                 show_seconds, vertical, latitude, longitude,
-                buffer, capacity, length)
-            : format_duration_japanese_temporal(
-                elapsed_microseconds, end_unix_microseconds,
-                show_seconds, latitude, longitude,
                 buffer, capacity, length);
+        }
+        return format_duration_japanese_temporal(
+            elapsed_microseconds, end_unix_microseconds,
+            show_seconds,
+            strcmp(mode, "japanese-temporal") == 0
+                ? 7.0 + 21.0 / 60.0 + 40.0 / 3600.0
+                : 0.833,
+            latitude, longitude,
+            buffer, capacity, length);
     }
 
     if (strcmp(mode, "babylonian-ancient") == 0) {
@@ -1997,7 +2002,8 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
             roman[period.index]);
     }
 
-    if (strcmp(mode, "japanese-temporal") == 0) {
+    if (strcmp(mode, "japanese-temporal") == 0 ||
+        strcmp(mode, "japanese-temporal-early") == 0) {
         typedef struct JapaneseToki {
             const char *character;
             unsigned number;
@@ -2014,7 +2020,9 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
             { "丑", 8U, "Ox" }, { "寅", 7U, "Tiger" }
         };
         const double depression =
-            7.0 + 21.0 / 60.0 + 40.0 / 3600.0;
+            strcmp(mode, "japanese-temporal") == 0
+                ? 7.0 + 21.0 / 60.0 + 40.0 / 3600.0
+                : 0.833;
         SeasonalPeriod period;
         const JapaneseToki *toki;
 
