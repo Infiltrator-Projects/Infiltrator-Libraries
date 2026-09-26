@@ -184,7 +184,12 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
  * INT64_MIN denotes an unanchored accumulated quantity; seasonal modes then
  * remain explicit SI H:M:S because no honest civil-seasonal conversion exists.
  * Equal-hour origin systems keep conventional hour/minute/second units because
- * sunrise/sunset changes only their zero point.
+ * sunrise/sunset changes only their zero point. The Renaissance European mode
+ * historically called "Babylonian hours" is distinct from the genuinely
+ * ancient Babylonian seasonal scheme, which divides daylight and night into
+ * twelve simānu each. Nuremberg presentation uses equal hours with a discrete
+ * Wendetag-style integer allocation between day and night rather than resetting
+ * the count continuously at each day's astronomical sunrise and sunset.
  *
  * Location requirements follow the corresponding clock mode. @vertical only
  * changes separators; it never changes the represented interval.

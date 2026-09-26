@@ -6,6 +6,15 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.30 — 2026-09-26
+
+- Rename the presentation labels for historical Italian hours and Renaissance European "Babylonian hours" so neither can be mistaken for modern Italian civil time or ancient Babylonian timekeeping; keep their stable persisted IDs unchanged.
+- Add `babylonian-ancient`, a distinct ancient seasonal-hour mode dividing daylight and night into twelve simānu each from astronomical sunrise/sunset.
+- Correct `nuremberg-hours`: retain equal 60-minute hours but assign a discrete integer number to daylight (8–16) and the remainder to night, changing allocation only when local solar day length crosses the next half-hour threshold—the Wendetag principle—instead of resetting continuously at each real sunrise/sunset.
+- Preserve location-aware behaviour for the Nuremberg method because neighbouring cities historically used slightly different Wendetage; the configured location determines the reconstructed transition days.
+- Document that modern Italian time is ordinary civil time under the Europe/Rome time zone, not a distinct clock system.
+- Add regression coverage for the new catalogue names, ancient Babylonian seasonal formatting and corrected Nuremberg clock path.
+
 ## 1.19.29 — 2026-09-26
 
 - Normalize Roman seasonal durations into complete `dies` plus residual horae/vigiliae/unciae instead of presenting unbounded aggregate daylight and night totals.

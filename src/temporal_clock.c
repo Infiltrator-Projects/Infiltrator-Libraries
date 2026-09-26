@@ -857,6 +857,53 @@ static bool format_duration_japanese_temporal(
                         "%llu刻", (unsigned long long)whole_toki);
 }
 
+static bool format_duration_babylonian_ancient(
+    uint64_t elapsed_microseconds,
+    int64_t end_unix_microseconds,
+    bool vertical,
+    double latitude,
+    double longitude,
+    char *buffer,
+    size_t capacity,
+    size_t *length)
+{
+    long double daylight_units;
+    long double night_units;
+    uint64_t daylight_whole;
+    uint64_t night_whole;
+    const char *separator = vertical ? "\n" : " · ";
+
+    if (!seasonal_interval_progress(
+            elapsed_microseconds, end_unix_microseconds,
+            latitude, longitude, 0.833, 12U, 12U,
+            &daylight_units, &night_units) ||
+        !seasonal_quantise(
+            daylight_units, UINT64_C(1), false, &daylight_whole) ||
+        !seasonal_quantise(
+            night_units, UINT64_C(1), false, &night_whole)) {
+        return false;
+    }
+
+    if (daylight_whole == 0U && night_whole == 0U) {
+        return write_text(buffer, capacity, length, "0 simānu");
+    }
+    if (daylight_whole == 0U) {
+        return write_printf(buffer, capacity, length,
+                            "N %llu simānu",
+                            (unsigned long long)night_whole);
+    }
+    if (night_whole == 0U) {
+        return write_printf(buffer, capacity, length,
+                            "D %llu simānu",
+                            (unsigned long long)daylight_whole);
+    }
+    return write_printf(buffer, capacity, length,
+                        "D %llu simānu%sN %llu simānu",
+                        (unsigned long long)daylight_whole,
+                        separator,
+                        (unsigned long long)night_whole);
+}
+
 typedef enum SolarOrigin {
     SOLAR_ORIGIN_SUNRISE,
     SOLAR_ORIGIN_SUNSET
@@ -930,6 +977,108 @@ static bool format_equal_hours(char *buffer, size_t capacity, size_t *length,
     minute =
         (int)((whole_seconds / SECONDS_PER_MINUTE) % MINUTES_PER_HOUR);
     second = (int)(whole_seconds % SECONDS_PER_MINUTE);
+
+    if (show_seconds) {
+        return write_printf(buffer, capacity, length,
+                            "%02d%s%02d%s%02d%s%s",
+                            hour, separator, minute, separator, second,
+                            vertical ? "\n" : " ", suffix);
+    }
+    return write_printf(buffer, capacity, length,
+                        "%02d%s%02d%s%s",
+                        hour, separator, minute,
+                        vertical ? "\n" : " ", suffix);
+}
+
+/*
+ * Reconstruct the Nürnberger Uhr's Wendetag rule for the configured place.
+ * Equal 60-minute hours are assigned as a whole-number block to daylight and
+ * the remainder to night. The allocation changes only when astronomical day
+ * length crosses the next half-hour threshold. This reproduces the discrete
+ * Wendetag behaviour while allowing for the historical fact that nearby towns
+ * used slightly different changeover dates.
+ */
+static bool nuremberg_hour_allocation(int64_t unix_microseconds,
+                                      double latitude,
+                                      unsigned *day_hours,
+                                      unsigned *night_hours,
+                                      long double *day_start,
+                                      long double *day_end)
+{
+    long double dawn;
+    long double dusk;
+    long double rounded;
+    unsigned day_count;
+
+    if (day_hours == NULL || night_hours == NULL ||
+        day_start == NULL || day_end == NULL ||
+        !solar_day_boundaries(
+            unix_microseconds, latitude, 0.833, &dawn, &dusk)) {
+        return false;
+    }
+
+    rounded = floorl(
+        (dusk - dawn) / (long double)SECONDS_PER_HOUR + 0.5L);
+    if (rounded < 8.0L) rounded = 8.0L;
+    if (rounded > 16.0L) rounded = 16.0L;
+    day_count = (unsigned)rounded;
+
+    *day_hours = day_count;
+    *night_hours = 24U - day_count;
+    *day_start =
+        ((long double)(24U - day_count) / 2.0L) * SECONDS_PER_HOUR;
+    *day_end = *day_start +
+        (long double)day_count * SECONDS_PER_HOUR;
+    return true;
+}
+
+static bool format_nuremberg_hours(char *buffer,
+                                   size_t capacity,
+                                   size_t *length,
+                                   int64_t unix_microseconds,
+                                   bool show_seconds,
+                                   bool vertical,
+                                   double latitude,
+                                   double longitude)
+{
+    unsigned day_hours;
+    unsigned night_hours;
+    long double day_start;
+    long double day_end;
+    const long double solar =
+        apparent_solar_seconds(unix_microseconds, longitude);
+    long double elapsed;
+    int hour;
+    int minute;
+    int second;
+    const char *suffix;
+    const char *separator = vertical ? "\n" : ":";
+
+    if (!nuremberg_hour_allocation(
+            unix_microseconds, latitude,
+            &day_hours, &night_hours, &day_start, &day_end)) {
+        return write_text(buffer, capacity, length,
+                          vertical ? "N/A\nNUR" : "N/A NUR");
+    }
+
+    if (solar >= day_start && solar < day_end) {
+        elapsed = solar - day_start;
+        suffix = "NUR-D";
+    } else {
+        elapsed = solar >= day_end
+            ? solar - day_end
+            : (long double)SECONDS_PER_DAY - day_end + solar;
+        suffix = "NUR-N";
+    }
+    (void)day_hours;
+    (void)night_hours;
+
+    hour = (int)floorl(elapsed / SECONDS_PER_HOUR);
+    minute = (int)floorl(
+        fmodl(elapsed, (long double)SECONDS_PER_HOUR) /
+        SECONDS_PER_MINUTE);
+    second = (int)floorl(
+        fmodl(elapsed, (long double)SECONDS_PER_MINUTE));
 
     if (show_seconds) {
         return write_printf(buffer, capacity, length,
@@ -1439,6 +1588,22 @@ bool infiltratr_temporal_format_duration_mode(
                 buffer, capacity, length);
     }
 
+    if (strcmp(mode, "babylonian-ancient") == 0) {
+        if (!location_configured ||
+            !isfinite(latitude) || !isfinite(longitude)) {
+            return false;
+        }
+        if (end_unix_microseconds == INT64_MIN) {
+            return format_duration_hms(
+                whole_seconds, show_seconds, vertical, "SI",
+                buffer, capacity, length);
+        }
+        return format_duration_babylonian_ancient(
+            elapsed_microseconds, end_unix_microseconds,
+            vertical, latitude, longitude,
+            buffer, capacity, length);
+    }
+
     if (strcmp(mode, "decimal") == 0) {
         return format_duration_decimal(
             elapsed_microseconds, show_seconds, vertical,
@@ -1848,7 +2013,24 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
         return format_equal_hours(
             buffer, capacity, length, unix_microseconds,
             show_seconds, vertical, latitude, longitude,
-            SOLAR_ORIGIN_SUNRISE, "BAB");
+            SOLAR_ORIGIN_SUNRISE, "BAB-R");
+    }
+
+    if (strcmp(mode, "babylonian-ancient") == 0) {
+        SeasonalPeriod period;
+
+        if (!seasonal_period_at(
+                unix_microseconds, latitude, longitude,
+                0.833, 12U, 12U, &period)) {
+            return write_text(
+                buffer, capacity, length,
+                vertical ? "N/A\nBAB-A" : "N/A BAB-A");
+        }
+        return write_printf(
+            buffer, capacity, length,
+            vertical ? "%s\n%02u simānu" : "%s %02u simānu",
+            period.daylight ? "DAY" : "NIGHT",
+            period.index + 1U);
     }
 
     if (strcmp(mode, "indian-ghati") == 0) {
@@ -1877,61 +2059,9 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
     }
 
     if (strcmp(mode, "nuremberg-hours") == 0) {
-        int64_t best_previous = INT64_MIN;
-        bool previous_sunrise = true;
-        int offset;
-        int64_t elapsed_seconds;
-        int hour;
-        int minute;
-        int second;
-        const char *period;
-
-        for (offset = -2; offset <= 2; ++offset) {
-            int64_t delta;
-            int64_t sample;
-            int64_t dawn;
-            int64_t dusk;
-
-            if (!infiltratr_i64_multiply_checked(
-                    (int64_t)offset, MICROSECONDS_PER_DAY, &delta) ||
-                !infiltratr_i64_add_checked(
-                    unix_microseconds, delta, &sample) ||
-                !solar_boundary_instants(
-                    sample, latitude, longitude, 0.833, &dawn, &dusk)) {
-                continue;
-            }
-            if (dawn <= unix_microseconds && dawn > best_previous) {
-                best_previous = dawn;
-                previous_sunrise = true;
-            }
-            if (dusk <= unix_microseconds && dusk > best_previous) {
-                best_previous = dusk;
-                previous_sunrise = false;
-            }
-        }
-
-        if (best_previous == INT64_MIN) {
-            return write_text(
-                buffer, capacity, length,
-                vertical ? "N/A\nNUR" : "N/A NUR");
-        }
-        elapsed_seconds = floor_divide(
-            unix_microseconds - best_previous, MICROSECONDS_PER_SECOND);
-        hour = (int)(elapsed_seconds / SECONDS_PER_HOUR);
-        minute =
-            (int)((elapsed_seconds / SECONDS_PER_MINUTE) % MINUTES_PER_HOUR);
-        second = (int)(elapsed_seconds % SECONDS_PER_MINUTE);
-        period = previous_sunrise ? "NUR-D" : "NUR-N";
-
-        if (show_seconds) {
-            return write_printf(
-                buffer, capacity, length, "%02d%s%02d%s%02d%s%s",
-                hour, separator, minute, separator, second,
-                vertical ? "\n" : " ", period);
-        }
-        return write_printf(
-            buffer, capacity, length, "%02d%s%02d%s%s",
-            hour, separator, minute, vertical ? "\n" : " ", period);
+        return format_nuremberg_hours(
+            buffer, capacity, length, unix_microseconds,
+            show_seconds, vertical, latitude, longitude);
     }
 
     return false;

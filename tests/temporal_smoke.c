@@ -26,6 +26,16 @@ static void test_catalogue(void)
     CHECK(strcmp(infiltratr_clock_profile_name(profile),
                   "Decimal time (10-hour day)") == 0);
     CHECK(!infiltratr_clock_profile_from_id("missing", &profile));
+    CHECK(strcmp(
+        infiltratr_temporal_clock_mode_find("italian-hours")->name,
+        "Historical Italian hours (24 equal hours from sunset)") == 0);
+    CHECK(strcmp(
+        infiltratr_temporal_clock_mode_find("babylonian-hours")->name,
+        "Renaissance 'Babylonian' hours (24 equal hours from sunrise)") == 0);
+    CHECK(infiltratr_temporal_clock_mode_find("babylonian-ancient") != NULL);
+    CHECK(strcmp(
+        infiltratr_temporal_clock_mode_find("nuremberg-hours")->name,
+        "Nuremberg hours (Wendetag day/night count)") == 0);
 
     for (size_t index = 0U;
          index < infiltratr_temporal_clock_mode_count(); ++index) {
@@ -377,6 +387,12 @@ static void test_duration_mode_formats(void)
         text, sizeof(text), NULL));
     CHECK(strcmp(text, "1 dies") == 0);
     CHECK(infiltratr_temporal_format_duration_mode(
+        "babylonian-ancient", UINT64_C(86400) * UINT64_C(1000000),
+        INT64_C(1789990000) * INT64_C(1000000),
+        true, false, true, 49.45, 11.08,
+        text, sizeof(text), NULL));
+    CHECK(strstr(text, "simānu") != NULL);
+    CHECK(infiltratr_temporal_format_duration_mode(
         "japanese-temporal", UINT64_C(86400) * UINT64_C(1000000),
         INT64_C(1789990000) * INT64_C(1000000),
         true, false, true, 0.0, 0.0,
@@ -427,6 +443,21 @@ static void test_clock_mode_formats(void)
         0, true, false, false, 0.0, 0.0,
         text, sizeof(text), NULL));
     CHECK(strcmp(text, "5:00:00") == 0);
+
+    CHECK(infiltratr_temporal_format_clock_mode(
+        "babylonian-ancient",
+        INT64_C(1789990000) * INT64_C(1000000),
+        0, true, false, true, 49.45, 11.08,
+        text, sizeof(text), NULL));
+    CHECK(strstr(text, "simānu") != NULL);
+    CHECK(strstr(text, "DAY") != NULL || strstr(text, "NIGHT") != NULL);
+
+    CHECK(infiltratr_temporal_format_clock_mode(
+        "nuremberg-hours",
+        INT64_C(1789990000) * INT64_C(1000000),
+        0, true, false, true, 49.45, 11.08,
+        text, sizeof(text), NULL));
+    CHECK(strstr(text, "NUR-D") != NULL || strstr(text, "NUR-N") != NULL);
 
     for (size_t index = 0U;
          index < infiltratr_temporal_clock_mode_count(); ++index) {
