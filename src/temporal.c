@@ -43,21 +43,21 @@ static const InfiltratrTemporalClockModeInfo temporal_clock_modes[] = {
     { "hexadecimal", "Hexadecimal day fraction (0000–FFFF)", false, false, false },
     { "julian", "Julian Date (astronomical continuous day count)", true, false, false },
     { "modified-julian", "Modified Julian Date (MJD = JD − 2400000.5)", true, false, false },
-    { "sidereal", "Local sidereal time (LST)", true, false, true },
+    { "sidereal", "Local sidereal time (LST; compact J2000 approximation)", true, false, true },
     { "solar", "Apparent solar time (compact Sun-position approximation)", true, false, true },
     { "mean-solar", "Local mean solar time (LMT)", true, false, true },
     { "decimal", "French Republican decimal time (10h × 100m × 100s)", true, false, false },
     { "chinese-time", "Traditional Chinese double-hours (Zǐ begins 23:00; 12 shíchén)", false, false, false },
-    { "chinese-ke", "Historical Chinese hundred-kè variant (100 equal kè; finer fēn varied by era)", false, false, false },
-    { "roman-temporal", "Roman seasonal time (12 daylight horae / 4 night vigiliae)", false, true, true },
+    { "chinese-ke", "Historical Chinese hundred-kè variant (100 equal kè per day; finer subdivisions varied by era)", false, false, false },
+    { "roman-temporal", "Roman seasonal time (12 unequal daylight hours; night in 4 military watches)", false, true, true },
     { "japanese-temporal", "Late Edo Japanese unequal hours (1797 twilight; 6 day / 6 night)", false, true, true },
     { "japanese-temporal-early", "Early Edo Japanese unequal hours (sunrise/sunset; 6 day / 6 night)", false, true, true },
-    { "italian-hours", "Historical Italian hours (24 equal hours from sunset)", true, true, true },
-    { "babylonian-hours", "Renaissance 'Babylonian' hours (24 equal hours from sunrise)", true, true, true },
-    { "babylonian-ancient", "Ancient Babylonian bēru (12 equal double-hours per ūmu/day from sunset; 30 UŠ each)", false, true, true },
+    { "italian-hours", "Historical Italian hours (24 equal hours counted from sunset)", true, true, true },
+    { "babylonian-hours", "Renaissance European ‘Babylonian’ hours (24 equal hours counted from sunrise)", true, true, true },
+    { "babylonian-ancient", "Ancient Babylonian time (sunset-start day; 12 fixed bēru/day; 30 UŠ per bēru)", false, true, true },
     { "indian-ghati", "Indian ghaṭī time (60 per sunrise day; 1 ghaṭī = 24 min)", false, true, true },
-    { "nuremberg-hours", "Historical Nuremberg Great Clock (separate day/night hours; fixed Wendetage)", true, false, false },
-    { "nuremberg-solar", "Nuremberg-style solar reconstruction (local coordinates)", true, true, true }
+    { "nuremberg-hours", "Historical Nuremberg Great Clock (equal hours; day/night counts change on fixed dates)", true, false, false },
+    { "nuremberg-solar", "Nuremberg-style seasonal reconstruction (location-based, not the fixed civic schedule)", true, true, true }
 };
 
 static const InfiltratrTemporalCalendarInfo temporal_calendars[] = {
@@ -81,16 +81,16 @@ static const InfiltratrTemporalCalendarInfo temporal_calendars[] = {
     { "indian", "Indian National (Saka)" },
     { "japanese", "Japanese imperial era (modern Meiji–Reiwa)" },
     { "minguo", "Minguo / Republic of China (Year 1 = 1912)" },
-    { "roman", "Roman civil dating (Julian; Kalends/Nones/Ides; Varronian A.U.C.)" },
-    { "byzantine", "Byzantine Anno Mundi (Constantinopolitan era; Julian; year starts 1 September)" },
-    { "egyptian-nabonassar", "Egyptian civil (Nabonassar epoch 747 BC; 365-day wandering year)" },
-    { "armenian-traditional", "Armenian traditional (epoch 552 Julian; 365-day wandering year)" },
-    { "mayan", "Mayan Long Count (GMT 584283 correlation)" },
-    { "french-republican", "French Republican (historical epoch + Romme continuation)" },
+    { "roman", "Roman civil date notation (Julian; inclusive Kalends/Nones/Ides; Varronian A.U.C.)" },
+    { "byzantine", "Byzantine Anno Mundi — Constantinople (Julian; year begins 1 September)" },
+    { "egyptian-nabonassar", "Ptolemaic Nabonassar-era Egyptian civil calendar (365-day wandering year; epoch 747 BC)" },
+    { "armenian-traditional", "Traditional Armenian wandering calendar (365-day year; era begins 11 July 552 Julian)" },
+    { "mayan", "Maya Long Count (Goodman–Martínez–Thompson 584283 correlation)" },
+    { "french-republican", "French Republican (epoch 22 September 1792; Romme arithmetic continuation after historical use)" },
     { "swedish-historical", "Swedish historical calendar (1700–1753, incl. 30 Feb 1712)" },
     { "international-fixed", "International Fixed (13 × 28-day months + Year Day)" },
     { "world", "World Calendar (quarter-based; intercalary World/Leap days)" },
-    { "positivist", "Positivist calendar (Comte; Year 1 = 1789)" }
+    { "positivist", "Positivist calendar (Comte; 13 × 28-day months + festival days; Year 1 = 1789)" }
 };
 
 static bool profile_valid(InfiltratrClockProfile profile)

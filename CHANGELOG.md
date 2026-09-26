@@ -6,6 +6,16 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.36 — 2026-09-26
+
+- Complete a second forensic clarity pass over every shared clock/calendar selector name, with special attention to ancient and reconstructed systems.
+- Make Roman seasonal time say explicitly that its twelve daylight hours are unequal and its four night divisions are military watches.
+- Make ancient Babylonian time expose the sunset-start civil day and fixed 12-bēru/30-UŠ hierarchy, while naming the later sunrise-origin convention as Renaissance European “Babylonian” hours.
+- Replace Nuremberg `Wendetage` jargon in the selector with the behaviour it means and label the coordinate-driven variant as a reconstruction rather than the historical civic schedule.
+- Expand model-sensitive calendar labels: Ptolemaic Nabonassar-era Egyptian civil, traditional Armenian wandering calendar, Goodman–Martínez–Thompson 584283 Maya correlation, French Republican 1792 epoch/Romme continuation, and Positivist structural rules.
+- Label local sidereal time as Common's compact J2000 approximation so the UI does not imply ephemeris-grade accuracy.
+- Preserve all clock/calendar algorithms and persisted IDs; this release changes explanatory presentation and regression expectations only.
+
 ## 1.19.35 — 2026-09-26
 
 - Normalize Chinese double-hour elapsed presentation to native `日 · 時辰` instead of denominator notation.

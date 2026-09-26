@@ -29,19 +29,19 @@ static void test_catalogue(void)
     CHECK(infiltratr_temporal_clock_mode_find("italian-modern") == NULL);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("italian-hours")->name,
-        "Historical Italian hours (24 equal hours from sunset)") == 0);
+        "Historical Italian hours (24 equal hours counted from sunset)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("babylonian-hours")->name,
-        "Renaissance 'Babylonian' hours (24 equal hours from sunrise)") == 0);
+        "Renaissance European ‘Babylonian’ hours (24 equal hours counted from sunrise)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("babylonian-ancient")->name,
-        "Ancient Babylonian bēru (12 equal double-hours per ūmu/day from sunset; 30 UŠ each)") == 0);
+        "Ancient Babylonian time (sunset-start day; 12 fixed bēru/day; 30 UŠ per bēru)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("nuremberg-hours")->name,
-        "Historical Nuremberg Great Clock (separate day/night hours; fixed Wendetage)") == 0);
+        "Historical Nuremberg Great Clock (equal hours; day/night counts change on fixed dates)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("roman-temporal")->name,
-        "Roman seasonal time (12 daylight horae / 4 night vigiliae)") == 0);
+        "Roman seasonal time (12 unequal daylight hours; night in 4 military watches)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("japanese-temporal")->name,
         "Late Edo Japanese unequal hours (1797 twilight; 6 day / 6 night)") == 0);
@@ -62,7 +62,7 @@ static void test_catalogue(void)
         "Indian ghaṭī time (60 per sunrise day; 1 ghaṭī = 24 min)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_calendar_find("mayan")->name,
-        "Mayan Long Count (GMT 584283 correlation)") == 0);
+        "Maya Long Count (Goodman–Martínez–Thompson 584283 correlation)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_calendar_find("positivist")->name,
         "Positivist calendar (Comte; Year 1 = 1789)") == 0);
