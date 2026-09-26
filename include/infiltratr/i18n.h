@@ -51,8 +51,10 @@ typedef struct {
 /**
  * Initialise a localisation context and canonical fallback locale.
  *
- * The catalogue table is borrowed, not copied. Malformed catalogue/fallback
- * input is rejected without establishing a usable context.
+ * The catalogue table is borrowed, not copied. Every catalogue must have a
+ * valid locale; a non-zero entry count requires entry storage, and every entry
+ * must contain non-NULL key/value pointers. Malformed catalogue/fallback input
+ * is rejected without establishing a usable context.
  */
 bool infiltratr_i18n_init(InfiltratrI18n *context,
                           const InfiltratrI18nCatalog *catalogs,
