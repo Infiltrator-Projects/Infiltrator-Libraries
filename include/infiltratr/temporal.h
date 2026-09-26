@@ -169,14 +169,16 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
  * are projected into their own elapsed representation: decimal time uses
  * 10/100/100 units, Internet Time uses beats, hexadecimal uses 65,536 ticks
  * per day, binary uses binary H:M:S fields, Julian modes use fractional days,
- * sidereal time uses the shared sidereal rate, Chinese kè/double-hours use
- * their day partitions, and Indian ghaṭī uses 60 ghaṭī/day and 60
- * vighaṭī/ghaṭī.
+ * sidereal time uses the shared sidereal rate, Chinese hundred-kè and
+ * double-hour durations use native 日/刻/時辰 hierarchy rather than modern
+ * day prefixes or denominator fractions, and Indian ghaṭī uses 60 ghaṭī/day
+ * and 60 vighaṭī/ghaṭī.
  *
  * @end_unix_microseconds anchors modes whose rate depends on civil date.
  * Apparent-solar intervals include equation-of-time drift. Roman and Edo
  * seasonal intervals integrate their real astronomical day/night unit lengths:
- * Roman presentation reports daylight horae and night vigiliae (with unciae
+ * Roman presentation first collapses complete 12-horae/4-vigiliae cycles into
+ * dies, then reports residual daylight horae and night vigiliae (with unciae
  * when fractional precision is requested), while Edo presentation reports
  * seasonal koku/toki with the historically attested half-period marker.
  * INT64_MIN denotes an unanchored accumulated quantity; seasonal modes then

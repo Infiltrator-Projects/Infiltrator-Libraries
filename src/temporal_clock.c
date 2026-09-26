@@ -672,6 +672,39 @@ static bool seasonal_quantise(long double units,
     return true;
 }
 
+static bool format_duration_chinese_partition(
+    uint64_t elapsed_microseconds,
+    uint64_t units_per_day,
+    const char *unit,
+    bool vertical,
+    char *buffer,
+    size_t capacity,
+    size_t *length)
+{
+    const uint64_t day_us = (uint64_t)MICROSECONDS_PER_DAY;
+    const uint64_t days = elapsed_microseconds / day_us;
+    const uint64_t phase = elapsed_microseconds % day_us;
+    uint64_t units = 0U;
+    const char *separator = vertical ? "\n" : " · ";
+
+    if (unit == NULL ||
+        !duration_partition(phase, units_per_day, &units)) {
+        return false;
+    }
+    if (days != 0U && units != 0U) {
+        return write_printf(buffer, capacity, length,
+                            "%llu日%s%llu%s",
+                            (unsigned long long)days, separator,
+                            (unsigned long long)units, unit);
+    }
+    if (days != 0U) {
+        return write_printf(buffer, capacity, length,
+                            "%llu日", (unsigned long long)days);
+    }
+    return write_printf(buffer, capacity, length,
+                        "%llu%s", (unsigned long long)units, unit);
+}
+
 static bool format_duration_roman_temporal(
     uint64_t elapsed_microseconds,
     int64_t end_unix_microseconds,
@@ -687,11 +720,16 @@ static bool format_duration_roman_temporal(
     long double vigiliae;
     uint64_t hora_twelfths;
     uint64_t vigilia_twelfths;
+    uint64_t whole_days;
     uint64_t whole_horae;
     uint64_t whole_vigiliae;
     unsigned hora_unciae;
     unsigned vigilia_unciae;
+    char day_part[48] = "";
+    char hora_part[64] = "";
+    char vigilia_part[64] = "";
     const char *separator = vertical ? "\n" : " · ";
+    int written;
 
     if (!seasonal_interval_progress(
             elapsed_microseconds, end_unix_microseconds,
@@ -704,57 +742,77 @@ static bool format_duration_roman_temporal(
         return false;
     }
 
+    /*
+     * Twelve daylight horae plus four night vigiliae make one complete Roman
+     * civil cycle. Collapse complete paired cycles into dies before showing
+     * the residual seasonal units, so long intervals remain immediately
+     * understandable instead of becoming unbounded hora/vigilia totals.
+     */
+    whole_days = hora_twelfths / UINT64_C(144);
+    if (vigilia_twelfths / UINT64_C(48) < whole_days) {
+        whole_days = vigilia_twelfths / UINT64_C(48);
+    }
+    hora_twelfths -= whole_days * UINT64_C(144);
+    vigilia_twelfths -= whole_days * UINT64_C(48);
+
     whole_horae = hora_twelfths / UINT64_C(12);
     whole_vigiliae = vigilia_twelfths / UINT64_C(12);
     hora_unciae = (unsigned)(hora_twelfths % UINT64_C(12));
     vigilia_unciae = (unsigned)(vigilia_twelfths % UINT64_C(12));
 
-    if (hora_twelfths == 0U && vigilia_twelfths == 0U) {
-        return write_text(buffer, capacity, length, "0 horae");
+    if (whole_days != 0U) {
+        written = snprintf(day_part, sizeof(day_part), "%llu dies",
+                           (unsigned long long)whole_days);
+        if (written < 0 || (size_t)written >= sizeof(day_part)) return false;
     }
-    if (hora_twelfths == 0U) {
-        return show_seconds && vigilia_unciae != 0U
-            ? write_printf(buffer, capacity, length,
-                           "%llu %s %u unciae",
-                           (unsigned long long)whole_vigiliae,
-                           whole_vigiliae == 1U ? "vigilia" : "vigiliae",
-                           vigilia_unciae)
-            : write_printf(buffer, capacity, length,
-                           "%llu %s",
-                           (unsigned long long)whole_vigiliae,
-                           whole_vigiliae == 1U ? "vigilia" : "vigiliae");
+    if (hora_twelfths != 0U) {
+        written = show_seconds && hora_unciae != 0U
+            ? snprintf(hora_part, sizeof(hora_part), "%llu %s %u unciae",
+                       (unsigned long long)whole_horae,
+                       whole_horae == 1U ? "hora" : "horae", hora_unciae)
+            : snprintf(hora_part, sizeof(hora_part), "%llu %s",
+                       (unsigned long long)whole_horae,
+                       whole_horae == 1U ? "hora" : "horae");
+        if (written < 0 || (size_t)written >= sizeof(hora_part)) return false;
     }
-    if (vigilia_twelfths == 0U) {
-        return show_seconds && hora_unciae != 0U
-            ? write_printf(buffer, capacity, length,
-                           "%llu %s %u unciae",
-                           (unsigned long long)whole_horae,
-                           whole_horae == 1U ? "hora" : "horae",
-                           hora_unciae)
-            : write_printf(buffer, capacity, length,
-                           "%llu %s",
-                           (unsigned long long)whole_horae,
-                           whole_horae == 1U ? "hora" : "horae");
+    if (vigilia_twelfths != 0U) {
+        written = show_seconds && vigilia_unciae != 0U
+            ? snprintf(vigilia_part, sizeof(vigilia_part),
+                       "%llu %s %u unciae",
+                       (unsigned long long)whole_vigiliae,
+                       whole_vigiliae == 1U ? "vigilia" : "vigiliae",
+                       vigilia_unciae)
+            : snprintf(vigilia_part, sizeof(vigilia_part), "%llu %s",
+                       (unsigned long long)whole_vigiliae,
+                       whole_vigiliae == 1U ? "vigilia" : "vigiliae");
+        if (written < 0 || (size_t)written >= sizeof(vigilia_part)) return false;
     }
 
-    if (show_seconds) {
-        return write_printf(
-            buffer, capacity, length,
-            "%llu %s %u unciae%s%llu %s %u unciae",
-            (unsigned long long)whole_horae,
-            whole_horae == 1U ? "hora" : "horae",
-            hora_unciae, separator,
-            (unsigned long long)whole_vigiliae,
-            whole_vigiliae == 1U ? "vigilia" : "vigiliae",
-            vigilia_unciae);
+    if (day_part[0] == '\0' && hora_part[0] == '\0' &&
+        vigilia_part[0] == '\0') {
+        return write_text(buffer, capacity, length, "0 horae");
     }
-    return write_printf(
-        buffer, capacity, length, "%llu %s%s%llu %s",
-        (unsigned long long)whole_horae,
-        whole_horae == 1U ? "hora" : "horae",
-        separator,
-        (unsigned long long)whole_vigiliae,
-        whole_vigiliae == 1U ? "vigilia" : "vigiliae");
+    if (day_part[0] != '\0' && hora_part[0] != '\0' &&
+        vigilia_part[0] != '\0') {
+        return write_printf(buffer, capacity, length, "%s%s%s%s%s",
+                            day_part, separator, hora_part,
+                            separator, vigilia_part);
+    }
+    if (day_part[0] != '\0' && hora_part[0] != '\0') {
+        return write_printf(buffer, capacity, length, "%s%s%s",
+                            day_part, separator, hora_part);
+    }
+    if (day_part[0] != '\0' && vigilia_part[0] != '\0') {
+        return write_printf(buffer, capacity, length, "%s%s%s",
+                            day_part, separator, vigilia_part);
+    }
+    if (hora_part[0] != '\0' && vigilia_part[0] != '\0') {
+        return write_printf(buffer, capacity, length, "%s%s%s",
+                            hora_part, separator, vigilia_part);
+    }
+    if (day_part[0] != '\0') return write_text(buffer, capacity, length, day_part);
+    if (hora_part[0] != '\0') return write_text(buffer, capacity, length, hora_part);
+    return write_text(buffer, capacity, length, vigilia_part);
 }
 
 static bool format_duration_japanese_temporal(
@@ -1440,17 +1498,15 @@ bool infiltratr_temporal_format_duration_mode(
     }
 
     if (strcmp(mode, "chinese-time") == 0) {
-        return format_duration_day_ticks(
+        return format_duration_chinese_partition(
             elapsed_microseconds, CHINESE_DOUBLE_HOURS_PER_DAY,
-            "時辰 ", "/12", 2U, false, vertical,
-            buffer, capacity, length);
+            "時辰", vertical, buffer, capacity, length);
     }
 
     if (strcmp(mode, "chinese-ke") == 0) {
-        return format_duration_day_ticks(
+        return format_duration_chinese_partition(
             elapsed_microseconds, CHINESE_KE_PER_DAY,
-            "刻 ", "/100", 2U, false, vertical,
-            buffer, capacity, length);
+            "刻", vertical, buffer, capacity, length);
     }
 
     if (strcmp(mode, "italian-hours") == 0) {
@@ -1709,11 +1765,11 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
     }
 
     if (strcmp(mode, "chinese-ke") == 0) {
-        const uint64_t ke = day_tick(local, UINT64_C(100));
+        const uint64_t ke = day_tick(local, CHINESE_KE_PER_DAY);
 
         return write_printf(
             buffer, capacity, length,
-            vertical ? "刻\n%02llu/100" : "刻 %02llu/100",
+            vertical ? "%02llu\n刻" : "%02llu刻",
             (unsigned long long)ke);
     }
 

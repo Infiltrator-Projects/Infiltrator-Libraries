@@ -333,7 +333,7 @@ static void test_duration_mode_formats(void)
         INT64_C(1789990000) * INT64_C(1000000),
         false, false, false, 0.0, 0.0,
         text, sizeof(text), NULL));
-    CHECK(strcmp(text, "刻 01/100") == 0);
+    CHECK(strcmp(text, "1刻") == 0);
 
     CHECK(infiltratr_temporal_format_duration_mode(
         "indian-ghati", UINT64_C(1440) * UINT64_C(1000000),
@@ -375,8 +375,7 @@ static void test_duration_mode_formats(void)
         INT64_C(1789990000) * INT64_C(1000000),
         true, false, true, 0.0, 0.0,
         text, sizeof(text), NULL));
-    CHECK(strstr(text, "hora") != NULL);
-    CHECK(strstr(text, "vigilia") != NULL);
+    CHECK(strcmp(text, "1 dies") == 0);
     CHECK(infiltratr_temporal_format_duration_mode(
         "japanese-temporal", UINT64_C(86400) * UINT64_C(1000000),
         INT64_C(1789990000) * INT64_C(1000000),

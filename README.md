@@ -8,7 +8,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.28
+**Current library version:** 1.19.29
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -41,6 +41,10 @@ Common
 Common owns portable mechanics and algorithms that have real use across the project family. Product-neutral automotive diagnostic and shared application behaviour belongs in LINK; manufacturer-specific vehicle knowledge, branding and product-specific behaviour remain in MBLINK, JAGLINK, BMWLINK, AUDILINK and FORDLINK. Filesystem semantics, calendar rules and other domain-specific behaviour remain in their owning repositories rather than moving into Common merely because they are reusable within one product family.
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
+
+## Common 1.19.29
+
+1.19.29 makes historical elapsed-time presentation read in the selected system's own hierarchy. Roman seasonal durations now collapse each complete twelve-horae/four-vigiliae cycle into a `dies` before showing residual horae, vigiliae and unciae. Chinese hundred-kè and double-hour durations now use native 日/刻/時辰 units instead of hybrid modern day prefixes and denominator notation; the generic hundred-kè mode deliberately does not invent a dynasty-specific sub-kè precision.
 
 ## Common 1.19.28
 

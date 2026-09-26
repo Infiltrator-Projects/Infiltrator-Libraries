@@ -6,6 +6,13 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.29 — 2026-09-26
+
+- Normalize Roman seasonal durations into complete `dies` plus residual horae/vigiliae/unciae instead of presenting unbounded aggregate daylight and night totals.
+- Present Chinese hundred-kè and double-hour durations with native 日/刻/時辰 hierarchy; remove hybrid modern day prefixes and redundant `/100` or `/12` denominator notation.
+- Keep generic Chinese hundred-kè precision honest: finer fēn/miǎo subdivisions varied by historical calendar, so this mode does not fabricate one dynasty's sub-kè convention.
+- Add regression coverage proving a full Roman civil cycle renders as `1 dies` and one hundredth of a Chinese day renders as `1刻`.
+
 ## 1.19.28 — 2026-09-26
 
 - Strengthen the existing elapsed-duration contract for Roman temporal and Edo Japanese seasonal modes instead of leaving their anchored intervals in disguised modern H:M:S.
