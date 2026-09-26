@@ -107,9 +107,12 @@ bool infiltratr_xdg_data_home(char *destination, size_t size);
 /**
  * Create a POSIX directory path recursively.
  *
- * Existing directory components are accepted. The supplied permission bits are
- * passed to mkdir for newly created components and remain subject to umask.
- * Returns zero on success or an errno-style failure code.
+ * Existing directory components are accepted, including symlinks that resolve
+ * to directories. Traversal is anchored one directory descriptor at a time so
+ * already-resolved parent components are not re-resolved by later pathname
+ * operations. The supplied permission bits are passed to mkdirat for newly
+ * created components and remain subject to umask. Returns zero on success or
+ * an errno-style failure code.
  */
 int infiltratr_mkdir_parents(const char *path, unsigned int mode);
 
