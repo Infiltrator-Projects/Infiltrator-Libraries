@@ -127,21 +127,52 @@ static const char *lookup_locale(const InfiltratrI18n *context,
     return catalog_lookup(catalog, key);
 }
 
+static bool catalog_table_valid(const InfiltratrI18nCatalog *catalogs,
+                                size_t catalog_count)
+{
+    char normalised[INFILTRATR_I18N_LOCALE_CAPACITY];
+
+    if (!catalogs || catalog_count == 0U) return false;
+    for (size_t i = 0U; i < catalog_count; ++i) {
+        const InfiltratrI18nCatalog *catalog = &catalogs[i];
+        if (!catalog->locale ||
+            normalise_locale(normalised, sizeof(normalised),
+                             catalog->locale) == 0U)
+            return false;
+        if (catalog->entry_count > 0U && !catalog->entries)
+            return false;
+        for (size_t j = 0U; j < catalog->entry_count; ++j)
+            if (!catalog->entries[j].key || !catalog->entries[j].value)
+                return false;
+    }
+    return true;
+}
+
 bool infiltratr_i18n_init(InfiltratrI18n *context,
                           const InfiltratrI18nCatalog *catalogs,
                           size_t catalog_count,
                           const char *fallback_locale)
 {
-    if (!context || !catalogs || catalog_count == 0U || !fallback_locale) return false;
+    InfiltratrI18n configured = {0};
+
+    if (!context) return false;
     memset(context, 0, sizeof(*context));
-    context->catalogs = catalogs;
-    context->catalog_count = catalog_count;
-    if (normalise_locale(context->fallback_locale,
-                         sizeof(context->fallback_locale), fallback_locale) == 0U)
+    if (!fallback_locale || !catalog_table_valid(catalogs, catalog_count))
         return false;
-    infiltratr_copy_string(context->locale, sizeof(context->locale),
-                           context->fallback_locale);
-    return find_catalog_language(context, context->fallback_locale) != NULL;
+
+    configured.catalogs = catalogs;
+    configured.catalog_count = catalog_count;
+    if (normalise_locale(configured.fallback_locale,
+                         sizeof(configured.fallback_locale),
+                         fallback_locale) == 0U)
+        return false;
+    infiltratr_copy_string(configured.locale, sizeof(configured.locale),
+                           configured.fallback_locale);
+    if (!find_catalog_language(&configured, configured.fallback_locale))
+        return false;
+
+    *context = configured;
+    return true;
 }
 
 bool infiltratr_i18n_set_locale(InfiltratrI18n *context, const char *locale)
