@@ -1705,12 +1705,6 @@ bool infiltratr_temporal_format_duration_mode(
             "刻", vertical, buffer, capacity, length);
     }
 
-    if (strcmp(mode, "italian-modern") == 0) {
-        return format_duration_hms(
-            whole_seconds, show_seconds, vertical, NULL,
-            buffer, capacity, length);
-    }
-
     if (strcmp(mode, "italian-hours") == 0) {
         if (!location_configured ||
             !isfinite(latitude) || !isfinite(longitude)) {
@@ -1796,12 +1790,10 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
     }
 
     if (strcmp(mode, "standard-24") == 0 ||
-        strcmp(mode, "italian-modern") == 0 ||
         strcmp(mode, "standard-12") == 0 ||
         strcmp(mode, "decimal") == 0) {
         const InfiltratrClockProfile profile =
-            (strcmp(mode, "standard-24") == 0 ||
-             strcmp(mode, "italian-modern") == 0)
+            strcmp(mode, "standard-24") == 0
                 ? INFILTRATR_CLOCK_PROFILE_CONVENTIONAL_24
                 : strcmp(mode, "standard-12") == 0
                     ? INFILTRATR_CLOCK_PROFILE_CONVENTIONAL_12

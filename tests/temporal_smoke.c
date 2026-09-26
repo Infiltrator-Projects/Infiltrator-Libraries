@@ -26,9 +26,7 @@ static void test_catalogue(void)
     CHECK(strcmp(infiltratr_clock_profile_name(profile),
                   "Decimal time (10-hour day)") == 0);
     CHECK(!infiltratr_clock_profile_from_id("missing", &profile));
-    CHECK(strcmp(
-        infiltratr_temporal_clock_mode_find("italian-modern")->name,
-        "Modern Italian civil time (24-hour clock)") == 0);
+    CHECK(infiltratr_temporal_clock_mode_find("italian-modern") == NULL);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("italian-hours")->name,
         "Historical Italian hours (24 equal hours from sunset)") == 0);

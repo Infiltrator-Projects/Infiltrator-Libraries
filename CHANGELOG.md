@@ -6,6 +6,12 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.32 — 2026-09-26
+
+- Remove redundant `italian-modern`: modern Italian civil time is the existing standard 24-hour civil clock, not a separate time system.
+- Keep `italian-hours` exclusively for the historically distinct sunset-origin Italian-hours system.
+- Add a regression check preventing the duplicate modern-Italian mode from re-entering the catalogue.
+
 ## 1.19.31 — 2026-09-26
 
 - Add `italian-modern` so modern Italian 24-hour civil presentation is explicitly separate from historical sunset-origin Italian hours.
