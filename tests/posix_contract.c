@@ -112,6 +112,21 @@ static void test_user_paths_and_directories(void)
     assert(infiltratr_mkdir_parents(nested, 0700U) == 0);
     struct stat status;
     assert(stat(nested, &status) == 0 && S_ISDIR(status.st_mode));
+
+    char symlink_target[256];
+    char symlink_path[256];
+    char symlink_child[256];
+    assert(snprintf(symlink_target, sizeof(symlink_target), "%s/target", root) > 0);
+    assert(mkdir(symlink_target, 0700) == 0);
+    assert(snprintf(symlink_path, sizeof(symlink_path), "%s/link", root) > 0);
+    assert(symlink("target", symlink_path) == 0);
+    assert(snprintf(symlink_child, sizeof(symlink_child), "%s/link/child", root) > 0);
+    assert(infiltratr_mkdir_parents(symlink_child, 0700U) == 0);
+    assert(stat(symlink_child, &status) == 0 && S_ISDIR(status.st_mode));
+    assert(rmdir(symlink_child) == 0);
+    assert(unlink(symlink_path) == 0);
+    assert(rmdir(symlink_target) == 0);
+
     char child[256];
     assert(snprintf(child, sizeof(child), "%s/a/b", root) > 0);
     assert(rmdir(nested) == 0);
