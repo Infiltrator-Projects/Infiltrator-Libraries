@@ -65,7 +65,7 @@ static void test_catalogue(void)
         "Maya Long Count (Goodman–Martínez–Thompson 584283 correlation)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_calendar_find("positivist")->name,
-        "Positivist calendar (Comte; Year 1 = 1789)") == 0);
+        "Positivist calendar (Comte; 13 × 28-day months + festival days; Year 1 = 1789)") == 0);
     CHECK(infiltratr_temporal_clock_mode_find("nuremberg-solar") != NULL);
 
     for (size_t index = 0U;
