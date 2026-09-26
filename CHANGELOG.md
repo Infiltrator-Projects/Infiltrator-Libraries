@@ -6,6 +6,15 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.37 — 2026-09-26
+
+- Restore Apple native package parity with the canonical 13-source portable Common target and extend CI so the complete source set is enforced.
+- Correct rotated software-surface clipping for non-square and oblique transforms and reject non-finite rotation angles before coordinate conversion.
+- Validate localisation catalogue structure at initialisation, including locale syntax, entry storage and non-NULL keys/values, while leaving failed contexts unusable.
+- Make recursive directory creation descriptor-relative while preserving existing symlink-to-directory behaviour and permission-mode semantics.
+- Define previously implicit non-overlap contracts for escaping and path concatenation helpers.
+- Align consumer documentation with Common-owned historical/astronomical clock formatting and the current Calendar product name.
+
 ## 1.19.36 — 2026-09-26
 
 - Complete a second forensic clarity pass over every shared clock/calendar selector name, with special attention to ancient and reconstructed systems.
