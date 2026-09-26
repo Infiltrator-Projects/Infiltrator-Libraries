@@ -680,23 +680,31 @@ void infiltratr_surface_blit_rotated(InfiltratrSurface *destination,
     const InfiltratrSurface *input = source;
     size_t start_x, start_y, count_x, count_y;
     size_t radius_x, radius_y;
+    double cosine, sine, half_width, half_height;
+    double extent_x, extent_y;
 
     if (!destination || !destination->pixels || !source || !source->pixels ||
-        source->width == 0U || source->height == 0U)
+        source->width == 0U || source->height == 0U ||
+        !isfinite(angle_radians))
         return;
     if (!snapshot_source_if_needed(destination, source, &input, &snapshot))
         return;
 
-    radius_x = input->width / 2U + input->width % 2U;
-    radius_y = input->height / 2U + input->height % 2U;
+    cosine = cos(angle_radians);
+    sine = sin(angle_radians);
+    half_width = (double)input->width * 0.5;
+    half_height = (double)input->height * 0.5;
+    extent_x = fabs(cosine) * half_width + fabs(sine) * half_height + 1.0;
+    extent_y = fabs(sine) * half_width + fabs(cosine) * half_height + 1.0;
+    radius_x = extent_x >= (double)SIZE_MAX ? SIZE_MAX : (size_t)ceil(extent_x);
+    radius_y = extent_y >= (double)SIZE_MAX ? SIZE_MAX : (size_t)ceil(extent_y);
+
     if (!clip_centered_axis(center_x, radius_x, destination->width,
                             &start_x, &count_x) ||
         !clip_centered_axis(center_y, radius_y, destination->height,
                             &start_y, &count_y))
         goto out;
 
-    const double cosine = cos(angle_radians);
-    const double sine = sin(angle_radians);
     const double source_cx = ((double)input->width - 1.0) * 0.5;
     const double source_cy = ((double)input->height - 1.0) * 0.5;
 
