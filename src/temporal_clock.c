@@ -672,6 +672,10 @@ static bool seasonal_quantise(long double units,
     return true;
 }
 
+static bool duration_partition(uint64_t phase_microseconds,
+                               uint64_t units_per_day,
+                               uint64_t *tick);
+
 static bool format_duration_chinese_partition(
     uint64_t elapsed_microseconds,
     uint64_t units_per_day,
