@@ -35,13 +35,13 @@ static void test_catalogue(void)
         "Renaissance 'Babylonian' hours (24 equal hours from sunrise)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("babylonian-ancient")->name,
-        "Ancient Babylonian equal bēru (12 double-hours from sunset; 30 UŠ each)") == 0);
+        "Ancient Babylonian bēru (12 equal double-hours per ūmu/day from sunset; 30 UŠ each)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("nuremberg-hours")->name,
-        "Historical Nuremberg Great Clock (fixed Wendetage)") == 0);
+        "Historical Nuremberg Great Clock (separate day/night hours; fixed Wendetage)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("roman-temporal")->name,
-        "Roman seasonal time (12 daylight hours / 4 night watches)") == 0);
+        "Roman seasonal time (12 daylight horae / 4 night vigiliae)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("japanese-temporal")->name,
         "Late Edo Japanese unequal hours (1797 twilight; 6 day / 6 night)") == 0);
@@ -367,7 +367,7 @@ static void test_duration_mode_formats(void)
         INT64_C(1789990000) * INT64_C(1000000),
         false, false, false, 0.0, 0.0,
         text, sizeof(text), NULL));
-    CHECK(strcmp(text, "時辰 01/12") == 0);
+    CHECK(strcmp(text, "1時辰") == 0);
 
     CHECK(infiltratr_temporal_format_duration_mode(
         "chinese-ke", UINT64_C(864) * UINT64_C(1000000),
@@ -422,13 +422,13 @@ static void test_duration_mode_formats(void)
         INT64_C(1789990000) * INT64_C(1000000),
         true, false, true, 49.45, 11.08,
         text, sizeof(text), NULL));
-    CHECK(strstr(text, "bēru") != NULL);
+    CHECK(strstr(text, "ūmu") != NULL);
     CHECK(infiltratr_temporal_format_duration_mode(
         "japanese-temporal", UINT64_C(86400) * UINT64_C(1000000),
         INT64_C(1789990000) * INT64_C(1000000),
         true, false, true, 0.0, 0.0,
         text, sizeof(text), NULL));
-    CHECK(strstr(text, "刻") != NULL);
+    CHECK(strstr(text, "日") != NULL);
 
     for (size_t index = 0U;
          index < infiltratr_temporal_clock_mode_count(); ++index) {

@@ -6,6 +6,15 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.35 — 2026-09-26
+
+- Normalize Chinese double-hour elapsed presentation to native `日 · 時辰` instead of denominator notation.
+- Normalize complete Edo unequal-hour cycles as `日` plus residual `刻`/half-`刻` rather than unbounded toki totals.
+- Normalize ancient Babylonian elapsed presentation as `ūmu · bēru · UŠ`, with twelve bēru per ūmu/day and thirty UŠ per bēru.
+- Clarify that the default traditional Chinese double-hour mode uses the common Zǐ-at-23:00 convention and that finer hundred-kè subdivisions varied historically.
+- Make Roman and Nuremberg selector wording expose their native day/night structure directly.
+- Clarify broad calendar labels where the implementation is a specific era/epoch model: Buddhist Era, Coptic, Ethiopian Amete Mihret/Alem, Minguo, Varronian A.U.C. Roman dating, Constantinopolitan Byzantine era, Nabonassar Egyptian epoch, traditional Armenian epoch, International Fixed and World Calendar structure.
+
 ## 1.19.34 — 2026-09-26
 
 - Split Edo Japanese unequal time into the existing late-Edo 1797 twilight model and a distinct early-Edo sunrise/sunset model; both retain six daylight and six night periods and the historical zodiacal labels.

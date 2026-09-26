@@ -837,7 +837,10 @@ static bool format_duration_japanese_temporal(
     long double daylight_toki;
     long double night_toki;
     uint64_t half_toki;
+    uint64_t days;
+    uint64_t remainder;
     uint64_t whole_toki;
+    const char *separator = " · ";
 
     if (!seasonal_interval_progress(
             elapsed_microseconds, end_unix_microseconds,
@@ -849,15 +852,43 @@ static bool format_duration_japanese_temporal(
         return false;
     }
 
-    whole_toki = half_toki / UINT64_C(2);
-    if (show_seconds && (half_toki % UINT64_C(2)) != 0U) {
+    /* Twelve unequal toki form one complete day/night cycle. */
+    days = half_toki / UINT64_C(24);
+    remainder = half_toki % UINT64_C(24);
+    whole_toki = remainder / UINT64_C(2);
+    if (vertical) {
+        separator = "\n";
+    }
+
+    if (remainder == 0U) {
+        return days == 0U
+            ? write_text(buffer, capacity, length, "0刻")
+            : write_printf(buffer, capacity, length,
+                           "%llu日", (unsigned long long)days);
+    }
+    if (show_seconds && (remainder % UINT64_C(2)) != 0U) {
+        if (days != 0U) {
+            return whole_toki == 0U
+                ? write_printf(buffer, capacity, length,
+                               "%llu日%s半刻",
+                               (unsigned long long)days, separator)
+                : write_printf(buffer, capacity, length,
+                               "%llu日%s%llu刻半",
+                               (unsigned long long)days, separator,
+                               (unsigned long long)whole_toki);
+        }
         return whole_toki == 0U
             ? write_text(buffer, capacity, length, "半刻")
             : write_printf(buffer, capacity, length,
                            "%llu刻半", (unsigned long long)whole_toki);
     }
-    return write_printf(buffer, capacity, length,
-                        "%llu刻", (unsigned long long)whole_toki);
+    return days != 0U
+        ? write_printf(buffer, capacity, length,
+                       "%llu日%s%llu刻",
+                       (unsigned long long)days, separator,
+                       (unsigned long long)whole_toki)
+        : write_printf(buffer, capacity, length,
+                       "%llu刻", (unsigned long long)whole_toki);
 }
 
 static bool format_duration_babylonian_ancient(
@@ -869,10 +900,20 @@ static bool format_duration_babylonian_ancient(
 {
     const uint64_t ush_us = UINT64_C(240) * UINT64_C(1000000);
     const uint64_t beru_us = UINT64_C(30) * ush_us;
-    const uint64_t beru = elapsed_microseconds / beru_us;
-    const uint64_t ush = (elapsed_microseconds % beru_us) / ush_us;
+    const uint64_t umu_us = UINT64_C(12) * beru_us;
+    const uint64_t umu = elapsed_microseconds / umu_us;
+    const uint64_t phase = elapsed_microseconds % umu_us;
+    const uint64_t beru = phase / beru_us;
+    const uint64_t ush = (phase % beru_us) / ush_us;
     const char *separator = vertical ? "\n" : " · ";
 
+    if (umu != 0U) {
+        return write_printf(buffer, capacity, length,
+                            "%llu ūmu%s%llu bēru%s%02llu UŠ",
+                            (unsigned long long)umu, separator,
+                            (unsigned long long)beru, separator,
+                            (unsigned long long)ush);
+    }
     return write_printf(buffer, capacity, length,
                         "%llu bēru%s%02llu UŠ",
                         (unsigned long long)beru, separator,
@@ -1698,10 +1739,9 @@ bool infiltratr_temporal_format_duration_mode(
     }
 
     if (strcmp(mode, "chinese-time") == 0) {
-        return format_duration_day_ticks(
+        return format_duration_chinese_partition(
             elapsed_microseconds, CHINESE_DOUBLE_HOURS_PER_DAY,
-            "時辰 ", "/12", 2U, false, vertical,
-            buffer, capacity, length);
+            "時辰", vertical, buffer, capacity, length);
     }
 
     if (strcmp(mode, "chinese-ke") == 0) {
