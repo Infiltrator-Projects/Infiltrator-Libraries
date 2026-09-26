@@ -150,7 +150,7 @@ jobs:
         shell: bash
         run: |
           project=apple/InfiltratrCommon.xcodeproj/project.pbxproj
-          for source in core arithmetic config i18n token timing format quantity escape; do
+          for source in core arithmetic config i18n token timing temporal temporal_clock format quantity graphics escape design; do
             grep -q "../src/${source}.c" "$project"
             grep -q "${source}.c in Sources" "$project"
           done
