@@ -718,8 +718,14 @@ void infiltratr_surface_blit_rotated(InfiltratrSurface *destination,
             const double sx = source_cx + cosine * dx + sine * dy;
             const double sy = source_cy - sine * dx + cosine * dy;
 
-            if (sx < 0.0 || sy < 0.0 ||
-                sx >= (double)input->width || sy >= (double)input->height)
+            /*
+             * Nearest-neighbour sampling owns a half-pixel footprint around
+             * each source pixel centre. This also prevents exact right-angle
+             * rotations losing edge pixels to tiny sin/cos round-off.
+             */
+            if (sx < -0.5 || sy < -0.5 ||
+                sx >= (double)input->width - 0.5 ||
+                sy >= (double)input->height - 0.5)
                 continue;
 
             const int64_t isx = (int64_t)floor(sx + 0.5);

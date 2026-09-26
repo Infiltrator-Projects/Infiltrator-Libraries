@@ -442,7 +442,24 @@ static void test_duration_mode_formats(void)
             true, false, true, -36.39, 145.36,
             text, sizeof(text), NULL));
         CHECK(text[0] != '\0');
+        if (info->requires_latitude || info->requires_longitude) {
+            CHECK(!infiltratr_temporal_format_duration_mode(
+                info->id,
+                UINT64_C(98765) * UINT64_C(1000000),
+                INT64_C(1789990000) * INT64_C(1000000),
+                true, false, false, -36.39, 145.36,
+                text, sizeof(text), NULL));
+        }
     }
+
+    CHECK(!infiltratr_temporal_format_duration_mode(
+        "roman-temporal", UINT64_C(1), INT64_C(0),
+        true, false, true, 90.0001, 145.36,
+        text, sizeof(text), NULL));
+    CHECK(!infiltratr_temporal_format_duration_mode(
+        "sidereal", UINT64_C(1), INT64_C(0),
+        true, false, true, 0.0, 180.0001,
+        text, sizeof(text), NULL));
 
     CHECK(!infiltratr_temporal_format_duration_mode(
         "missing-mode", UINT64_C(1), INT64_C(0),
@@ -522,6 +539,17 @@ static void test_clock_mode_formats(void)
         text, sizeof(text), NULL));
     CHECK(strncmp(text, "Hora ", 5U) == 0 ||
           strncmp(text, "Vigilia ", 8U) == 0);
+
+    CHECK(!infiltratr_temporal_format_clock_mode(
+        "roman-temporal",
+        INT64_C(1789990000) * INT64_C(1000000),
+        36000, false, false, true, -90.0001, 145.36,
+        text, sizeof(text), NULL));
+    CHECK(!infiltratr_temporal_format_clock_mode(
+        "solar",
+        INT64_C(1789990000) * INT64_C(1000000),
+        36000, false, false, true, 0.0, -180.0001,
+        text, sizeof(text), NULL));
 
     CHECK(!infiltratr_temporal_format_clock_mode(
         "missing-mode", INT64_C(0), 0, false, false, false,

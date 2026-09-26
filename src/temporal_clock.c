@@ -1181,8 +1181,11 @@ static bool mode_location_valid(const InfiltratrTemporalClockModeInfo *info,
         !location_configured) {
         return false;
     }
-    return (!info->requires_latitude || isfinite(latitude)) &&
-           (!info->requires_longitude || isfinite(longitude));
+    return (!info->requires_latitude ||
+            (isfinite(latitude) && latitude >= -90.0 && latitude <= 90.0)) &&
+           (!info->requires_longitude ||
+            (isfinite(longitude) && longitude >= -180.0 &&
+             longitude <= 180.0));
 }
 
 
@@ -1626,7 +1629,9 @@ bool infiltratr_temporal_format_duration_mode(
     }
     buffer[0] = '\0';
     info = infiltratr_temporal_clock_mode_find(mode);
-    if (info == NULL) {
+    if (info == NULL ||
+        !mode_location_valid(
+            info, location_configured, latitude, longitude)) {
         return false;
     }
 

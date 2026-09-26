@@ -6,6 +6,14 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.38 — 2026-09-26
+
+- Close the final forensic contract gaps found after the 1.19.37 hardening pass.
+- Preserve nearest-neighbour edge pixels during exact right-angle rotation by accepting each source pixel's half-pixel sampling footprint.
+- Enforce physical latitude/longitude ranges consistently for every location-aware clock and elapsed-duration mode, and make duration formatting use the same catalogue-driven location contract as clock formatting.
+- Make Apple portable-source completeness CI derive its required module list from CMake's canonical portable source inventory so future additions cannot silently drift out of the Xcode target.
+- Add temporal regressions for missing and out-of-range location data while retaining the existing non-square rotation regression.
+
 ## 1.19.37 — 2026-09-26
 
 - Restore Apple native package parity with the canonical 13-source portable Common target and extend CI so the complete source set is enforced.

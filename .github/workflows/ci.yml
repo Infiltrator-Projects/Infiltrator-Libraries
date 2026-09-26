@@ -150,9 +150,15 @@ jobs:
         shell: bash
         run: |
           project=apple/InfiltratrCommon.xcodeproj/project.pbxproj
-          for source in core arithmetic config i18n token timing temporal temporal_clock format quantity graphics escape design; do
-            grep -q "../src/${source}.c" "$project"
-            grep -q "${source}.c in Sources" "$project"
+          portable_sources="$(
+            sed -n '/set(INFILTRATR_COMMON_PORTABLE_SOURCES/,/^)/p' CMakeLists.txt |
+              grep -oE 'src/[A-Za-z0-9_]+\.c'
+          )"
+          test -n "$portable_sources"
+          for source_path in $portable_sources; do
+            source="${source_path#src/}"
+            grep -Fq "../src/${source}" "$project"
+            grep -Fq "${source} in Sources" "$project"
           done
       - name: Build authoritative Apple portable target
         run: |
