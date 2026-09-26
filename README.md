@@ -8,7 +8,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.36
+**Current library version:** 1.19.37
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -24,7 +24,7 @@ Common is deliberately conservative about ownership. A capability moves here onl
 
 ```text
 Common
-      ├─ Calendar Plus
+      ├─ Calendar
       ├─ System Monitor
       ├─ Defragger
       ├─ InfiltratorFS
@@ -298,7 +298,7 @@ of carrying private copies.
 1.15.5 completes Common's signed 64-bit checked-arithmetic family for consumers
 that accept wide integer domains. It adds checked signed addition and
 multiplication plus saturating signed addition, with unchanged-output failure
-semantics for checked operations. Calendar Plus can now harden extreme
+semantics for checked operations. Calendar can now harden extreme
 chronology/navigation intermediates without carrying private overflow logic.
 
 ## Common 1.15.4
