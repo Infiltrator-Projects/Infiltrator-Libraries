@@ -62,6 +62,49 @@ int main(void)
     CHECK(!infiltratr_i18n_set_locale(&context, "zz-ZZ"));
     CHECK(strcmp(infiltratr_i18n_get(&context, "nav.vehicle"), "Vehicle") == 0);
 
+    {
+        const InfiltratrI18nEntry null_key_entries[] = {
+            {NULL, "value"}
+        };
+        const InfiltratrI18nEntry null_value_entries[] = {
+            {"key", NULL}
+        };
+        const InfiltratrI18nCatalog missing_entries[] = {
+            {"en-AU", NULL, 1U}
+        };
+        const InfiltratrI18nCatalog missing_locale[] = {
+            {NULL, english_entries, 1U}
+        };
+        const InfiltratrI18nCatalog malformed_locale[] = {
+            {"en--AU", english_entries, 1U}
+        };
+        const InfiltratrI18nCatalog null_key[] = {
+            {"en-AU", null_key_entries, 1U}
+        };
+        const InfiltratrI18nCatalog null_value[] = {
+            {"en-AU", null_value_entries, 1U}
+        };
+
+        CHECK(!infiltratr_i18n_init(&context, missing_entries, 1U, "en-AU"));
+        CHECK(context.catalogs == NULL && context.catalog_count == 0U);
+        CHECK(!infiltratr_i18n_init(&context, missing_locale, 1U, "en-AU"));
+        CHECK(context.catalogs == NULL && context.catalog_count == 0U);
+        CHECK(!infiltratr_i18n_init(&context, malformed_locale, 1U, "en-AU"));
+        CHECK(context.catalogs == NULL && context.catalog_count == 0U);
+        CHECK(!infiltratr_i18n_init(&context, null_key, 1U, "en-AU"));
+        CHECK(context.catalogs == NULL && context.catalog_count == 0U);
+        CHECK(!infiltratr_i18n_init(&context, null_value, 1U, "en-AU"));
+        CHECK(context.catalogs == NULL && context.catalog_count == 0U);
+        CHECK(!infiltratr_i18n_init(&context, catalogs,
+                                    sizeof(catalogs) / sizeof(catalogs[0]),
+                                    "en--AU"));
+        CHECK(context.catalogs == NULL && context.catalog_count == 0U);
+
+        CHECK(infiltratr_i18n_init(&context, catalogs,
+                                   sizeof(catalogs) / sizeof(catalogs[0]),
+                                   "en-AU"));
+    }
+
     if (failures != 0) {
         fprintf(stderr, "%d localisation test(s) failed\n", failures);
         return 1;
