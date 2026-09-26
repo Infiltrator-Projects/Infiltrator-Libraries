@@ -51,11 +51,13 @@ static const InfiltratrTemporalClockModeInfo temporal_clock_modes[] = {
     { "chinese-ke", "Chinese hundred-kè time", false, false, false },
     { "roman-temporal", "Roman temporal time", false, true, true },
     { "japanese-temporal", "Edo Japanese seasonal time", false, true, true },
+    { "italian-modern", "Modern Italian civil time (24-hour clock)", true, false, false },
     { "italian-hours", "Historical Italian hours (24 equal hours from sunset)", true, true, true },
     { "babylonian-hours", "Renaissance 'Babylonian' hours (24 equal hours from sunrise)", true, true, true },
-    { "babylonian-ancient", "Ancient Babylonian seasonal hours (12 day / 12 night)", false, true, true },
+    { "babylonian-ancient", "Ancient Babylonian bēru (12 equal double-hours from sunset)", false, true, true },
     { "indian-ghati", "Indian ghaṭī time (from sunrise)", false, true, true },
-    { "nuremberg-hours", "Nuremberg hours (Wendetag day/night count)", true, true, true }
+    { "nuremberg-hours", "Historical Nuremberg Great Clock (fixed Wendetage)", true, false, false },
+    { "nuremberg-solar", "Nuremberg-style local solar reconstruction", true, true, true }
 };
 
 static const InfiltratrTemporalCalendarInfo temporal_calendars[] = {

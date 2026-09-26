@@ -27,15 +27,21 @@ static void test_catalogue(void)
                   "Decimal time (10-hour day)") == 0);
     CHECK(!infiltratr_clock_profile_from_id("missing", &profile));
     CHECK(strcmp(
+        infiltratr_temporal_clock_mode_find("italian-modern")->name,
+        "Modern Italian civil time (24-hour clock)") == 0);
+    CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("italian-hours")->name,
         "Historical Italian hours (24 equal hours from sunset)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("babylonian-hours")->name,
         "Renaissance 'Babylonian' hours (24 equal hours from sunrise)") == 0);
-    CHECK(infiltratr_temporal_clock_mode_find("babylonian-ancient") != NULL);
+    CHECK(strcmp(
+        infiltratr_temporal_clock_mode_find("babylonian-ancient")->name,
+        "Ancient Babylonian bēru (12 equal double-hours from sunset)") == 0);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("nuremberg-hours")->name,
-        "Nuremberg hours (Wendetag day/night count)") == 0);
+        "Historical Nuremberg Great Clock (fixed Wendetage)") == 0);
+    CHECK(infiltratr_temporal_clock_mode_find("nuremberg-solar") != NULL);
 
     for (size_t index = 0U;
          index < infiltratr_temporal_clock_mode_count(); ++index) {

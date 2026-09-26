@@ -6,6 +6,14 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 No unreleased changes.
 
+## 1.19.31 — 2026-09-26
+
+- Add `italian-modern` so modern Italian 24-hour civil presentation is explicitly separate from historical sunset-origin Italian hours.
+- Replace the provisional ancient-Babylonian seasonal presentation with the better-attested fixed system: twelve equal `bēru` per sunset-to-sunset civil day, each subdivided into 30 UŠ.
+- Make `nuremberg-hours` the historical Nürnberg Great Clock: equal 60-minute hours, separate day/night counts and the fixed 1488 Wendetag schedule (mapped from its Julian dates to the corresponding proleptic-Gregorian seasonal dates).
+- Preserve the previous location-aware reconstructed Wendetag behaviour under the new `nuremberg-solar` mode instead of conflating it with Nürnberg's documented civic schedule.
+- Keep historical persisted IDs stable where their meaning is unchanged and add explicit catalogue regression coverage for the new distinctions.
+
 ## 1.19.30 — 2026-09-26
 
 - Rename the presentation labels for historical Italian hours and Renaissance European "Babylonian hours" so neither can be mistaken for modern Italian civil time or ancient Babylonian timekeeping; keep their stable persisted IDs unchanged.
