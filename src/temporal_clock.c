@@ -827,6 +827,7 @@ static bool format_duration_japanese_temporal(
     uint64_t elapsed_microseconds,
     int64_t end_unix_microseconds,
     bool show_seconds,
+    bool vertical,
     double solar_depression_degrees,
     double latitude,
     double longitude,
@@ -1662,7 +1663,7 @@ bool infiltratr_temporal_format_duration_mode(
         }
         return format_duration_japanese_temporal(
             elapsed_microseconds, end_unix_microseconds,
-            show_seconds,
+            show_seconds, vertical,
             strcmp(mode, "japanese-temporal") == 0
                 ? 7.0 + 21.0 / 60.0 + 40.0 / 3600.0
                 : 0.833,
