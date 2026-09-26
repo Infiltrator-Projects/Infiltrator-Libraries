@@ -154,6 +154,40 @@ int main(void) {
     c = infiltratr_surface_get_pixel(&edge, 0, 0);
     assert(c.r == 1 && c.g == 2 && c.b == 3);
 
+    {
+        InfiltratrSurface rotation_source = {0};
+        InfiltratrSurface rotation_target = {0};
+        const double right_angle = acos(-1.0) * 0.5;
+
+        assert(infiltratr_surface_init(&rotation_source, 5, 1));
+        assert(infiltratr_surface_init(&rotation_target, 9, 9));
+        infiltratr_surface_clear(&rotation_source,
+                                 (InfiltratrColor){255, 0, 0, 255});
+        infiltratr_surface_clear(&rotation_target,
+                                 (InfiltratrColor){0, 0, 0, 255});
+
+        infiltratr_surface_blit_rotated(&rotation_target, &rotation_source,
+                                        4, 4, right_angle);
+        for (int y = 2; y <= 6; ++y) {
+            c = infiltratr_surface_get_pixel(&rotation_target, 4, y);
+            assert(c.r == 255 && c.g == 0 && c.b == 0);
+        }
+
+        infiltratr_surface_clear(&rotation_target,
+                                 (InfiltratrColor){1, 2, 3, 255});
+        infiltratr_surface_blit_rotated(&rotation_target, &rotation_source,
+                                        4, 4, NAN);
+        c = infiltratr_surface_get_pixel(&rotation_target, 4, 4);
+        assert(c.r == 1 && c.g == 2 && c.b == 3);
+        infiltratr_surface_blit_rotated(&rotation_target, &rotation_source,
+                                        4, 4, INFINITY);
+        c = infiltratr_surface_get_pixel(&rotation_target, 4, 4);
+        assert(c.r == 1 && c.g == 2 && c.b == 3);
+
+        infiltratr_surface_release(&rotation_source);
+        infiltratr_surface_release(&rotation_target);
+    }
+
     infiltratr_surface_release(&a);
     infiltratr_surface_release(&b);
     infiltratr_surface_release(&region);
