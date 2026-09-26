@@ -456,7 +456,7 @@ static void test_clock_mode_formats(void)
         0, true, false, true, 49.45, 11.08,
         text, sizeof(text), NULL));
     CHECK(strstr(text, "bēru") != NULL);
-    CHECK(strstr(text, "DAY") != NULL || strstr(text, "NIGHT") != NULL);
+    CHECK(strstr(text, "UŠ") != NULL);
 
     CHECK(infiltratr_temporal_format_clock_mode(
         "nuremberg-hours",
