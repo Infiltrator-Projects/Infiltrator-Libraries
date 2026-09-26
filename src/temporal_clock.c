@@ -1502,9 +1502,10 @@ bool infiltratr_temporal_format_duration_mode(
     }
 
     if (strcmp(mode, "chinese-time") == 0) {
-        return format_duration_chinese_partition(
+        return format_duration_day_ticks(
             elapsed_microseconds, CHINESE_DOUBLE_HOURS_PER_DAY,
-            "時辰", vertical, buffer, capacity, length);
+            "時辰 ", "/12", 2U, false, vertical,
+            buffer, capacity, length);
     }
 
     if (strcmp(mode, "chinese-ke") == 0) {

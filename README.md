@@ -44,7 +44,7 @@ Common also owns cross-project presentation/build primitives when they have the 
 
 ## Common 1.19.29
 
-1.19.29 makes historical elapsed-time presentation read in the selected system's own hierarchy. Roman seasonal durations now collapse each complete twelve-horae/four-vigiliae cycle into a `dies` before showing residual horae, vigiliae and unciae. Chinese hundred-kè and double-hour durations now use native 日/刻/時辰 units instead of hybrid modern day prefixes and denominator notation; the generic hundred-kè mode deliberately does not invent a dynasty-specific sub-kè precision.
+1.19.29 makes historical elapsed-time presentation read in the selected system's own hierarchy. Roman seasonal durations now collapse each complete twelve-horae/four-vigiliae cycle into a `dies` before showing residual horae, vigiliae and unciae. Chinese hundred-kè durations now use native 日/刻 units instead of hybrid modern day prefixes and denominator notation; the generic hundred-kè mode deliberately does not invent a dynasty-specific sub-kè precision.
 
 ## Common 1.19.28
 
