@@ -151,7 +151,7 @@ jobs:
         run: |
           project=apple/InfiltratrCommon.xcodeproj/project.pbxproj
           portable_sources="$(
-            sed -n '/set(INFILTRATR_COMMON_PORTABLE_SOURCES/,/^)/p' CMakeLists.txt |
+            sed -n '/set(INFILTRATR_COMMON_PORTABLE_SOURCES/,/)/p' CMakeLists.txt |
               grep -oE 'src/[A-Za-z0-9_]+\.c'
           )"
           test -n "$portable_sources"
