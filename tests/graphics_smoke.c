@@ -6,6 +6,7 @@
 #endif
 #include <assert.h>
 #include <limits.h>
+#include <math.h>
 
 int main(void) {
     InfiltratrSurface a = {0};
