@@ -56,7 +56,7 @@ jobs:
 
   strict-build:
     name: ${{ matrix.compiler }} strict build
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(matrix.compiler == 'gcc' && '["self-hosted","Linux","X64","linux-native"]' || '["ubuntu-24.04"]') }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -127,11 +127,14 @@ jobs:
 
   windows-package:
     name: Windows MSVC CMake
-    runs-on: windows-latest
+    runs-on: [self-hosted, Windows, ARM64]
+    defaults:
+      run:
+        shell: powershell
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build and test portable/Win32 Common
-        shell: pwsh
+        shell: powershell
         run: |
           cmake -S . -B cmake-build -A x64 -DINFILTRATR_COMMON_BUILD_TESTS=ON -DINFILTRATR_COMMON_BUILD_SHARED=ON
           cmake --build cmake-build --config Release --parallel
@@ -163,3 +166,4 @@ jobs:
       - name: Build authoritative Apple portable target
         run: |
           xcodebuild -project apple/InfiltratrCommon.xcodeproj -target InfiltratrCommonPortable -configuration ${{ matrix.configuration }} -sdk iphonesimulator CODE_SIGNING_ALLOWED=NO build
+
