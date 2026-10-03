@@ -156,6 +156,18 @@ jobs:
           cmake --version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Inspect Windows executable policy
+        shell: powershell
+        run: |
+          foreach ($log in @('Microsoft-Windows-CodeIntegrity/Operational', 'Microsoft-Windows-AppLocker/EXE and DLL', 'Microsoft-Windows-Windows Defender/Operational')) {
+            Write-Host "Recent policy events: $log"
+            try {
+              Get-WinEvent -FilterHashtable @{LogName=$log; StartTime=(Get-Date).AddMinutes(-20)} -MaxEvents 20 -ErrorAction Stop |
+                Where-Object { $_.Message -match 'actions-runner|infiltratr|link-test|Runner-Monitor|system-settings' } |
+                Select-Object TimeCreated, Id, Message | Format-List
+            } catch { Write-Host $_.Exception.Message }
+          }
+
       - name: Build and test portable/Win32 Common
         shell: powershell
         run: |
