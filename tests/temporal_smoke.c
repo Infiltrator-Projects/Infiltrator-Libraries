@@ -42,6 +42,8 @@ static void test_catalogue(void)
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("roman-temporal")->name,
         "Roman seasonal time (12 unequal daylight hours; night in 4 military watches)") == 0);
+    CHECK(infiltratr_temporal_clock_mode_find("roman-temporal")->supports_seconds);
+    CHECK(infiltratr_temporal_clock_mode_find("chinese-time")->supports_seconds);
     CHECK(strcmp(
         infiltratr_temporal_clock_mode_find("japanese-temporal")->name,
         "Late Edo Japanese unequal hours (1797 twilight; 6 day / 6 night)") == 0);
@@ -533,12 +535,42 @@ static void test_clock_mode_formats(void)
     }
 
     CHECK(infiltratr_temporal_format_clock_mode(
+        "chinese-time",
+        INT64_C(30) * INT64_C(60) * INT64_C(1000000),
+        0, false, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "子時") == 0);
+    CHECK(infiltratr_temporal_format_clock_mode(
+        "chinese-time",
+        INT64_C(30) * INT64_C(60) * INT64_C(1000000),
+        0, true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "子正") == 0);
+    CHECK(infiltratr_temporal_format_clock_mode(
+        "chinese-time",
+        (INT64_C(23) * INT64_C(3600) + INT64_C(30) * INT64_C(60)) *
+            INT64_C(1000000),
+        0, true, false, false, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strcmp(text, "子初") == 0);
+
+    CHECK(infiltratr_temporal_format_clock_mode(
         "roman-temporal",
         INT64_C(1789990000) * INT64_C(1000000),
         36000, false, false, true, -36.39, 145.36,
         text, sizeof(text), NULL));
     CHECK(strncmp(text, "Hora ", 5U) == 0 ||
           strncmp(text, "Vigilia ", 8U) == 0);
+
+    CHECK(infiltratr_temporal_format_clock_mode(
+        "roman-temporal",
+        (INT64_C(12) * INT64_C(3600) + INT64_C(30) * INT64_C(60)) *
+            INT64_C(1000000),
+        0, true, false, true, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strncmp(text, "Hora ", 5U) == 0);
+    CHECK(strstr(text, "uncia") != NULL);
+    CHECK(strchr(text, ':') == NULL);
 
     CHECK(!infiltratr_temporal_format_clock_mode(
         "roman-temporal",

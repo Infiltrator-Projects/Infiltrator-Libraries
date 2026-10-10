@@ -147,6 +147,9 @@ bool infiltratr_temporal_format_clock(InfiltratrClockProfile profile,
  * @location_configured plus finite coordinates when their catalogue metadata
  * declares latitude and/or longitude.
  *
+ * @show_seconds requests the clock mode's closest meaningful finer
+ * presentation. Historical modes may therefore use native subdivisions rather
+ * than literal modern SI seconds.
  * @vertical selects newline-separated clock fields for narrow presentations.
  * Applications that render ordinary rows or timestamps should pass false.
  */

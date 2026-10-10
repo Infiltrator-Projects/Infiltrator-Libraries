@@ -4,7 +4,9 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 ## Unreleased
 
-No unreleased changes.
+- Render Traditional Chinese double-hours as document-style Earthly-Branch time (`子時`) and use the attested `初`/`正` half-shí distinction when finer precision is requested, instead of embedding pinyin and English zodiac teaching labels in the timestamp.
+- Give Roman seasonal daylight time a native finer presentation using twelfths of the current unequal hora (`unciae`) while retaining the profile's four-watch night convention.
+- Advertise native finer-precision support for the Chinese double-hour and Roman seasonal profiles so system-wide presentation controls match formatter behaviour.
 
 ## 1.19.38 — 2026-09-26
 
