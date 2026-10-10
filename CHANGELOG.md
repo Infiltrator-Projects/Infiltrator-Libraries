@@ -7,7 +7,7 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 - Render both Edo clock models with traditional Japanese bell numerals and localized Japanese branch names/wording, removing English animal teaching labels from timestamps. Native compatibility output uses forms such as `巳の刻 · 四つ`; English output uses `Mi · 四 bells`.
 - Make explicit 12-hour clocks use locale-specific AM/PM markers and ordering, including Chinese, Japanese, Korean and Spanish forms. Preserve conventional English output and the locale-free compatibility API.
 - Cover midnight/noon, negative instants, UTC offsets, vertical layout, bounded output and repeated daytime/nighttime Edo bell counts without changing the underlying time calculations.
-- Build Windows CI contract executables for the runner's native architecture instead of requiring x64 emulation on the ARM64 runner; retain the complete MSVC test gate.
+- Run the complete MSVC Windows test gate on a clean hosted Windows runner after the self-hosted runner rejected every contract executable. Select the runner's native target architecture; no test or release gate is skipped.
 
 ## 1.19.40 — 2026-10-10
 
