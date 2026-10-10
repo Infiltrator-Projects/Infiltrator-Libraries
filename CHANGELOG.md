@@ -2,11 +2,13 @@
 
 This file records user-visible and contract-relevant changes to Common. Detailed commit history remains in Git; this document is for changes that matter to consumers.
 
-## Unreleased
+## 1.19.39 — 2026-10-10
 
 - Render Traditional Chinese double-hours as document-style Earthly-Branch time (`子時`) and use the attested `初`/`正` half-shí distinction when finer precision is requested, instead of embedding pinyin and English zodiac teaching labels in the timestamp.
 - Give Roman seasonal daylight time a native finer presentation using twelfths of the current unequal hora (`unciae`) while retaining the profile's four-watch night convention.
 - Advertise native finer-precision support for the Chinese double-hour and Roman seasonal profiles so system-wide presentation controls match formatter behaviour.
+- Add a bounded, toolkit-neutral date-renderer ABI and a lazy POSIX bridge to Calendar's native chronology engine. Common owns shared provider discovery and UTF-8 validation; Calendar retains date conversion and calendar-specific presentation.
+- Keep caller output unchanged on missing providers, unsupported dates, invalid UTF-8 and insufficient capacity; qualify the bridge with both Make and CMake contract tests.
 
 ## 1.19.38 — 2026-09-26
 

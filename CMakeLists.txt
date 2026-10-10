@@ -28,6 +28,10 @@ function(infiltratr_common_configure_target target export_name)
         "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
         "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
     set_target_properties(${target} PROPERTIES C_EXTENSIONS OFF EXPORT_NAME "${export_name}")
+    if(UNIX)
+        target_compile_definitions(${target} PRIVATE
+            INFILTRATR_COMMON_LIBRARY_ARCHITECTURE="${CMAKE_LIBRARY_ARCHITECTURE}")
+    endif()
     if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
         target_compile_options(${target} PRIVATE ${INFILTRATR_COMMON_WARNING_FLAGS})
         if(INFILTRATR_COMMON_WARNINGS_AS_ERRORS)
@@ -44,7 +48,8 @@ infiltratr_common_configure_target(infiltratr-common-portable Portable)
 set(INFILTRATR_COMMON_FULL_SOURCES ${INFILTRATR_COMMON_PORTABLE_SOURCES} src/dynlib.c)
 if(UNIX)
     list(APPEND INFILTRATR_COMMON_FULL_SOURCES
-        src/posix.c src/posix_path.c src/posix_io.c src/posix_numeric.c src/temporal_posix.c)
+        src/posix.c src/posix_path.c src/posix_io.c src/posix_numeric.c
+        src/temporal_posix.c src/temporal_calendar_posix.c)
 endif()
 
 add_library(infiltratr-common STATIC ${INFILTRATR_COMMON_FULL_SOURCES})
@@ -121,6 +126,12 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
         infiltratr_common_add_test(infiltratr-posix-io-contract tests/posix_io_contract.c InfiltratrCommon::Common)
         infiltratr_common_add_test(infiltratr-posix-numeric-contract tests/posix_numeric_contract.c InfiltratrCommon::Common)
         infiltratr_common_add_test(infiltratr-temporal-posix-smoke tests/temporal_posix_smoke.c InfiltratrCommon::Common)
+        add_library(infiltratr-temporal-date-fixture MODULE tests/temporal_date_fixture.c)
+        target_include_directories(infiltratr-temporal-date-fixture PRIVATE include)
+        infiltratr_common_add_test(infiltratr-temporal-date-smoke tests/temporal_date_smoke.c InfiltratrCommon::Common)
+        target_compile_definitions(infiltratr-temporal-date-smoke PRIVATE
+            TEMPORAL_DATE_FIXTURE_PATH="$<TARGET_FILE:infiltratr-temporal-date-fixture>")
+        add_dependencies(infiltratr-temporal-date-smoke infiltratr-temporal-date-fixture)
     endif()
 endif()
 

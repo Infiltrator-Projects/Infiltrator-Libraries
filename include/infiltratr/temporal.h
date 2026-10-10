@@ -25,6 +25,25 @@ extern "C" {
 #define INFILTRATR_TEMPORAL_POLICY_V3_VERSION 3U
 #define INFILTRATR_TEMPORAL_ID_CAPACITY 64U
 
+/*
+ * Optional date-provider ABI. Calendar owns chronology and implements this
+ * renderer; Common owns binding, bounded UTF-8 output and consumer policy.
+ * The provider uses caller-owned storage so no toolkit types, allocated
+ * strings or type-registration lifetime cross the library boundary.
+ * Supported parts are "short" and "full". Failure leaves output unchanged.
+ */
+#define INFILTRATR_TEMPORAL_DATE_RENDERER_SYMBOL "calendar_plus_format_date_v1"
+#define INFILTRATR_TEMPORAL_DATE_CAPACITY 512U
+typedef bool (*InfiltratrTemporalDateRenderer)(
+    const char *calendar_id,
+    int32_t gregorian_year,
+    int32_t gregorian_month,
+    int32_t gregorian_day,
+    const char *part,
+    char *buffer,
+    size_t capacity,
+    size_t *length);
+
 typedef enum InfiltratrClockProfile {
     INFILTRATR_CLOCK_PROFILE_SYSTEM = 0,
     INFILTRATR_CLOCK_PROFILE_CONVENTIONAL_12,

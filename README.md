@@ -8,7 +8,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.37
+**Current library version:** 1.19.39
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -41,6 +41,12 @@ Common
 Common owns portable mechanics and algorithms that have real use across the project family. Product-neutral automotive diagnostic and shared application behaviour belongs in LINK; manufacturer-specific vehicle knowledge, branding and product-specific behaviour remain in MBLINK, JAGLINK, BMWLINK, AUDILINK and FORDLINK. Filesystem semantics, calendar rules and other domain-specific behaviour remain in their owning repositories rather than moving into Common merely because they are reusable within one product family.
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
+
+## Common 1.19.39
+
+Traditional Chinese double-hours use native timestamp forms such as `申時`, or `申初`/`申正` when finer precision is selected. Roman seasonal daylight time exposes native twelfths of its unequal hours (`unciae`); its four-watch night model is unchanged.
+
+The POSIX temporal adapter also supplies an optional date-rendering bridge. Consumers pass a local Gregorian civil date and the selected calendar ID to `infiltratr_temporal_posix_format_date()`. It discovers Calendar's versioned `calendar_plus_format_date_v1` runtime entry point in explicit system library directories and validates bounded UTF-8 output. Calendar owns all chronology and date-rendering rules; Common does not duplicate those algorithms. Missing or incompatible providers leave caller output unchanged. Explicit absolute library paths support staged runtimes and tests without changing default discovery.
 
 ## Common 1.19.36
 
