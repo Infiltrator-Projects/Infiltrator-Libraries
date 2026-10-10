@@ -451,6 +451,7 @@ static bool solar_boundary_instants(int64_t unix_microseconds,
 typedef struct SeasonalPeriod {
     bool daylight;
     unsigned index;
+    long double fraction;
 } SeasonalPeriod;
 
 static bool seasonal_period_at(int64_t unix_microseconds,
@@ -491,9 +492,17 @@ static bool seasonal_period_at(int64_t unix_microseconds,
     }
 
     unit = span / parts;
-    period->index = (unsigned)floorl(position / unit);
-    if (period->index >= parts) {
-        period->index = parts - 1U;
+    {
+        long double scaled = position / unit;
+
+        if (scaled < 0.0L) {
+            scaled = 0.0L;
+        }
+        if (scaled >= (long double)parts) {
+            scaled = nextafterl((long double)parts, 0.0L);
+        }
+        period->index = (unsigned)floorl(scaled);
+        period->fraction = scaled - (long double)period->index;
     }
     return true;
 }
@@ -1986,35 +1995,25 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
 
     if (strcmp(mode, "chinese-time") == 0) {
         static const char *const branches[] = {
-            "子 Zǐ (Rat)", "丑 Chǒu (Ox)", "寅 Yín (Tiger)",
-            "卯 Mǎo (Rabbit)", "辰 Chén (Dragon)", "巳 Sì (Snake)",
-            "午 Wǔ (Horse)", "未 Wèi (Goat)", "申 Shēn (Monkey)",
-            "酉 Yǒu (Rooster)", "戌 Xū (Dog)", "亥 Hài (Boar)"
+            "子", "丑", "寅", "卯", "辰", "巳",
+            "午", "未", "申", "酉", "戌", "亥"
         };
+        const int64_t double_hour =
+            INT64_C(2) * SECONDS_PER_HOUR * MICROSECONDS_PER_SECOND;
         const int64_t shifted = positive_modulo(
             local + SECONDS_PER_HOUR * MICROSECONDS_PER_SECOND,
             MICROSECONDS_PER_DAY);
-        const unsigned branch = (unsigned)(shifted /
-            (INT64_C(2) * SECONDS_PER_HOUR * MICROSECONDS_PER_SECOND));
+        const unsigned branch = (unsigned)(shifted / double_hour);
+        const int64_t within = shifted % double_hour;
+        const char *suffix = show_seconds
+            ? (within < SECONDS_PER_HOUR * MICROSECONDS_PER_SECOND
+                   ? "初" : "正")
+            : "時";
 
-        if (!vertical) {
-            return write_text(buffer, capacity, length, branches[branch]);
-        }
-        {
-            const char *first = strchr(branches[branch], ' ');
-            const char *second_space =
-                first != NULL ? strchr(first + 1, ' ') : NULL;
-
-            if (first == NULL || second_space == NULL) {
-                return write_text(
-                    buffer, capacity, length, branches[branch]);
-            }
-            return write_printf(
-                buffer, capacity, length, "%.*s\n%.*s\n%s",
-                (int)(first - branches[branch]), branches[branch],
-                (int)(second_space - first - 1), first + 1,
-                second_space + 1);
-        }
+        return write_printf(
+            buffer, capacity, length,
+            vertical ? "%s\n%s" : "%s%s",
+            branches[branch], suffix);
     }
 
     if (strcmp(mode, "chinese-ke") == 0) {
@@ -2040,6 +2039,32 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
                 buffer, capacity, length,
                 vertical ? "N/A\nROM" : "N/A ROM");
         }
+
+        /*
+         * Roman daylight horae were seasonal, so finer presentation must
+         * subdivide the current unequal hora rather than append modern
+         * minutes. An uncia is one twelfth of an hour. Night remains in the
+         * selected four-watch civil convention because a fractional military
+         * watch would manufacture a precision convention this profile does
+         * not claim historically.
+         */
+        if (show_seconds && period.daylight) {
+            unsigned uncia =
+                (unsigned)floorl(period.fraction * 12.0L);
+
+            if (uncia > 11U) {
+                uncia = 11U;
+            }
+            if (uncia != 0U) {
+                return write_printf(
+                    buffer, capacity, length,
+                    vertical ? "Hora\n%s\n%s %s"
+                             : "Hora %s · %s %s",
+                    roman[period.index], roman[uncia - 1U],
+                    uncia == 1U ? "uncia" : "unciae");
+            }
+        }
+
         return write_printf(
             buffer, capacity, length,
             period.daylight
