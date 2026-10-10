@@ -646,6 +646,101 @@ static void test_localized_clock_modes(void)
     CHECK(strcmp(text, "00 kè") == 0);
 }
 
+static void test_localized_twelve_hour_clock(void)
+{
+    static const struct {
+        const char *locale;
+        int64_t instant;
+        int32_t offset;
+        bool fine;
+        bool vertical;
+        const char *expected;
+    } vectors[] = {
+        { "en_AU", 0, 0, false, false, "12:00 AM" },
+        { "en_AU", INT64_C(43200000000), 0, true, false, "12:00:00 PM" },
+        { "ja_JP.UTF-8", 0, 0, false, false, "午前12:00" },
+        { "ja", INT64_C(43200000000), 0, false, false, "午後12:00" },
+        { "zh_TW.UTF-8", -1, 0, true, false, "下午11:59:59" },
+        { "zh-Hant-TW", INT64_C(43200000000), -3600, false, false,
+          "上午11:00" },
+        { "zh_CN", INT64_C(43200000000), 0, true, true, "下午\n12\n00\n00" },
+        { "ko_KR", INT64_C(46800000000), 0, false, false, "오후 1:00" },
+        { "es_ES", INT64_C(46800000000), 0, false, false, "1:00 p. m." },
+        { "en", 0, 0, false, true, "12\n00\nAM" },
+        { "xx_XX", 0, 0, false, false, "12:00 AM" }
+    };
+    char text[192];
+    size_t length = 0U;
+    for (size_t i = 0U; i < sizeof(vectors) / sizeof(vectors[0]); ++i) {
+        CHECK(infiltratr_temporal_format_clock_mode_localized(
+            vectors[i].locale, "standard-12", vectors[i].instant,
+            vectors[i].offset, vectors[i].fine, vectors[i].vertical,
+            false, 0.0, 0.0, text, sizeof(text), &length));
+        CHECK(strcmp(text, vectors[i].expected) == 0);
+        CHECK(length == strlen(text));
+    }
+    CHECK(!infiltratr_temporal_format_clock_mode_localized("zh-TW", "standard-12",
+        0, 0, false, false, false, 0.0, 0.0, text, 8U, &length));
+    CHECK(text[0] == '\0');
+    /* The old locale-free API retains its conventional compatibility form. */
+    CHECK(infiltratr_temporal_format_clock_mode("standard-12", 0, 0,
+        false, false, false, 0.0, 0.0, text, sizeof(text), NULL));
+    CHECK(strcmp(text, "12:00 AM") == 0);
+}
+
+static void test_localized_edo_clock(void)
+{
+    static const struct {
+        const char *locale;
+        bool vertical;
+        const char *expected;
+    } vectors[] = {
+        { "en_AU", false, "Mi · 四 bells" },
+        { "ja_JP", false, "巳の刻 · 四つ" },
+        { "ja", true, "巳の刻\n四つ" },
+        { "zh_CN", false, "巳刻 · 四声" },
+        { "zh_TW.UTF-8", true, "巳刻\n四聲" },
+        { "fr_FR", false, "Mi · 四 coups" },
+        { "de_DE", false, "Mi · 四 Schläge" },
+        { "ko_KR", false, "Mi · 四타" },
+        { "xx_XX", false, "Mi · 四 bells" }
+    };
+    static const char *const modes[] = {
+        "japanese-temporal", "japanese-temporal-early"
+    };
+    char text[192];
+    for (size_t mode = 0U; mode < sizeof(modes) / sizeof(modes[0]); ++mode) {
+        for (size_t i = 0U; i < sizeof(vectors) / sizeof(vectors[0]); ++i) {
+            size_t length = 0U;
+            CHECK(infiltratr_temporal_format_clock_mode_localized(
+                vectors[i].locale, modes[mode], INT64_C(946728000000000),
+                0, false, vectors[i].vertical, true, 0.0, 0.0,
+                text, sizeof(text), &length));
+            CHECK(strcmp(text, vectors[i].expected) == 0);
+            CHECK(length == strlen(text));
+        }
+        /* Branches distinguish repeated daytime/nighttime bell counts. */
+        char day[192];
+        CHECK(infiltratr_temporal_format_clock_mode_localized("en", modes[mode],
+            INT64_C(946731600000000), 0, false, false, true, 0.0, 0.0,
+            day, sizeof(day), NULL));
+        CHECK(infiltratr_temporal_format_clock_mode_localized("en", modes[mode],
+            INT64_C(946688400000000), 0, false, false, true, 0.0, 0.0,
+            text, sizeof(text), NULL));
+        CHECK(strstr(day, "九 bells") != NULL);
+        CHECK(strstr(text, "九 bells") != NULL);
+        CHECK(strcmp(day, text) != 0);
+        CHECK(!infiltratr_temporal_format_clock_mode_localized("ja", modes[mode],
+            INT64_C(946728000000000), 0, false, false, true, 0.0, 0.0,
+            text, 8U, NULL));
+        CHECK(text[0] == '\0');
+        CHECK(infiltratr_temporal_format_clock_mode(modes[mode],
+            INT64_C(946728000000000), 0, false, false, true, 0.0, 0.0,
+            text, sizeof(text), NULL));
+        CHECK(strcmp(text, "巳の刻 · 四つ") == 0);
+    }
+}
+
 int main(void)
 {
     test_catalogue();
@@ -656,5 +751,7 @@ int main(void)
     test_duration_mode_formats();
     test_clock_mode_formats();
     test_localized_clock_modes();
+    test_localized_twelve_hour_clock();
+    test_localized_edo_clock();
     return 0;
 }

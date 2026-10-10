@@ -186,8 +186,9 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
 
 /**
  * Render a clock using the caller's UI language, without changing its units,
- * numerals or boundaries. Chinese double-hours/hundred-ke and Roman clock
- * wording are localized; other profiles retain their established notation.
+ * numerals or boundaries. Chinese double-hours/hundred-ke, Roman and Edo clock
+ * wording and conventional 12-hour day-period markers are localized. Edo
+ * bell counts retain Japanese numerals; other profiles keep their notation.
  * Locale tags accept POSIX or BCP 47 forms. Missing, C/POSIX and unavailable
  * translations use English. No process locale or environment is mutated.
  * The original formatter remains the native-notation compatibility API.

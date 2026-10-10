@@ -2,6 +2,12 @@
 
 This file records user-visible and contract-relevant changes to Common. Detailed commit history remains in Git; this document is for changes that matter to consumers.
 
+## 1.19.41 — 2026-10-10
+
+- Render both Edo clock models with traditional Japanese bell numerals and localized Japanese branch names/wording, removing English animal teaching labels from timestamps. Native compatibility output uses forms such as `巳の刻 · 四つ`; English output uses `Mi · 四 bells`.
+- Make explicit 12-hour clocks use locale-specific AM/PM markers and ordering, including Chinese, Japanese, Korean and Spanish forms. Preserve conventional English output and the locale-free compatibility API.
+- Cover midnight/noon, negative instants, UTC offsets, vertical layout, bounded output and repeated daytime/nighttime Edo bell counts without changing the underlying time calculations.
+
 ## 1.19.40 — 2026-10-10
 
 - Add an explicit-locale clock formatter using Common's existing allocation-free i18n catalogues. Chinese double-hour/hundred-kè and Roman clock wording follows the selected UI language while native units, Roman numerals, astronomy and phase boundaries remain unchanged.

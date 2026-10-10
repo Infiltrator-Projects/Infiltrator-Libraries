@@ -1832,54 +1832,100 @@ bool infiltratr_temporal_format_duration_mode(
     { "mao", "卯" }, { "chen", "辰" }, { "si", "巳" }, \
     { "wu", "午" }, { "wei", "未" }, { "shen", "申" }, \
     { "you", "酉" }, { "xu", "戌" }, { "hai", "亥" }
+#define JAPANESE_BRANCHES \
+    { "jp-ne", "Ne" }, { "jp-ushi", "Ushi" }, { "jp-tora", "Tora" }, \
+    { "jp-u", "U" }, { "jp-tatsu", "Tatsu" }, { "jp-mi", "Mi" }, \
+    { "jp-uma", "Uma" }, { "jp-hitsuji", "Hitsuji" }, { "jp-saru", "Saru" }, \
+    { "jp-tori", "Tori" }, { "jp-inu", "Inu" }, { "jp-i", "I" }
+#define JAPANESE_NATIVE_BRANCHES \
+    { "jp-ne", "子" }, { "jp-ushi", "丑" }, { "jp-tora", "寅" }, \
+    { "jp-u", "卯" }, { "jp-tatsu", "辰" }, { "jp-mi", "巳" }, \
+    { "jp-uma", "午" }, { "jp-hitsuji", "未" }, { "jp-saru", "申" }, \
+    { "jp-tori", "酉" }, { "jp-inu", "戌" }, { "jp-i", "亥" }
+#define EDO_WORDS(horizontal, vertical) \
+    { "edo", horizontal }, { "edo-vertical", vertical }
+/* Fixed AM/PM markers, not flexible morning/evening periods. CLDR uses
+ * AM/PM in several European languages too; East Asian markers precede time. */
+#define TWELVE_WORDS(am, pm, horizontal, vertical) \
+    { "am", am }, { "pm", pm }, \
+    { "twelve", horizontal }, { "twelve-vertical", vertical }
 
 static const InfiltratrI18nEntry clock_en[] = {
     CLOCK_WORDS("{branch} hour", "{branch}, {half}", "Hour",
                 "first half", "second half", "Watch", "kè", "twelfth", "twelfths"),
-    PINYIN_BRANCHES
+    PINYIN_BRANCHES, JAPANESE_BRANCHES,
+    EDO_WORDS("{branch} · {bell} bells", "{branch}\n{bell} bells"),
+    TWELVE_WORDS("AM", "PM", "{time} {period}", "{time}\n{period}")
 };
 static const InfiltratrI18nEntry clock_de[] = {
     CLOCK_WORDS("{branch}-Stunde", "{branch}, {half}", "Stunde",
-                "erste Hälfte", "zweite Hälfte", "Wache", "kè", "Zwölftel", "Zwölftel")
+                "erste Hälfte", "zweite Hälfte", "Wache", "kè", "Zwölftel", "Zwölftel"),
+    EDO_WORDS("{branch} · {bell} Schläge", "{branch}\n{bell} Schläge"),
+    TWELVE_WORDS("AM", "PM", "{time} {period}", "{time}\n{period}")
 };
 static const InfiltratrI18nEntry clock_es[] = {
     CLOCK_WORDS("Hora {branch}", "{branch}, {half}", "Hora",
-                "primera mitad", "segunda mitad", "Vigilia", "kè", "doceavo", "doceavos")
+                "primera mitad", "segunda mitad", "Vigilia", "kè", "doceavo", "doceavos"),
+    EDO_WORDS("{branch} · {bell} campanadas", "{branch}\n{bell} campanadas"),
+    TWELVE_WORDS("a. m.", "p. m.", "{time} {period}", "{time}\n{period}")
 };
 static const InfiltratrI18nEntry clock_fr[] = {
     CLOCK_WORDS("Heure {branch}", "{branch}, {half}", "Heure",
-                "première moitié", "seconde moitié", "Veille", "kè", "douzième", "douzièmes")
+                "première moitié", "seconde moitié", "Veille", "kè", "douzième", "douzièmes"),
+    EDO_WORDS("{branch} · {bell} coups", "{branch}\n{bell} coups"),
+    TWELVE_WORDS("AM", "PM", "{time} {period}", "{time}\n{period}")
 };
 static const InfiltratrI18nEntry clock_it[] = {
     CLOCK_WORDS("Ora {branch}", "{branch}, {half}", "Ora",
-                "prima metà", "seconda metà", "Vigilia", "kè", "dodicesimo", "dodicesimi")
+                "prima metà", "seconda metà", "Vigilia", "kè", "dodicesimo", "dodicesimi"),
+    EDO_WORDS("{branch} · {bell} rintocchi", "{branch}\n{bell} rintocchi"),
+    TWELVE_WORDS("AM", "PM", "{time} {period}", "{time}\n{period}")
 };
 static const InfiltratrI18nEntry clock_pt[] = {
     CLOCK_WORDS("Hora {branch}", "{branch}, {half}", "Hora",
-                "primeira metade", "segunda metade", "Vigília", "kè", "duodécimo", "duodécimos")
+                "primeira metade", "segunda metade", "Vigília", "kè", "duodécimo", "duodécimos"),
+    EDO_WORDS("{branch} · {bell} badaladas", "{branch}\n{bell} badaladas"),
+    TWELVE_WORDS("AM", "PM", "{time} {period}", "{time}\n{period}")
 };
 static const InfiltratrI18nEntry clock_ru[] = {
     CLOCK_WORDS("Час {branch}", "{branch}, {half}", "Час",
-                "первая половина", "вторая половина", "Стража", "кэ", "двенадцатая", "двенадцатых")
+                "первая половина", "вторая половина", "Стража", "кэ", "двенадцатая", "двенадцатых"),
+    EDO_WORDS("{branch} · {bell} ударов", "{branch}\n{bell} ударов"),
+    TWELVE_WORDS("AM", "PM", "{time} {period}", "{time}\n{period}")
 };
 static const InfiltratrI18nEntry clock_ja[] = {
     CLOCK_WORDS("{branch}時", "{branch}{half}", "時",
                 "初", "正", "夜番", "刻", "十二分の一", "十二分の一"),
-    NATIVE_BRANCHES
+    NATIVE_BRANCHES, JAPANESE_NATIVE_BRANCHES,
+    EDO_WORDS("{branch}の刻 · {bell}つ", "{branch}の刻\n{bell}つ"),
+    TWELVE_WORDS("午前", "午後", "{period}{time}", "{period}\n{time}")
 };
 static const InfiltratrI18nEntry clock_zh[] = {
     CLOCK_WORDS("{branch}时", "{branch}{half}", "时",
                 "初", "正", "更", "刻", "十二分之一时", "十二分之一时"),
-    NATIVE_BRANCHES
+    NATIVE_BRANCHES, JAPANESE_NATIVE_BRANCHES,
+    EDO_WORDS("{branch}刻 · {bell}声", "{branch}刻\n{bell}声"),
+    TWELVE_WORDS("上午", "下午", "{period}{time}", "{period}\n{time}")
 };
 static const InfiltratrI18nEntry clock_zh_hant[] = {
     CLOCK_WORDS("{branch}時", "{branch}{half}", "時",
                 "初", "正", "更", "刻", "十二分之一時", "十二分之一時"),
-    NATIVE_BRANCHES
+    NATIVE_BRANCHES, JAPANESE_NATIVE_BRANCHES,
+    EDO_WORDS("{branch}刻 · {bell}聲", "{branch}刻\n{bell}聲"),
+    TWELVE_WORDS("上午", "下午", "{period}{time}", "{period}\n{time}")
+};
+static const InfiltratrI18nEntry clock_ko[] = {
+    /* Other specialized-clock wording keeps the documented English fallback. */
+    EDO_WORDS("{branch} · {bell}타", "{branch}\n{bell}타"),
+    TWELVE_WORDS("오전", "오후", "{period} {time}", "{period}\n{time}")
 };
 #undef CLOCK_WORDS
 #undef PINYIN_BRANCHES
 #undef NATIVE_BRANCHES
+#undef JAPANESE_BRANCHES
+#undef JAPANESE_NATIVE_BRANCHES
+#undef EDO_WORDS
+#undef TWELVE_WORDS
 
 #define CLOCK_CATALOG(locale, entries) \
     { locale, entries, sizeof(entries) / sizeof((entries)[0]) }
@@ -1888,6 +1934,7 @@ static const InfiltratrI18nCatalog clock_catalogs[] = {
     CLOCK_CATALOG("es", clock_es), CLOCK_CATALOG("fr", clock_fr),
     CLOCK_CATALOG("it", clock_it), CLOCK_CATALOG("pt", clock_pt),
     CLOCK_CATALOG("ru", clock_ru), CLOCK_CATALOG("ja", clock_ja),
+    CLOCK_CATALOG("ko", clock_ko),
     CLOCK_CATALOG("zh", clock_zh), CLOCK_CATALOG("zh-TW", clock_zh_hant),
     CLOCK_CATALOG("zh-HK", clock_zh_hant), CLOCK_CATALOG("zh-MO", clock_zh_hant),
     CLOCK_CATALOG("zh-Hant", clock_zh_hant),
@@ -1895,6 +1942,21 @@ static const InfiltratrI18nCatalog clock_catalogs[] = {
     CLOCK_CATALOG("zh-Hant-HK", clock_zh_hant)
 };
 #undef CLOCK_CATALOG
+
+static bool write_localized(char *buffer, size_t capacity, size_t *length,
+                            const char *pattern,
+                            const InfiltratrI18nArgument *arguments,
+                            size_t argument_count)
+{
+    const size_t needed = infiltratr_i18n_format(
+        buffer, capacity, pattern, arguments, argument_count);
+    if (needed >= capacity) {
+        buffer[0] = '\0';
+        return false;
+    }
+    if (length != NULL) *length = needed;
+    return true;
+}
 
 static bool format_clock_mode(const InfiltratrI18n *language,
                                            const char *mode,
@@ -1930,6 +1992,28 @@ static bool format_clock_mode(const InfiltratrI18n *language,
 
     if (strcmp(mode, "standard") == 0) {
         return false;
+    }
+
+    if (language != NULL && strcmp(mode, "standard-12") == 0) {
+        int hour, minute, second;
+        split_clock_seconds(local / MICROSECONDS_PER_SECOND,
+                            &hour, &minute, &second);
+        const int hour12 = hour % 12 == 0 ? 12 : hour % 12;
+        if (!(show_seconds
+            ? write_printf(temporary, sizeof(temporary), NULL,
+                           "%d%s%02d%s%02d", hour12, separator, minute,
+                           separator, second)
+            : write_printf(temporary, sizeof(temporary), NULL,
+                           "%d%s%02d", hour12, separator, minute))) {
+            return false;
+        }
+        const InfiltratrI18nArgument arguments[] = {
+            { "time", temporary },
+            { "period", infiltratr_i18n_get(language, hour < 12 ? "am" : "pm") }
+        };
+        return write_localized(buffer, capacity, length,
+            infiltratr_i18n_get(language, vertical ? "twelve-vertical" : "twelve"),
+            arguments, sizeof(arguments) / sizeof(arguments[0]));
     }
 
     if (strcmp(mode, "standard-24") == 0 ||
@@ -2109,15 +2193,8 @@ static bool format_clock_mode(const InfiltratrI18n *language,
                 ? (show_seconds ? "{branch}\n{half}" : "{branch}\n{unit}")
                 : infiltratr_i18n_get(language,
                     show_seconds ? "chinese-fine" : "chinese-coarse");
-            const size_t needed = infiltratr_i18n_format(
-                buffer, capacity, pattern, arguments,
-                sizeof(arguments) / sizeof(arguments[0]));
-            if (needed >= capacity) {
-                buffer[0] = '\0';
-                return false;
-            }
-            if (length != NULL) *length = needed;
-            return true;
+            return write_localized(buffer, capacity, length, pattern,
+                arguments, sizeof(arguments) / sizeof(arguments[0]));
         }
 
         return write_printf(
@@ -2194,18 +2271,18 @@ static bool format_clock_mode(const InfiltratrI18n *language,
         strcmp(mode, "japanese-temporal-early") == 0) {
         typedef struct JapaneseToki {
             const char *character;
-            unsigned number;
-            const char *animal;
+            const char *bell;
+            const char *key;
         } JapaneseToki;
         static const JapaneseToki day_toki[] = {
-            { "卯", 6U, "Rabbit" }, { "辰", 5U, "Dragon" },
-            { "巳", 4U, "Snake" }, { "午", 9U, "Horse" },
-            { "未", 8U, "Goat" }, { "申", 7U, "Monkey" }
+            { "卯", "六", "jp-u" }, { "辰", "五", "jp-tatsu" },
+            { "巳", "四", "jp-mi" }, { "午", "九", "jp-uma" },
+            { "未", "八", "jp-hitsuji" }, { "申", "七", "jp-saru" }
         };
         static const JapaneseToki night_toki[] = {
-            { "酉", 6U, "Rooster" }, { "戌", 5U, "Dog" },
-            { "亥", 4U, "Boar" }, { "子", 9U, "Rat" },
-            { "丑", 8U, "Ox" }, { "寅", 7U, "Tiger" }
+            { "酉", "六", "jp-tori" }, { "戌", "五", "jp-inu" },
+            { "亥", "四", "jp-i" }, { "子", "九", "jp-ne" },
+            { "丑", "八", "jp-ushi" }, { "寅", "七", "jp-tora" }
         };
         const double depression =
             strcmp(mode, "japanese-temporal") == 0
@@ -2224,10 +2301,19 @@ static bool format_clock_mode(const InfiltratrI18n *language,
         toki = period.daylight
             ? &day_toki[period.index]
             : &night_toki[period.index];
+        if (language != NULL) {
+            const InfiltratrI18nArgument arguments[] = {
+                { "branch", infiltratr_i18n_get(language, toki->key) },
+                { "bell", toki->bell }
+            };
+            return write_localized(buffer, capacity, length,
+                infiltratr_i18n_get(language, vertical ? "edo-vertical" : "edo"),
+                arguments, sizeof(arguments) / sizeof(arguments[0]));
+        }
         return write_printf(
             buffer, capacity, length,
-            vertical ? "%s %u\n%s" : "%s %u %s",
-            toki->character, toki->number, toki->animal);
+            vertical ? "%sの刻\n%sつ" : "%sの刻 · %sつ",
+            toki->character, toki->bell);
     }
 
     if (strcmp(mode, "italian-hours") == 0) {

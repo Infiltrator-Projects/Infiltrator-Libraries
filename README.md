@@ -8,7 +8,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.40
+**Current library version:** 1.19.41
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -41,6 +41,10 @@ Common
 Common owns portable mechanics and algorithms that have real use across the project family. Product-neutral automotive diagnostic and shared application behaviour belongs in LINK; manufacturer-specific vehicle knowledge, branding and product-specific behaviour remain in MBLINK, JAGLINK, BMWLINK, AUDILINK and FORDLINK. Filesystem semantics, calendar rules and other domain-specific behaviour remain in their owning repositories rather than moving into Common merely because they are reusable within one product family.
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
+
+## Common 1.19.41
+
+Both Edo clock models retain their six daylight/six night periods and traditional Japanese bell numerals. English timestamps use Japanese branch names, such as `Mi · 四 bells`, while Japanese timestamps use `巳の刻 · 四つ`. Explanatory English animal names are absent from timestamps. Explicit 12-hour clocks also localize their fixed AM/PM markers and ordering: for example `午後1:00` in Japanese, `下午1:00` in Chinese and `오후 1:00` in Korean. Languages whose conventional marker is AM/PM retain it. Korean entries cover Edo and conventional 12-hour wording; other specialized Korean clock wording uses the documented English fallback.
 
 ## Common 1.19.40
 
