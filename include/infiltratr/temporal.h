@@ -185,6 +185,21 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
                                            size_t *length);
 
 /**
+ * Render a clock using the caller's UI language, without changing its units,
+ * numerals or boundaries. Chinese double-hours/hundred-ke and Roman clock
+ * wording are localized; other profiles retain their established notation.
+ * Locale tags accept POSIX or BCP 47 forms. Missing, C/POSIX and unavailable
+ * translations use English. No process locale or environment is mutated.
+ * The original formatter remains the native-notation compatibility API.
+ */
+bool infiltratr_temporal_format_clock_mode_localized(
+    const char *locale, const char *mode,
+    int64_t unix_microseconds, int32_t utc_offset_seconds,
+    bool show_seconds, bool vertical, bool location_configured,
+    double latitude, double longitude,
+    char *buffer, size_t capacity, size_t *length);
+
+/**
  * Format an elapsed interval using the selected clock mode's meaningful units.
  *
  * The measured interval remains canonical SI microseconds. Fixed-unit systems

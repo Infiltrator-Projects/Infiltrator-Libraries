@@ -14,6 +14,7 @@
 #include "infiltratr/arithmetic.h"
 #include "infiltratr/compiler.h"
 #include "infiltratr/core.h"
+#include "infiltratr/i18n.h"
 #include "infiltratr/timing.h"
 
 #include <math.h>
@@ -1814,7 +1815,89 @@ bool infiltratr_temporal_format_duration_mode(
     return false;
 }
 
-bool infiltratr_temporal_format_clock_mode(const char *mode,
+/* Names are transliterated proper names, not animal/help labels. Wording
+ * belongs to the selected language; the shared phase calculation stays below. */
+#define CLOCK_WORDS(coarse, fine, hour, first, second, watch, ke, twelfth, twelfths) \
+    { "chinese-coarse", coarse }, { "chinese-fine", fine }, \
+    { "hour", hour }, { "first", first }, { "second", second }, \
+    { "watch", watch }, { "ke", ke }, \
+    { "twelfth", twelfth }, { "twelfths", twelfths }
+#define PINYIN_BRANCHES \
+    { "zi", "Zǐ" }, { "chou", "Chǒu" }, { "yin", "Yín" }, \
+    { "mao", "Mǎo" }, { "chen", "Chén" }, { "si", "Sì" }, \
+    { "wu", "Wǔ" }, { "wei", "Wèi" }, { "shen", "Shēn" }, \
+    { "you", "Yǒu" }, { "xu", "Xū" }, { "hai", "Hài" }
+#define NATIVE_BRANCHES \
+    { "zi", "子" }, { "chou", "丑" }, { "yin", "寅" }, \
+    { "mao", "卯" }, { "chen", "辰" }, { "si", "巳" }, \
+    { "wu", "午" }, { "wei", "未" }, { "shen", "申" }, \
+    { "you", "酉" }, { "xu", "戌" }, { "hai", "亥" }
+
+static const InfiltratrI18nEntry clock_en[] = {
+    CLOCK_WORDS("{branch} hour", "{branch}, {half}", "Hour",
+                "first half", "second half", "Watch", "kè", "twelfth", "twelfths"),
+    PINYIN_BRANCHES
+};
+static const InfiltratrI18nEntry clock_de[] = {
+    CLOCK_WORDS("{branch}-Stunde", "{branch}, {half}", "Stunde",
+                "erste Hälfte", "zweite Hälfte", "Wache", "kè", "Zwölftel", "Zwölftel")
+};
+static const InfiltratrI18nEntry clock_es[] = {
+    CLOCK_WORDS("Hora {branch}", "{branch}, {half}", "Hora",
+                "primera mitad", "segunda mitad", "Vigilia", "kè", "doceavo", "doceavos")
+};
+static const InfiltratrI18nEntry clock_fr[] = {
+    CLOCK_WORDS("Heure {branch}", "{branch}, {half}", "Heure",
+                "première moitié", "seconde moitié", "Veille", "kè", "douzième", "douzièmes")
+};
+static const InfiltratrI18nEntry clock_it[] = {
+    CLOCK_WORDS("Ora {branch}", "{branch}, {half}", "Ora",
+                "prima metà", "seconda metà", "Vigilia", "kè", "dodicesimo", "dodicesimi")
+};
+static const InfiltratrI18nEntry clock_pt[] = {
+    CLOCK_WORDS("Hora {branch}", "{branch}, {half}", "Hora",
+                "primeira metade", "segunda metade", "Vigília", "kè", "duodécimo", "duodécimos")
+};
+static const InfiltratrI18nEntry clock_ru[] = {
+    CLOCK_WORDS("Час {branch}", "{branch}, {half}", "Час",
+                "первая половина", "вторая половина", "Стража", "кэ", "двенадцатая", "двенадцатых")
+};
+static const InfiltratrI18nEntry clock_ja[] = {
+    CLOCK_WORDS("{branch}時", "{branch}{half}", "時",
+                "初", "正", "夜番", "刻", "十二分の一", "十二分の一"),
+    NATIVE_BRANCHES
+};
+static const InfiltratrI18nEntry clock_zh[] = {
+    CLOCK_WORDS("{branch}时", "{branch}{half}", "时",
+                "初", "正", "更", "刻", "十二分之一时", "十二分之一时"),
+    NATIVE_BRANCHES
+};
+static const InfiltratrI18nEntry clock_zh_hant[] = {
+    CLOCK_WORDS("{branch}時", "{branch}{half}", "時",
+                "初", "正", "更", "刻", "十二分之一時", "十二分之一時"),
+    NATIVE_BRANCHES
+};
+#undef CLOCK_WORDS
+#undef PINYIN_BRANCHES
+#undef NATIVE_BRANCHES
+
+#define CLOCK_CATALOG(locale, entries) \
+    { locale, entries, sizeof(entries) / sizeof((entries)[0]) }
+static const InfiltratrI18nCatalog clock_catalogs[] = {
+    CLOCK_CATALOG("en", clock_en), CLOCK_CATALOG("de", clock_de),
+    CLOCK_CATALOG("es", clock_es), CLOCK_CATALOG("fr", clock_fr),
+    CLOCK_CATALOG("it", clock_it), CLOCK_CATALOG("pt", clock_pt),
+    CLOCK_CATALOG("ru", clock_ru), CLOCK_CATALOG("ja", clock_ja),
+    CLOCK_CATALOG("zh", clock_zh), CLOCK_CATALOG("zh-TW", clock_zh_hant),
+    CLOCK_CATALOG("zh-HK", clock_zh_hant), CLOCK_CATALOG("zh-MO", clock_zh_hant),
+    CLOCK_CATALOG("zh-Hant", clock_zh_hant),
+    CLOCK_CATALOG("zh-Hant-TW", clock_zh_hant),
+    CLOCK_CATALOG("zh-Hant-HK", clock_zh_hant)
+};
+#undef CLOCK_CATALOG
+
+static bool format_clock_mode(const InfiltratrI18n *language,
+                                           const char *mode,
                                            int64_t unix_microseconds,
                                            int32_t utc_offset_seconds,
                                            bool show_seconds,
@@ -2010,6 +2093,33 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
                    ? "初" : "正")
             : "時";
 
+        if (language != NULL) {
+            static const char *const keys[] = {
+                "zi", "chou", "yin", "mao", "chen", "si",
+                "wu", "wei", "shen", "you", "xu", "hai"
+            };
+            const InfiltratrI18nArgument arguments[] = {
+                { "branch", infiltratr_i18n_get(language, keys[branch]) },
+                { "half", infiltratr_i18n_get(language,
+                    within < SECONDS_PER_HOUR * MICROSECONDS_PER_SECOND
+                        ? "first" : "second") },
+                { "unit", infiltratr_i18n_get(language, "hour") }
+            };
+            const char *pattern = vertical
+                ? (show_seconds ? "{branch}\n{half}" : "{branch}\n{unit}")
+                : infiltratr_i18n_get(language,
+                    show_seconds ? "chinese-fine" : "chinese-coarse");
+            const size_t needed = infiltratr_i18n_format(
+                buffer, capacity, pattern, arguments,
+                sizeof(arguments) / sizeof(arguments[0]));
+            if (needed >= capacity) {
+                buffer[0] = '\0';
+                return false;
+            }
+            if (length != NULL) *length = needed;
+            return true;
+        }
+
         return write_printf(
             buffer, capacity, length,
             vertical ? "%s\n%s" : "%s%s",
@@ -2021,8 +2131,11 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
 
         return write_printf(
             buffer, capacity, length,
-            vertical ? "%02llu\n刻" : "%02llu刻",
-            (unsigned long long)ke);
+            language != NULL
+                ? (vertical ? "%02llu\n%s" : "%02llu %s")
+                : (vertical ? "%02llu\n%s" : "%02llu%s"),
+            (unsigned long long)ke,
+            language != NULL ? infiltratr_i18n_get(language, "ke") : "刻");
     }
 
     if (strcmp(mode, "roman-temporal") == 0) {
@@ -2058,18 +2171,22 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
             if (uncia != 0U) {
                 return write_printf(
                     buffer, capacity, length,
-                    vertical ? "Hora\n%s\n%s %s"
-                             : "Hora %s · %s %s",
+                    vertical ? "%s\n%s\n%s %s"
+                             : "%s %s · %s %s",
+                    language != NULL ? infiltratr_i18n_get(language, "hour") : "Hora",
                     roman[period.index], roman[uncia - 1U],
-                    uncia == 1U ? "uncia" : "unciae");
+                    language != NULL ? infiltratr_i18n_get(language,
+                        uncia == 1U ? "twelfth" : "twelfths")
+                        : (uncia == 1U ? "uncia" : "unciae"));
             }
         }
 
         return write_printf(
             buffer, capacity, length,
-            period.daylight
-                ? (vertical ? "Hora\n%s" : "Hora %s")
-                : (vertical ? "Vigilia\n%s" : "Vigilia %s"),
+            vertical ? "%s\n%s" : "%s %s",
+            language != NULL ? infiltratr_i18n_get(language,
+                period.daylight ? "hour" : "watch")
+                : (period.daylight ? "Hora" : "Vigilia"),
             roman[period.index]);
     }
 
@@ -2188,4 +2305,33 @@ bool infiltratr_temporal_format_clock_mode(const char *mode,
     }
 
     return false;
+}
+
+bool infiltratr_temporal_format_clock_mode(const char *mode,
+    int64_t unix_microseconds, int32_t utc_offset_seconds,
+    bool show_seconds, bool vertical, bool location_configured,
+    double latitude, double longitude,
+    char *buffer, size_t capacity, size_t *length)
+{
+    return format_clock_mode(NULL, mode, unix_microseconds, utc_offset_seconds,
+        show_seconds, vertical, location_configured, latitude, longitude,
+        buffer, capacity, length);
+}
+
+bool infiltratr_temporal_format_clock_mode_localized(
+    const char *locale, const char *mode,
+    int64_t unix_microseconds, int32_t utc_offset_seconds,
+    bool show_seconds, bool vertical, bool location_configured,
+    double latitude, double longitude,
+    char *buffer, size_t capacity, size_t *length)
+{
+    InfiltratrI18n language;
+    if (!infiltratr_i18n_init(&language, clock_catalogs,
+            sizeof(clock_catalogs) / sizeof(clock_catalogs[0]), "en")) {
+        return false;
+    }
+    if (locale != NULL) (void)infiltratr_i18n_set_locale(&language, locale);
+    return format_clock_mode(&language, mode, unix_microseconds, utc_offset_seconds,
+        show_seconds, vertical, location_configured, latitude, longitude,
+        buffer, capacity, length);
 }

@@ -588,6 +588,64 @@ static void test_clock_mode_formats(void)
         0.0, 0.0, text, sizeof(text), NULL));
 }
 
+static void test_localized_clock_modes(void)
+{
+    static const struct {
+        const char *locale;
+        bool fine;
+        bool vertical;
+        const char *text;
+    } vectors[] = {
+        { "en_AU.UTF-8", false, false, "Zǐ hour" },
+        { "en-GB", true, false, "Zǐ, second half" },
+        { "en", true, true, "Zǐ\nsecond half" },
+        { "zh_CN.UTF-8", false, false, "子时" },
+        { "zh_TW.UTF-8", false, false, "子時" },
+        { "zh-Hant-TW", true, false, "子正" },
+        { "fr_FR.UTF-8", true, false, "Zǐ, seconde moitié" },
+        { "de_DE", true, false, "Zǐ, zweite Hälfte" },
+        { "C", true, false, "Zǐ, second half" },
+        { "POSIX", true, false, "Zǐ, second half" },
+        { "xx_XX", true, false, "Zǐ, second half" },
+        { NULL, true, false, "Zǐ, second half" }
+    };
+    char text[192];
+    size_t length = 0;
+    for (size_t index = 0; index < sizeof(vectors) / sizeof(vectors[0]); ++index) {
+        CHECK(infiltratr_temporal_format_clock_mode_localized(
+            vectors[index].locale, "chinese-time", INT64_C(1800000000), 0,
+            vectors[index].fine, vectors[index].vertical, false, 0.0, 0.0,
+            text, sizeof(text), &length));
+        CHECK(strcmp(text, vectors[index].text) == 0);
+        CHECK(length == strlen(text));
+    }
+    /* Fine presentation changes at the same native hourly boundary. */
+    CHECK(infiltratr_temporal_format_clock_mode_localized("en", "chinese-time",
+        -1, 0, true, false, false, 0.0, 0.0, text, sizeof(text), NULL));
+    CHECK(strcmp(text, "Zǐ, first half") == 0);
+    CHECK(infiltratr_temporal_format_clock_mode_localized("en", "chinese-time",
+        0, 0, true, false, false, 0.0, 0.0, text, sizeof(text), NULL));
+    CHECK(strcmp(text, "Zǐ, second half") == 0);
+    CHECK(!infiltratr_temporal_format_clock_mode_localized("en", "chinese-time",
+        0, 0, true, false, false, 0.0, 0.0, text, 4U, NULL));
+    CHECK(text[0] == '\0');
+    CHECK(!infiltratr_temporal_format_clock_mode_localized("en", "missing-mode",
+        0, 0, true, false, false, 0.0, 0.0, text, sizeof(text), NULL));
+    CHECK(infiltratr_temporal_format_clock_mode_localized("en", "roman-temporal",
+        INT64_C(45000000000), 0, true, false, true, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strncmp(text, "Hour ", 5U) == 0);
+    CHECK(strstr(text, "twelfth") != NULL);
+    CHECK(strchr(text, ':') == NULL);
+    CHECK(infiltratr_temporal_format_clock_mode_localized("fr", "roman-temporal",
+        INT64_C(45000000000), 0, true, false, true, 0.0, 0.0,
+        text, sizeof(text), NULL));
+    CHECK(strncmp(text, "Heure ", 6U) == 0);
+    CHECK(infiltratr_temporal_format_clock_mode_localized("en", "chinese-ke",
+        0, 0, false, false, false, 0.0, 0.0, text, sizeof(text), NULL));
+    CHECK(strcmp(text, "00 kè") == 0);
+}
+
 int main(void)
 {
     test_catalogue();
@@ -597,5 +655,6 @@ int main(void)
     test_clock_formats();
     test_duration_mode_formats();
     test_clock_mode_formats();
+    test_localized_clock_modes();
     return 0;
 }

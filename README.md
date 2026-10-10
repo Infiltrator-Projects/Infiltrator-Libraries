@@ -8,7 +8,7 @@
 
 Common is the canonical shared-code repository for reusable first-party components used across the software family.
 
-**Current library version:** 1.19.39
+**Current library version:** 1.19.40
 **Language:** C11  
 **Licence:** GPL-3.0-or-later
 
@@ -42,7 +42,9 @@ Common owns portable mechanics and algorithms that have real use across the proj
 
 Common also owns cross-project presentation/build primitives when they have the same neutral contract across products. The canonical graphical design tokens live under `design/`; a generated web adapter exposes those tokens to static web consumers without transferring product identity into Common. Generic HTML/JSON/URI output escaping belongs in the portable library, durable file publication belongs in the POSIX provider, and the reusable GitHub Pages artifact/deploy sequence belongs in a repository-local composite action. Page content, layout composition, application/domain semantics, status meanings, product accents, illustrations and release policy remain local to each consumer.
 
-## Common 1.19.39
+## Common 1.19.40
+
+Clock consumers can pass their UI locale to `infiltratr_temporal_format_clock_mode_localized`. Chinese branch names and the hourly halves of each double-hour follow the requested language (for example `Shēn, first half` in English, `申初` in Chinese). Roman clocks retain Roman numerals and native twelfths with translated hour/watch wording. The same phase and astronomy calculations serve both localized and compatibility/native output. Built-in wording covers English, Chinese, German, Spanish, French, Italian, Portuguese, Russian and Japanese, with English fallback for unavailable translations.
 
 Traditional Chinese double-hours use native timestamp forms such as `申時`, or `申初`/`申正` when finer precision is selected. Roman seasonal daylight time exposes native twelfths of its unequal hours (`unciae`); its four-watch night model is unchanged.
 

@@ -2,6 +2,12 @@
 
 This file records user-visible and contract-relevant changes to Common. Detailed commit history remains in Git; this document is for changes that matter to consumers.
 
+## 1.19.40 — 2026-10-10
+
+- Add an explicit-locale clock formatter using Common's existing allocation-free i18n catalogues. Chinese double-hour/hundred-kè and Roman clock wording follows the selected UI language while native units, Roman numerals, astronomy and phase boundaries remain unchanged.
+- Keep native-notation compatibility rendering available; no process locale, temporal policy format or timestamp is changed.
+- Cover English/Chinese script selection, other translated wording, locale-tag variants, fallback, vertical layout, bounded output and the exact Chinese midnight half-shí transition.
+
 ## 1.19.39 — 2026-10-10
 
 - Render Traditional Chinese double-hours as document-style Earthly-Branch time (`子時`) and use the attested `初`/`正` half-shí distinction when finer precision is requested, instead of embedding pinyin and English zodiac teaching labels in the timestamp.
