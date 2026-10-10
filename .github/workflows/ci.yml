@@ -171,7 +171,10 @@ jobs:
       - name: Build and test portable/Win32 Common
         shell: powershell
         run: |
-          cmake -S . -B cmake-build -A x64 -DINFILTRATR_COMMON_BUILD_TESTS=ON -DINFILTRATR_COMMON_BUILD_SHARED=ON
+          # Test native executables on ARM64 runners instead of relying on
+          # optional x64 emulation to launch every contract-test binary.
+          $architecture = if ($env:RUNNER_ARCH -eq 'ARM64') { 'ARM64' } else { 'x64' }
+          cmake -S . -B cmake-build -A $architecture -DINFILTRATR_COMMON_BUILD_TESTS=ON -DINFILTRATR_COMMON_BUILD_SHARED=ON
           cmake --build cmake-build --config Release --parallel
           ctest --test-dir cmake-build -C Release --output-on-failure
 

@@ -426,7 +426,7 @@ Every push to `main` runs:
 - CMake install and external-consumer tests;
 - shared-library linkage tests;
 - Clang ASan + UBSan;
-- Windows MSVC static/shared CMake builds and tests;
+- Windows MSVC static/shared CMake builds and tests for the runner's native architecture;
 - Apple Debug and Release portable-library builds.
 
 ## Repository and release policy
