@@ -1,0 +1,43 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: Historical clock correction
+
+on:
+  push:
+    branches: [fix/historical-clock-authenticity]
+
+permissions:
+  contents: write
+
+jobs:
+  apply-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix/historical-clock-authenticity
+          fetch-depth: 0
+      - name: Apply narrow formatter patch
+        run: python3 tools/hal_apply_historical_clock_fix.py
+      - name: Verify GCC
+        run: |
+          make clean
+          make CC=gcc check
+          make clean
+          make CC=gcc portable-check
+      - name: Verify Clang
+        run: |
+          make clean
+          make CC=clang check
+      - name: Commit verified source only
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm tools/hal_apply_historical_clock_fix.py
+          rm .github/workflows/hal-historical-clock-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix: restore native historical clock precision"
+          git push origin HEAD:fix/historical-clock-authenticity
