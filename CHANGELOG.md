@@ -2,6 +2,13 @@
 
 This file records user-visible and contract-relevant changes to Common. Detailed commit history remains in Git; this document is for changes that matter to consumers.
 
+## 1.19.42 — 2026-10-14
+
+- Add Common-owned validators for the versioned theme palette, design metrics and typography records so native consumers no longer duplicate Common's ABI-prefix rules.
+- Reject wrong-version and truncated design records, reject palette roles outside 24-bit RGB, require the version-1 typography identities, and retain forward-compatible acceptance of trailing structure storage.
+- Correct the ownership ledger to reflect System Monitor's active binary-quantity parser, signed POSIX i64 reader and checked unsigned multiplication use, and record its GTK/Win32 design consumption accurately.
+- Restore repository-wide SPDX coverage to the philosophy-adoption workflow and qualify the complete change through the normal GCC, Clang, sanitiser, Windows, Apple and design-contract gates.
+
 ## 1.19.41 — 2026-10-10
 
 - Render both Edo clock models with traditional Japanese bell numerals and localized Japanese branch names/wording, removing English animal teaching labels from timestamps. Native compatibility output uses forms such as `巳の刻 · 四つ`; English output uses `Mi · 四 bells`.
@@ -91,7 +98,7 @@ This file records user-visible and contract-relevant changes to Common. Detailed
 
 - Rename the presentation labels for historical Italian hours and Renaissance European "Babylonian hours" so neither can be mistaken for modern Italian civil time or ancient Babylonian timekeeping; keep their stable persisted IDs unchanged.
 - Add `babylonian-ancient`, a distinct ancient seasonal-hour mode dividing daylight and night into twelve simānu each from astronomical sunrise/sunset.
-- Correct `nuremberg-hours`: retain equal 60-minute hours but assign a discrete integer number to daylight (8–16) and the remainder to night, changing allocation only when local solar day length crosses the next half-hour threshold—the Wendetag principle—instead of resetting continuously at each real sunrise/sunset.
+- Correct `nuremberg-hours`: retain equal 60-minute hours but assign a discrete integer number to daylight (8–16) and the remainder to night, changing allocation only when local solar day length crosses the next half-hour threshold—the Wendetag principle—instead of resetting continuously at each real sunrise and sunset.
 - Preserve location-aware behaviour for the Nuremberg method because neighbouring cities historically used slightly different Wendetage; the configured location determines the reconstructed transition days.
 - Document that modern Italian time is ordinary civil time under the Europe/Rome time zone, not a distinct clock system.
 - Add regression coverage for the new catalogue names, ancient Babylonian seasonal formatting and corrected Nuremberg clock path.
