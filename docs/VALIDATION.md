@@ -11,7 +11,7 @@ The repository currently uses:
 - .github/workflows/ci.yml
 - .github/workflows/release.yml
 
-The tests/ tree covers arithmetic, encoding, escaping, formatting, graphics, localisation, timing, token parsing, POSIX I/O/path behaviour, installed CMake consumption and ABI-oriented contracts.
+The tests/ tree covers arithmetic, encoding, escaping, formatting, graphics, localisation, timing, token parsing, POSIX I/O/path behaviour, installed CMake consumption and ABI-oriented contracts. The design contract suite additionally verifies canonical palette/metrics/typography records, rejects NULL, wrong-version and truncated ABI records, rejects out-of-range RGB roles, requires typography identities, and accepts future trailing structure storage without making the newest compiler `sizeof()` an ABI requirement.
 
 CI is expected to reject warnings, portability regressions, ABI/installation mistakes and behavioural changes that are not accompanied by an intentional contract update.
 

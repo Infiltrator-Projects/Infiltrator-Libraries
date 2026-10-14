@@ -15,7 +15,7 @@ This ledger tracks graphical consumers of `infiltrator-design-v1.json`.
 | BMWLINK | LINK + SwiftUI | LINK geometry; MB typography migration pending | BMW identity local |
 | AUDILINK | LINK + SwiftUI | LINK geometry; MB typography migration pending | Audi identity local |
 | FORDLINK | LINK + SwiftUI | LINK geometry; MB typography migration pending | Ford identity local |
-| System-Monitor | GTK | MB Corpo roles applied at the application shell | System Monitor identity local |
+| System-Monitor | GTK / Win32 | MB Corpo GTK roles; Common palette/metrics projected natively on Win32 | System Monitor identity and toolkit composition local |
 | Calculator | GTK / Win32 / SwiftUI | Strict three-face MB Corpo policy; canonical families/provenance from Common | Calculator geometry and icon identity local |
 | Character-Profiler | SwiftUI | System typography; migration pending | Character Profiler accent/identity local |
 | Keeper-Group-Export | Tk/ttk | MB Corpo roles and graphite/silver structure applied | Keeper accent/identity local |
@@ -26,6 +26,6 @@ This ledger tracks graphical consumers of `infiltrator-design-v1.json`.
 | ExtFS-for-Windows | NSIS / driver tooling | Native installer chrome only; no standalone project UI theme | Platform installer behaviour local |
 | Common | Library/docs | No application UI | Owns this design contract only |
 
-The rule is simple: MB Corpo typography roles plus the shared white Day and layered Linux MBLINK `#050608`/graphite/`#00ADEF` Night semantic palettes are owned by Common 1.19.10 and later; System means detect the host light/dark preference and select exactly one of those two palettes. Product accents, logos, manufacturer colours, page composition and domain-specific status semantics remain local. Native C/C++ consumers should prefer `include/infiltratr/design.h`; web consumers use `infiltrator-web-v1.css`. GTK/Cinnamon/SwiftUI adapters may keep local selector/widget code, but CI should validate any generated or mirrored values against Common rather than allowing private palette truth.
+The rule is simple: MB Corpo typography roles plus the shared white Day and layered Linux MBLINK `#050608`/graphite/`#00ADEF` Night semantic palettes are owned by Common 1.19.10 and later; System means detect the host light/dark preference and select exactly one of those two palettes. Common also validates its ABI-bearing palette, metrics and typography records before native adapters project them. Product accents, logos, manufacturer colours, host-theme detection, page composition and domain-specific status semantics remain local. Native C/C++ consumers should prefer `include/infiltratr/design.h`; web consumers use `infiltrator-web-v1.css`. GTK/Cinnamon/SwiftUI/Win32 adapters may keep local selector/widget code, but CI should validate any generated or mirrored values against Common rather than allowing private palette truth.
 
 SPDX-License-Identifier: GPL-3.0-or-later

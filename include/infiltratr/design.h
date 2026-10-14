@@ -109,6 +109,29 @@ typedef struct {
     const char *windows_fallback;
 } InfiltratrTypography;
 
+/**
+ * Validate a versioned theme palette before a native adapter consumes it.
+ *
+ * Version 1 requires the complete field prefix through `success_border_rgb`.
+ * Future trailing fields are accepted. Every colour role must be a 24-bit RGB
+ * value; NULL, wrong-version and truncated records are rejected.
+ */
+bool infiltratr_theme_palette_is_valid(const InfiltratrThemePalette *palette);
+/**
+ * Validate the ABI prefix of a versioned design-metrics record.
+ *
+ * Metrics deliberately have no toolkit-specific numeric ceiling in Common;
+ * platform adapters retain any narrower native-range requirements.
+ */
+bool infiltratr_design_metrics_is_valid(const InfiltratrDesignMetrics *metrics);
+/**
+ * Validate a versioned typography record and its required string identities.
+ *
+ * Version 1 requires every family, filename and platform fallback string to be
+ * non-NULL and non-empty. Consumers may impose stricter product font policy.
+ */
+bool infiltratr_typography_is_valid(const InfiltratrTypography *typography);
+
 const char *infiltratr_theme_mode_name(InfiltratrThemeMode mode);
 /** Return the canonical lowercase persistence key: system, day or night. */
 const char *infiltratr_theme_mode_key(InfiltratrThemeMode mode);

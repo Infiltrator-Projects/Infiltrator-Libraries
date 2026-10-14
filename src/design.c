@@ -3,6 +3,7 @@
 
 #include "ascii_internal.h"
 
+#include <stddef.h>
 #include <string.h>
 
 static const InfiltratrDesignMetrics design_metrics = {
@@ -122,6 +123,105 @@ static const InfiltratrThemePalette night_palette = {
     .warning_border_rgb = 0x72572FU,
     .success_border_rgb = 0x365F45U
 };
+
+static bool structure_covers(size_t structure_size, size_t field_offset,
+                             size_t field_size)
+{
+    return structure_size >= field_offset + field_size;
+}
+
+static bool rgb24(uint32_t value)
+{
+    return value <= UINT32_C(0xFFFFFF);
+}
+
+static bool nonempty(const char *text)
+{
+    return text && text[0] != '\0';
+}
+
+bool infiltratr_theme_palette_is_valid(const InfiltratrThemePalette *palette)
+{
+    if (!palette || palette->abi_version != INFILTRATR_THEME_PALETTE_ABI ||
+        !structure_covers(
+            palette->struct_size,
+            offsetof(InfiltratrThemePalette, success_border_rgb),
+            sizeof(palette->success_border_rgb)))
+        return false;
+
+    const uint32_t colours[] = {
+        palette->background_rgb,
+        palette->panel_rgb,
+        palette->card_rgb,
+        palette->surface_rgb,
+        palette->input_rgb,
+        palette->border_rgb,
+        palette->text_rgb,
+        palette->title_rgb,
+        palette->muted_rgb,
+        palette->subtle_rgb,
+        palette->button_background_rgb,
+        palette->button_foreground_rgb,
+        palette->selection_background_rgb,
+        palette->selection_foreground_rgb,
+        palette->neutral_accent_rgb,
+        palette->success_rgb,
+        palette->warning_rgb,
+        palette->fault_rgb,
+        palette->info_rgb,
+        palette->operation_rgb,
+        palette->card_hover_rgb,
+        palette->surface_hover_rgb,
+        palette->operation_hover_rgb,
+        palette->equals_hover_rgb,
+        palette->titlebar_rgb,
+        palette->connection_rgb,
+        palette->connection_border_rgb,
+        palette->heading_rgb,
+        palette->summary_rgb,
+        palette->kicker_rgb,
+        palette->detail_label_rgb,
+        palette->note_rgb,
+        palette->status_border_rgb,
+        palette->accent_foreground_rgb,
+        palette->accent_hover_rgb,
+        palette->selected_summary_rgb,
+        palette->warning_muted_rgb,
+        palette->warning_border_rgb,
+        palette->success_border_rgb
+    };
+    for (size_t index = 0U; index < sizeof(colours) / sizeof(colours[0]); index++)
+        if (!rgb24(colours[index])) return false;
+    return true;
+}
+
+bool infiltratr_design_metrics_is_valid(const InfiltratrDesignMetrics *metrics)
+{
+    return metrics &&
+        metrics->abi_version == INFILTRATR_DESIGN_METRICS_ABI &&
+        structure_covers(
+            metrics->struct_size,
+            offsetof(InfiltratrDesignMetrics, screen_padding),
+            sizeof(metrics->screen_padding));
+}
+
+bool infiltratr_typography_is_valid(const InfiltratrTypography *value)
+{
+    if (!value || value->abi_version != INFILTRATR_TYPOGRAPHY_ABI ||
+        !structure_covers(
+            value->struct_size,
+            offsetof(InfiltratrTypography, windows_fallback),
+            sizeof(value->windows_fallback)))
+        return false;
+    return nonempty(value->ui_family) &&
+        nonempty(value->brand_family) &&
+        nonempty(value->brand_regular_filename) &&
+        nonempty(value->ui_bold_filename) &&
+        nonempty(value->ui_regular_filename) &&
+        nonempty(value->gtk_fallback) &&
+        nonempty(value->apple_fallback) &&
+        nonempty(value->windows_fallback);
+}
 
 const char *infiltratr_theme_mode_name(InfiltratrThemeMode mode)
 {

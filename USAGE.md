@@ -20,9 +20,10 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Locale-independent finite decimal token parsing | Calculator expression-token conversion; completes the active cursor-parser family | ACTIVE |
 | Locale-independent finite decimal parsing | Calendar, POSIX typed readers | ACTIVE |
 | Locale-independent fixed-point ASCII formatting | System Monitor preferences/history/CSV persistence | ACTIVE |
-| Strict binary quantity parsing | Replaces repeated K/M/G-style quantity parsing such as System Monitor cache-size input | READY |
+| Strict binary quantity parsing | System Monitor CPU-cache size input | ACTIVE |
 | Checked and saturating arithmetic | System Monitor, Defragger, LINK, InfiltratorFS | ACTIVE |
-| Checked unsigned subtract/multiply | Completes active checked-u64 family | READY |
+| Checked unsigned multiplication | System Monitor sector/cache/topology conversions | ACTIVE |
+| Checked unsigned subtraction | Completes the active checked-u64 family | READY |
 | Checked signed add/multiply and saturating add/subtract/multiply | Completes the active signed arithmetic family; Calendar uses the shared saturating multiply contract for wide chronology/navigation intermediates | ACTIVE |
 | Checked `size_t` arithmetic / array reservation | System Monitor | ACTIVE |
 | Little-endian conversion | InfiltratorFS, Defragger | ACTIVE |
@@ -34,6 +35,7 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Generic quantity scaling | Formatting foundation | FOUNDATION |
 | Shared metric/duration formatting, including canonical GHz rendering | System Monitor | ACTIVE |
 | Canonical System/Day/Night persistence keys and parsing | System Monitor, InfiltratorFS | ACTIVE |
+| Canonical design ABI validation | System Monitor native theme adapters | ACTIVE |
 | Allocation-free i18n lookup/interpolation | LINK family | ACTIVE |
 | HTML text, JSON string and URI-component output encoding | ssmithnet.net, Infiltrator Repository | READY |
 | Spreadsheet-safe quoted CSV field encoding | System Monitor process export | ACTIVE |
@@ -41,6 +43,8 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 ## ABI contract
 
 Public ABI-bearing structures use `struct_size` and `abi_version`. The implementation validates the minimum prefix required by the declared ABI version rather than the newest compiler `sizeof(struct)`. This prevents harmless trailing padding or future appended fields from breaking older ABI-compatible callers while still rejecting incomplete structures.
+
+The shared design structures follow that rule through Common-owned validators. Theme palettes additionally reject values outside 24-bit RGB, and typography validation requires every version-1 family, filename and platform-fallback identity to be present. Platform adapters may layer narrower host-range requirements on top of a valid Common record, but they must not duplicate Common's ABI-prefix authority.
 
 ## Dynamic-library adapter
 
@@ -61,7 +65,7 @@ Common owns generic file/path/clock mechanics used by Linux applications:
 
 Native generators and publishers must use these primitives instead of carrying private whole-file writers when the Common contract fits. Product-specific transaction policy remains local.
 
-The signed i64 reader is a READY completion of the existing typed-reader family. Filesystem status translation, block-device discovery, locking, randomness and durability policy specific to a storage engine remain application-owned.
+The signed i64 reader is ACTIVE in System Monitor CPU topology/cache discovery. Filesystem status translation, block-device discovery, locking, randomness and durability policy specific to a storage engine remain application-owned.
 
 ## Endian ownership
 
@@ -85,7 +89,7 @@ The Windows build separates the static-library output from the DLL import librar
 
 ## Consumer boundaries
 
-- System Monitor: Common owns general C primitives, deterministic ASCII matching/ordering, stable non-cryptographic hash mixing, monotonic counter delta/rate mechanics, formatting, timing, dynamic loading and POSIX mechanics, including toolkit-neutral user/XDG path discovery, recursive directory creation and absolute clock-deadline conversion; process/group signature composition and hardware/UI policy remain System Monitor-owned.
+- System Monitor: Common owns general C primitives, deterministic ASCII matching/ordering, stable non-cryptographic hash mixing, monotonic counter delta/rate mechanics, formatting, timing, dynamic loading, POSIX mechanics and the shared design data/ABI validation contract, including toolkit-neutral user/XDG path discovery, recursive directory creation and absolute clock-deadline conversion; process/group signature composition, hardware semantics, host appearance detection, native palette projection and product UI composition remain System Monitor-owned.
 - Calendar: Common owns generic strings/parsing/arithmetic/timing, the system-wide temporal presentation policy, explicit conventional/decimal plus shared historical/astronomical clock formatting, canonical build-profile labels and dynamic-library binding; chronology, ICU version probing and calendar/event semantics remain Calendar-owned.
 - Defragger: Common owns general arithmetic, byte order, exact I/O and generic durable file publication/removal; filesystem safety, on-disk validation, recovery record contents and relocation transactions remain Defragger-owned.
 - InfiltratorFS: Common owns endian/UTF-8/checked arithmetic/exact POSIX I/O; allocation, CoW, checkpoints, recovery and filesystem semantics remain InfiltratorFS-owned.
@@ -120,9 +124,9 @@ Once Common accepts an algorithmic responsibility, it must define complete input
 
 ## Shared design ownership
 
-Common owns the canonical System/Day/Night semantic palette, structural radii/spacing metrics, MB Corpo family/role identity and immutable first-party font-asset provenance. Native consumers use `infiltratr/design.h`; build systems that package the canonical verified MB faces use `cmake/InfiltratrTypographyAssets.cmake`.
+Common owns the canonical System/Day/Night semantic palette, structural radii/spacing metrics, MB Corpo family/role identity, validation of those shared ABI-bearing records and immutable first-party font-asset provenance. Native consumers use `infiltratr/design.h`; build systems that package the canonical verified MB faces use `cmake/InfiltratrTypographyAssets.cmake`.
 
-The general design contract permits platform fallbacks when MB Corpo is unavailable, but a product may adopt a stricter no-fallback contract when it bundles and verifies the canonical faces itself. Product geometry, accents, icons and domain-specific presentation remain local.
+The general design contract permits platform fallbacks when MB Corpo is unavailable, but a product may adopt a stricter no-fallback contract when it bundles and verifies the canonical faces itself. Product geometry, accents, icons, host-theme detection, native toolkit projection and domain-specific presentation remain local.
 
 ## Shared web and Pages ownership
 

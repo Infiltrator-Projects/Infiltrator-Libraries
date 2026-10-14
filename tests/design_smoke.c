@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "infiltratr/design.h"
 
+#include <stddef.h>
 #include <string.h>
 
 int main(void)
@@ -42,10 +43,35 @@ int main(void)
     if (infiltratr_theme_mode_parse(NULL, &parsed) ||
         infiltratr_theme_mode_parse("day", NULL)) return 42;
 
+    if (!infiltratr_theme_palette_is_valid(day) ||
+        !infiltratr_theme_palette_is_valid(night) ||
+        infiltratr_theme_palette_is_valid(NULL)) return 43;
+    InfiltratrThemePalette palette_copy = *day;
+    palette_copy.struct_size =
+        offsetof(InfiltratrThemePalette, success_border_rgb);
+    if (infiltratr_theme_palette_is_valid(&palette_copy)) return 44;
+    palette_copy = *day;
+    palette_copy.abi_version++;
+    if (infiltratr_theme_palette_is_valid(&palette_copy)) return 45;
+    palette_copy = *day;
+    palette_copy.background_rgb = 0x01000000U;
+    if (infiltratr_theme_palette_is_valid(&palette_copy)) return 46;
+    palette_copy = *day;
+    palette_copy.struct_size = sizeof(palette_copy) + 64U;
+    if (!infiltratr_theme_palette_is_valid(&palette_copy)) return 47;
+
     const InfiltratrDesignMetrics *metrics = infiltratr_design_metrics();
     if (metrics == NULL || metrics->abi_version != INFILTRATR_DESIGN_METRICS_ABI) return 13;
     if (metrics->control_radius != 10U || metrics->card_radius != 12U) return 14;
     if (metrics->compact_spacing != 6U || metrics->content_padding != 16U) return 15;
+    if (!infiltratr_design_metrics_is_valid(metrics) ||
+        infiltratr_design_metrics_is_valid(NULL)) return 48;
+    InfiltratrDesignMetrics metrics_copy = *metrics;
+    metrics_copy.struct_size = offsetof(InfiltratrDesignMetrics, screen_padding);
+    if (infiltratr_design_metrics_is_valid(&metrics_copy)) return 49;
+    metrics_copy = *metrics;
+    metrics_copy.abi_version++;
+    if (infiltratr_design_metrics_is_valid(&metrics_copy)) return 50;
 
     const InfiltratrTypography *type = infiltratr_typography();
     if (type == NULL || type->abi_version != INFILTRATR_TYPOGRAPHY_ABI) return 16;
@@ -56,6 +82,21 @@ int main(void)
     if (strcmp(type->brand_regular_filename, "mb_corpo_a_cond_regular.ttf") != 0 ||
         strcmp(type->ui_bold_filename, "mb_corpo_s_bold.ttf") != 0 ||
         strcmp(type->ui_regular_filename, "mb_corpo_s_regular.ttf") != 0) return 20;
+    if (!infiltratr_typography_is_valid(type) ||
+        infiltratr_typography_is_valid(NULL)) return 51;
+    InfiltratrTypography type_copy = *type;
+    type_copy.struct_size = offsetof(InfiltratrTypography, windows_fallback);
+    if (infiltratr_typography_is_valid(&type_copy)) return 52;
+    type_copy = *type;
+    type_copy.abi_version++;
+    if (infiltratr_typography_is_valid(&type_copy)) return 53;
+    type_copy = *type;
+    type_copy.ui_family = "";
+    if (infiltratr_typography_is_valid(&type_copy)) return 54;
+    type_copy = *type;
+    type_copy.windows_fallback = NULL;
+    if (infiltratr_typography_is_valid(&type_copy)) return 55;
+
     if (night->titlebar_rgb != 0x202125U) return 21;
     if (night->connection_rgb != 0x0E1115U) return 22;
     if (night->connection_border_rgb != 0x31363BU) return 23;
