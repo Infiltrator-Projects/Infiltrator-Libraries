@@ -11,9 +11,10 @@ import urllib.request
 
 ORG = "Infiltrator-Projects"
 CANONICAL_REPO = "Infiltrator-Libraries"
+PHILOSOPHY_PATH = "docs/PHILOSOPHY.md"
 CANONICAL_URL = (
     "https://github.com/Infiltrator-Projects/Infiltrator-Libraries/"
-    "blob/main/docs/PHILOSOPHY.md"
+    f"blob/main/{PHILOSOPHY_PATH}"
 )
 
 
@@ -59,23 +60,23 @@ def main() -> int:
         name = str(repo["name"])
         branch = str(repo.get("default_branch") or "main")
         raw_url = (
-            f"https://raw.githubusercontent.com/{ORG}/{name}/{branch}/PHILOSOPHY.md"
+            f"https://raw.githubusercontent.com/{ORG}/{name}/{branch}/{PHILOSOPHY_PATH}"
         )
 
         try:
             content = request_text(raw_url)
         except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as exc:
-            failures.append(f"{name}: missing/unreadable PHILOSOPHY.md ({exc})")
+            failures.append(f"{name}: missing/unreadable {PHILOSOPHY_PATH} ({exc})")
             continue
 
         checked += 1
         if name == CANONICAL_REPO:
-            if "docs/PHILOSOPHY.md" not in content:
+            if "# Infiltrator Engineering Philosophy" not in content.splitlines():
                 failures.append(
-                    f"{name}: root contract does not point to docs/PHILOSOPHY.md"
+                    f"{name}: {PHILOSOPHY_PATH} is not the canonical philosophy document"
                 )
         elif CANONICAL_URL not in content:
-            failures.append(f"{name}: root contract does not point to canonical philosophy")
+            failures.append(f"{name}: {PHILOSOPHY_PATH} does not point to canonical philosophy")
 
     if failures:
         print("Infiltrator philosophy adoption check FAILED:")

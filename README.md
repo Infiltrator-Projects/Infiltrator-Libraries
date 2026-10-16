@@ -16,7 +16,7 @@ Common owns product-neutral contracts that are genuinely shared and at least as 
 
 The portable core has no operating-system or toolkit dependency. POSIX and Windows adapters isolate native mechanisms. Consumers select an exact reviewed Git revision; a normal build never advances a dependency to a mutable branch. [Usage and consumer boundaries](USAGE.md) identify the public mechanisms and their owners.
 
-The governing [engineering philosophy](PHILOSOPHY.md) requires complete behaviour, explicit ownership, deliberate failure semantics and proportionate complexity. Reuse and smaller files are useful only when they strengthen those contracts.
+The governing [engineering philosophy](docs/PHILOSOPHY.md) requires complete behaviour, explicit ownership, deliberate failure semantics and proportionate complexity. Reuse and smaller files are useful only when they strengthen those contracts.
 
 ## Build and test
 
