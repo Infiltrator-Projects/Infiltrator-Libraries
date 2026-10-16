@@ -10,10 +10,10 @@ import urllib.error
 import urllib.request
 
 ORG = "Infiltrator-Projects"
-CANONICAL_REPO = "Infiltrator-Libraries"
+CANONICAL_REPO = "Libraries"
 PHILOSOPHY_PATH = "docs/PHILOSOPHY.md"
 CANONICAL_URL = (
-    "https://github.com/Infiltrator-Projects/Infiltrator-Libraries/"
+    "https://github.com/Infiltrator-Projects/Libraries/"
     f"blob/main/{PHILOSOPHY_PATH}"
 )
 
@@ -75,7 +75,7 @@ def main() -> int:
                 failures.append(
                     f"{name}: {PHILOSOPHY_PATH} is not the canonical philosophy document"
                 )
-        elif CANONICAL_URL not in content:
+        elif not any(url in content for url in (CANONICAL_URL, CANONICAL_URL.replace("/Libraries/", "/Infiltrator-Libraries/"))):
             failures.append(f"{name}: {PHILOSOPHY_PATH} does not point to canonical philosophy")
 
     if failures:

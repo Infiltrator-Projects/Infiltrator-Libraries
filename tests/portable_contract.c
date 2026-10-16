@@ -27,7 +27,7 @@ static InfiltratrProjectInfo valid_project_info(void)
         .source_id = "contract-test-1.0.0",
         .build_profile = "test",
         .author = "Shannon Smith",
-        .website = "https://github.com/Infiltrator-Projects/Infiltrator-Libraries",
+        .website = "https://github.com/Infiltrator-Projects/Libraries",
         .license_id = "GPL-3.0-or-later",
         .comments = "Portable public API contract regression suite",
         .icon_name = "contract-test",
@@ -311,6 +311,6 @@ int main(void)
     test_parsers();
     test_arithmetic();
     test_scaling_and_formatting();
-    puts("Infiltratr Common portable API contract tests passed.");
+    puts("Libraries portable API contract tests passed.");
     return 0;
 }

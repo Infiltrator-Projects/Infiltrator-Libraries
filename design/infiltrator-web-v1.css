@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later */
 /* Canonical web adapter for design/infiltrator-design-v1.json. */
 /*
- * Backward compatibility: :root remains the historical MBLINK Linux Night palette.
+ * Backward compatibility: :root remains the historical MBLink Linux Night palette.
  * Theme-aware consumers set data-infiltratr-theme="system|day|night" on :root.
  */
 :root,

@@ -14,7 +14,7 @@ The repository is intentionally layered:
 - Build and package surfaces — Make, CMake and installed-package metadata that let consumers use one reviewed implementation rather than private copies.
 - Regression and consumer tests — contract tests that protect behaviour at the point where multiple projects now depend on it.
 
-Common owns product-neutral behaviour only. Filesystem semantics remain in InfiltratorFS/Defragmenter, automotive semantics remain in LINK and its product faces, and application-specific presentation remains with each application.
+Common owns product-neutral behaviour only. Filesystem semantics remain in InfiltratorFS/Defragmenter, automotive semantics remain in Link and its product faces, and application-specific presentation remains with each application.
 
 ## Ownership and dependency rule
 

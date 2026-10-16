@@ -1,6 +1,6 @@
 # Decisions
 
-This file records durable architectural decisions for Infiltratr Common.
+This file records durable architectural decisions for Libraries.
 
 ## ADR-001 — Common owns only product-neutral contracts
 

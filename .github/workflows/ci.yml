@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-name: Common CI
+name: Libraries CI
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
           set -euo pipefail
           release=.github/workflows/release.yml
           grep -Fq '  workflow_run:' "$release"
-          grep -Fq 'workflows: ["Common CI"]' "$release"
+          grep -Fq 'workflows: ["Libraries CI"]' "$release"
           grep -Fq "github.event.workflow_run.head_branch == 'main'" "$release"
           grep -Fq 'published releases are immutable' "$release"
           grep -Fq 'git archive --format=zip' "$release"
@@ -167,7 +167,7 @@ jobs:
             Write-Host "Recent policy events: $log"
             try {
               Get-WinEvent -FilterHashtable @{LogName=$log; StartTime=(Get-Date).AddMinutes(-20)} -MaxEvents 20 -ErrorAction Stop |
-                Where-Object { $_.Message -match 'actions-runner|infiltratr|link-test|Runner-Monitor|system-settings' } |
+                Where-Object { $_.Message -match 'actions-runner|infiltratr|link-test|RunnerScope|system-settings' } |
                 Select-Object TimeCreated, Id, Message | Format-List
             } catch { Write-Host $_.Exception.Message }
           }

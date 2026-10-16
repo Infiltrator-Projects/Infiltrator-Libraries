@@ -88,6 +88,6 @@ int main(void)
     assert(errno == EINVAL);
 
     assert(close(descriptor) == 0);
-    puts("Infiltratr Common exact descriptor I/O contract tests passed.");
+    puts("Libraries exact descriptor I/O contract tests passed.");
     return 0;
 }

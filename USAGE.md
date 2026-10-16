@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 
-# Infiltratr Common usage ledger
+# Libraries usage ledger
 
 This ledger records why public Common operations exist and where ownership belongs. Tests alone do not justify public API.
 
@@ -10,18 +10,18 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 
 | Capability | Principal consumers / reason | Status |
 | --- | --- | --- |
-| Project identity, metadata and canonical build-profile labels | System Monitor, Calendar, LINK, InfiltratorFS | ACTIVE |
-| Bounded strings, trimming and deterministic ASCII classification/case matching/ordering | System Monitor, Calendar, Defragger, LINK | ACTIVE |
+| Project identity, metadata and canonical build-profile labels | System Monitor, Calendar, Link, InfiltratorFS | ACTIVE |
+| Bounded strings, trimming and deterministic ASCII classification/case matching/ordering | System Monitor, Calendar, Defragger, Link | ACTIVE |
 | Stable non-cryptographic FNV-1a identity/signature mixing | System Monitor runtime identities/change signatures; reusable byte-stream hashing | ACTIVE |
 | Monotonic unsigned-counter delta/rate mechanics | System Monitor CPU, process, storage, network and hardware accounting | ACTIVE |
-| Strict signed/unsigned whole-value parsing and ranges | System Monitor, Defragger, LINK | ACTIVE |
+| Strict signed/unsigned whole-value parsing and ranges | System Monitor, Defragger, Link | ACTIVE |
 | Unsigned cursor token parsing | System Monitor procfs/sysfs parsing | ACTIVE |
 | Signed cursor token parsing | Completes the active cursor-parser family | READY |
 | Locale-independent finite decimal token parsing | Calculator expression-token conversion; completes the active cursor-parser family | ACTIVE |
 | Locale-independent finite decimal parsing | Calendar, POSIX typed readers | ACTIVE |
 | Locale-independent fixed-point ASCII formatting | System Monitor preferences/history/CSV persistence | ACTIVE |
 | Strict binary quantity parsing | System Monitor CPU-cache size input | ACTIVE |
-| Checked and saturating arithmetic | System Monitor, Defragger, LINK, InfiltratorFS | ACTIVE |
+| Checked and saturating arithmetic | System Monitor, Defragger, Link, InfiltratorFS | ACTIVE |
 | Checked unsigned multiplication | System Monitor sector/cache/topology conversions | ACTIVE |
 | Checked unsigned subtraction | Completes the active checked-u64 family | READY |
 | Checked signed add/multiply and saturating add/subtract/multiply | Completes the active signed arithmetic family; Calendar uses the shared saturating multiply contract for wide chronology/navigation intermediates | ACTIVE |
@@ -29,14 +29,14 @@ Status meanings: **ACTIVE** is consumed by production code, **FOUNDATION** is th
 | Little-endian conversion | InfiltratorFS, Defragger | ACTIVE |
 | Big-endian conversion and byte load/store | Replaces repeated filesystem BE16/BE32 decoding in Defragger; completes endian family | READY |
 | Strict UTF-8 validation | InfiltratorFS | ACTIVE |
-| Exact timing / periodic cadence | Calendar, System Monitor, LINK, Backyard Racer | ACTIVE |
+| Exact timing / periodic cadence | Calendar, System Monitor, Link, Backyard Racer | ACTIVE |
 | System-wide temporal presentation authority, full clock/calendar catalogues, location policy and explicit 12h/24h/decimal-10 formatting | System Settings and Calendar; future Common-aware applications | ACTIVE |
 | Software surfaces, alpha compositing and nearest/bilinear scaling | Backyard Racer; shared framebuffer foundation | ACTIVE |
 | Generic quantity scaling | Formatting foundation | FOUNDATION |
 | Shared metric/duration formatting, including canonical GHz rendering | System Monitor | ACTIVE |
 | Canonical System/Day/Night persistence keys and parsing | System Monitor, InfiltratorFS | ACTIVE |
 | Canonical design ABI validation | System Monitor native theme adapters | ACTIVE |
-| Allocation-free i18n lookup/interpolation | LINK family | ACTIVE |
+| Allocation-free i18n lookup/interpolation | Link family | ACTIVE |
 | HTML text, JSON string and URI-component output encoding | ssmithnet.net, Infiltrator Repository | READY |
 | Spreadsheet-safe quoted CSV field encoding | System Monitor process export | ACTIVE |
 
@@ -73,7 +73,7 @@ Common owns fixed-width byte-order mechanics, not filesystem formats. The BE/LE 
 
 ## Localisation ownership
 
-Common owns catalogue lookup, locale normalisation, language/fallback selection and named placeholder interpolation. Product language strings, language-pack storage/discovery, UI direction policy and manufacturer-specific presentation remain in the product or LINK layer.
+Common owns catalogue lookup, locale normalisation, language/fallback selection and named placeholder interpolation. Product language strings, language-pack storage/discovery, UI direction policy and manufacturer-specific presentation remain in the product or Link layer.
 
 Locale normalisation is deterministic ASCII logic. Malformed tags, duplicate separators and overlong tags fail instead of being silently shortened. POSIX `_` separators and `.encoding`/`@modifier` suffixes are accepted at the platform boundary.
 
@@ -93,9 +93,9 @@ The Windows build separates the static-library output from the DLL import librar
 - Calendar: Common owns generic strings/parsing/arithmetic/timing, the system-wide temporal presentation policy, explicit conventional/decimal plus shared historical/astronomical clock formatting, canonical build-profile labels and dynamic-library binding; chronology, ICU version probing and calendar/event semantics remain Calendar-owned.
 - Defragger: Common owns general arithmetic, byte order, exact I/O and generic durable file publication/removal; filesystem safety, on-disk validation, recovery record contents and relocation transactions remain Defragger-owned.
 - InfiltratorFS: Common owns endian/UTF-8/checked arithmetic/exact POSIX I/O; allocation, CoW, checkpoints, recovery and filesystem semantics remain InfiltratorFS-owned.
-- LINK: Common owns portable primitives/localisation engine/timing; OBD/UDS/ISO-TP and vehicle-diagnostic policy remain LINK-owned.
+- Link: Common owns portable primitives/localisation engine/timing; OBD/UDS/ISO-TP and vehicle-diagnostic policy remain Link-owned.
 - Backyard Racer: Common owns software-surface mechanics, alpha composition, image scaling, exact fixed-step scheduling and generic POSIX durability/clock primitives; game simulation, vehicle data, authored assets, screen composition and presentation identity remain Backyard Racer-owned.
-- MBLINK/JAGLINK consume Common transitively through LINK where appropriate.
+- MBLink/JAGLink consume Common transitively through Link where appropriate.
 - ssmithnet.net: Common owns neutral design tokens, the web-token adapter, generic output escaping, generic durable publication and Pages deployment plumbing; personal content, page composition, local material/colour treatment, graphics and site information architecture remain ssmithnet.net-owned.
 - Infiltrator Repository: Common owns neutral design tokens, the web-token adapter, generic output escaping, generic durable publication and Pages deployment plumbing; APT/Debian semantics, GitHub release discovery, retention, signing, mirroring, catalogue semantics and repository status presentation remain repository-owned.
 

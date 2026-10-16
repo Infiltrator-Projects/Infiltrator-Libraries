@@ -573,6 +573,6 @@ int main(void)
     test_durable_unlink();
     test_results_and_clock();
 
-    puts("Infiltratr Common POSIX API contract tests passed.");
+    puts("Libraries POSIX API contract tests passed.");
     return 0;
 }

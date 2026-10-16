@@ -144,6 +144,6 @@ int main(void)
     test_signed_token();
     test_binary_quantity();
     test_abi_prefix_sizes();
-    puts("Infiltratr Common completion contract tests passed.");
+    puts("Libraries completion contract tests passed.");
     return 0;
 }

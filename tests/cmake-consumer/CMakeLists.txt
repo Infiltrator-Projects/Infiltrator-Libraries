@@ -4,7 +4,7 @@ project(InfiltratrCommonConsumer LANGUAGES C)
 
 find_package(InfiltratrCommon 1.10 CONFIG REQUIRED)
 if(NOT InfiltratrCommon_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
-    message(FATAL_ERROR "Installed Infiltratr Common package did not report a semantic version.")
+    message(FATAL_ERROR "Installed Libraries package did not report a semantic version.")
 endif()
 
 add_executable(infiltratr-common-consumer main.c)

@@ -249,6 +249,6 @@ int main(void)
                   "common-library=infiltratr-common-" INFILTRATR_COMMON_VERSION "\n") != NULL);
     assert(fclose(metadata) == 0);
 
-    puts("Infiltratr Common core smoke test passed.");
+    puts("Libraries core smoke test passed.");
     return 0;
 }

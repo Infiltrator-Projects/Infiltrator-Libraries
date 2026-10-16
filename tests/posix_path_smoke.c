@@ -43,6 +43,6 @@ int main(void)
     char tiny[2] = {'x', '\0'};
     assert(!infiltratr_path_dirname("/alpha/beta", tiny, sizeof(tiny)));
     assert(tiny[0] == '\0');
-    puts("Infiltratr Common POSIX path tests passed.");
+    puts("Libraries POSIX path tests passed.");
     return 0;
 }

@@ -57,6 +57,6 @@ int main(void)
     assert(!infiltratr_escape_csv_field(NULL, true, csv, sizeof(csv),
                                         &required));
 
-    puts("Infiltratr Common escape contract tests passed.");
+    puts("Libraries escape contract tests passed.");
     return 0;
 }

@@ -155,6 +155,6 @@ int main(void)
     test_signed_checked_and_saturating();
     test_checked_sizes();
     test_array_reserve();
-    puts("Infiltratr Common arithmetic tests passed.");
+    puts("Libraries arithmetic tests passed.");
     return 0;
 }

@@ -175,6 +175,6 @@ int main(void)
     }
     CHECK(rmdir(root) == 0);
 
-    puts("Infiltratr Common POSIX temporal policy contract passed.");
+    puts("Libraries POSIX temporal policy contract passed.");
     return 0;
 }

@@ -1,6 +1,6 @@
 {
   "schema": "infiltrator-design-v1",
-  "reference_implementation": "MBLINK",
+  "reference_implementation": "MBLink",
   "typography": {
     "ui_family": "MB Corpo S Title WEB",
     "brand_family": "MB Corpo A Title Cond WEB",
@@ -55,7 +55,7 @@
     },
     "assets": {
       "provenance": "immutable first-party archive",
-      "source_repository": "Infiltrator-Projects/MBLINK",
+      "source_repository": "Infiltrator-Projects/MBLink",
       "source_commit": "aa161e7342112beab8feb7669f072c870f742765",
       "archive_path": "assets/fonts/mb-corpo-fonts.tar.xz",
       "archive_sha256": "bdb6063f838a7fab22b4d6b412170640c69511df53aa3dfa9a4ea8431c9d8274",

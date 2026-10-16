@@ -13,12 +13,12 @@ int main(void)
     if (strcmp(INFILTRATR_COMMON_VERSION,
                INFILTRATR_COMMON_EXPECTED_VERSION) != 0) {
         fprintf(stderr,
-                "Infiltratr Common package/header version mismatch: package=%s header=%s\n",
+                "Libraries package/header version mismatch: package=%s header=%s\n",
                 INFILTRATR_COMMON_EXPECTED_VERSION,
                 INFILTRATR_COMMON_VERSION);
         return 1;
     }
 
-    puts("Infiltratr Common package consumer passed");
+    puts("Libraries package consumer passed");
     return 0;
 }

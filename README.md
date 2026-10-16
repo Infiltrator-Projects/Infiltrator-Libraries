@@ -1,18 +1,18 @@
 <!-- SPDX-License-Identifier: GPL-3.0-or-later -->
 
-# Common
+# Libraries
 
 **Project copyright:** © 1993-2026 Shannon Smith  
 **Release identity:** [`VERSION`](VERSION)  
 **Language:** C11 · **Licence:** GPL-3.0-or-later
 
-[![Common CI](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/actions/workflows/ci.yml/badge.svg)](https://github.com/Infiltrator-Projects/Infiltrator-Libraries/actions/workflows/ci.yml)
+[![Common CI](https://github.com/Infiltrator-Projects/Libraries/actions/workflows/ci.yml/badge.svg)](https://github.com/Infiltrator-Projects/Libraries/actions/workflows/ci.yml)
 
 Common is the shared first-party foundation for portable arithmetic, parsing, encoding, formatting, graphics, localisation, time presentation, design records and native I/O mechanisms used across the Infiltrator software family.
 
 ## Ownership
 
-Common owns product-neutral contracts that are genuinely shared and at least as strong as the implementations they replace. Calendar owns chronology; filesystem projects own filesystem meaning and mutation policy; LINK owns shared automotive diagnostics; manufacturer products own vehicle knowledge. Application composition and product identity remain local.
+Common owns product-neutral contracts that are genuinely shared and at least as strong as the implementations they replace. Calendar owns chronology; filesystem projects own filesystem meaning and mutation policy; Link owns shared automotive diagnostics; manufacturer products own vehicle knowledge. Application composition and product identity remain local.
 
 The portable core has no operating-system or toolkit dependency. POSIX and Windows adapters isolate native mechanisms. Consumers select an exact reviewed Git revision; a normal build never advances a dependency to a mutable branch. [Usage and consumer boundaries](USAGE.md) identify the public mechanisms and their owners.
 

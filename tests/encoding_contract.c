@@ -99,6 +99,6 @@ int main(void)
 {
     test_endian();
     test_utf8();
-    puts("Infiltratr Common endian/UTF-8 contract tests passed.");
+    puts("Libraries endian/UTF-8 contract tests passed.");
     return 0;
 }

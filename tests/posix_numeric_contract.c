@@ -39,6 +39,6 @@ int main(void)
     assert(infiltratr_read_i64_file_ex(path, &value) == INFILTRATR_IO_NOT_FOUND);
     assert(value == 77);
     assert(infiltratr_read_i64_file_ex(NULL, &value) == INFILTRATR_IO_INVALID_ARGUMENT);
-    puts("Infiltratr Common signed POSIX numeric reader tests passed.");
+    puts("Libraries signed POSIX numeric reader tests passed.");
     return 0;
 }

@@ -103,6 +103,6 @@ int main(void)
     test_base_detection();
     test_double_token();
     test_failure_preserves_outputs();
-    puts("Infiltratr Common token tests passed.");
+    puts("Libraries token tests passed.");
     return 0;
 }

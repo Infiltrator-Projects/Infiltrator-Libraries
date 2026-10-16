@@ -9,7 +9,7 @@
 set(INFILTRATR_MB_CORPO_SOURCE_COMMIT
     "aa161e7342112beab8feb7669f072c870f742765")
 set(INFILTRATR_MB_CORPO_ARCHIVE_URL
-    "https://raw.githubusercontent.com/Infiltrator-Projects/MBLINK/${INFILTRATR_MB_CORPO_SOURCE_COMMIT}/assets/fonts/mb-corpo-fonts.tar.xz")
+    "https://raw.githubusercontent.com/Infiltrator-Projects/MBLink/${INFILTRATR_MB_CORPO_SOURCE_COMMIT}/assets/fonts/mb-corpo-fonts.tar.xz")
 set(INFILTRATR_MB_CORPO_ARCHIVE_SHA256
     "bdb6063f838a7fab22b4d6b412170640c69511df53aa3dfa9a4ea8431c9d8274")
 

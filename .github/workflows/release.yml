@@ -2,7 +2,7 @@
 name: publish-release
 on:
   workflow_run:
-    workflows: ["Common CI"]
+    workflows: ["Libraries CI"]
     types: [completed]
 permissions:
   contents: read
@@ -49,9 +49,9 @@ jobs:
             echo "$tag already identifies an immutable earlier release."
             exit 0
           fi
-          source="Infiltratr-Common-$version-source.zip"
+          source="Libraries-$version-source.zip"
           mkdir -p release
-          git archive --format=zip --prefix="Infiltratr-Common-$version/" \
+          git archive --format=zip --prefix="Libraries-$version/" \
             --output="release/$source" "$head_commit"
           (cd release && sha256sum "$source" > SHA256SUMS.txt)
           notes="$RUNNER_TEMP/release-notes.md"
@@ -59,7 +59,7 @@ jobs:
           state=$(gh release view "$tag" --json isDraft,targetCommitish --jq '[.isDraft,.targetCommitish] | @tsv' 2>/dev/null || true)
           if [[ -z "$state" ]]; then
             gh release create "$tag" --target "$head_commit" --draft \
-              --title "Infiltratr Common $version" --notes-file "$notes"
+              --title "Libraries $version" --notes-file "$notes"
             draft=true
           else
             IFS=$'\t' read -r draft target <<<"$state"
