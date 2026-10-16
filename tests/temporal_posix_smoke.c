@@ -66,7 +66,7 @@ int main(void)
     {
         FILE *provider = fopen(provider_path, "wb");
         CHECK(provider != NULL);
-        CHECK(fputs("provider=infiltrator-system-settings\n"
+        CHECK(fputs("provider=system-settings\n"
                     "policy-version=3\n"
                     "contract=infiltratr-temporal-v3\n", provider) >= 0);
         CHECK(fclose(provider) == 0);
@@ -85,7 +85,7 @@ int main(void)
     {
         FILE *provider = fopen(provider_path, "wb");
         CHECK(provider != NULL);
-        CHECK(fputs("provider=infiltrator-system-settings\n"
+        CHECK(fputs("provider=system-settings\n"
                     "policy-version=3\n"
                     "contract=infiltratr-temporal-v3\n", provider) >= 0);
         CHECK(fclose(provider) == 0);

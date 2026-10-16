@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file core_smoke.c
- * @brief Standalone regression coverage for Infiltratr Common.
+ * @brief Standalone regression coverage for Libraries.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 1993-2026 Shannon Smith
@@ -36,9 +36,9 @@ int main(void)
     assert(infiltratr_string_equal(NULL, NULL));
     assert(infiltratr_string_equal("calendar", "calendar"));
     assert(!infiltratr_string_equal("calendar", NULL));
-    assert(infiltratr_string_starts_with("calendar-plus", "calendar"));
-    assert(infiltratr_string_ends_with("calendar-plus", "plus"));
-    assert(!infiltratr_string_ends_with("calendar", "plus"));
+    assert(infiltratr_string_starts_with("alpha-omega", "alpha"));
+    assert(infiltratr_string_ends_with("alpha-omega", "omega"));
+    assert(!infiltratr_string_ends_with("alpha-omega", "sigma"));
     assert(infiltratr_ascii_is_space(' '));
     assert(infiltratr_ascii_is_space('\n'));
     assert(!infiltratr_ascii_is_space((unsigned char)0xa0));

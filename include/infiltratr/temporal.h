@@ -32,7 +32,7 @@ extern "C" {
  * strings or type-registration lifetime cross the library boundary.
  * Supported parts are "short" and "full". Failure leaves output unchanged.
  */
-#define INFILTRATR_TEMPORAL_DATE_RENDERER_SYMBOL "calendar_plus_format_date_v1"
+#define INFILTRATR_TEMPORAL_DATE_RENDERER_SYMBOL "calendar_format_date_v1"
 #define INFILTRATR_TEMPORAL_DATE_CAPACITY 512U
 typedef bool (*InfiltratrTemporalDateRenderer)(
     const char *calendar_id,

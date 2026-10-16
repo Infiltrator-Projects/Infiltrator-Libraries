@@ -75,7 +75,7 @@ def main() -> int:
                 failures.append(
                     f"{name}: {PHILOSOPHY_PATH} is not the canonical philosophy document"
                 )
-        elif not any(url in content for url in (CANONICAL_URL, CANONICAL_URL.replace("/Libraries/", "/Infiltrator-Libraries/"))):
+        elif CANONICAL_URL not in content:
             failures.append(f"{name}: {PHILOSOPHY_PATH} does not point to canonical philosophy")
 
     if failures:

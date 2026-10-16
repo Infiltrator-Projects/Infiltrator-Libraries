@@ -46,7 +46,7 @@ static bool try_directory(InfiltratrTemporalDateProvider *provider,
     struct stat status;
 
     if (!infiltratr_path_join(path, sizeof(path), directory,
-                             "libcalendar-plus.so.0") ||
+                             "libcalendar.so.0") ||
         stat(path, &status) != 0 || !S_ISREG(status.st_mode) ||
         status.st_uid != 0 ||
         (status.st_mode & (S_IWGRP | S_IWOTH)) != 0) {

@@ -193,7 +193,7 @@ static bool provider_document_valid(const char *text)
         if (status == INFILTRATR_CONFIG_LINE_ENTRY) {
             if (strcmp(key, "provider") == 0) {
                 if (provider_seen ||
-                    strcmp(value, "infiltrator-system-settings") != 0) {
+                    strcmp(value, "system-settings") != 0) {
                     return false;
                 }
                 provider_seen = true;
