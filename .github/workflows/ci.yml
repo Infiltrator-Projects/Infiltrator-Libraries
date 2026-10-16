@@ -24,9 +24,13 @@ jobs:
           release=.github/workflows/release.yml
           grep -Fq '  workflow_run:' "$release"
           grep -Fq 'workflows: ["Common CI"]' "$release"
-          grep -Fq "startsWith(github.event.workflow_run.head_commit.message, 'Release ')" "$release"
           grep -Fq "github.event.workflow_run.head_branch == 'main'" "$release"
           grep -Fq 'published releases are immutable' "$release"
+          grep -Fq 'git archive --format=zip' "$release"
+          if grep -Eq 'make (check|portable-check)|cmake --build|ctest --test-dir' "$release"; then
+            echo 'Publication must consume the qualified source instead of owning another test graph.' >&2
+            exit 1
+          fi
           if grep -Eq '^  workflow_dispatch:|^  pull_request:|^  schedule:' "$release"; then exit 1; fi
           if grep -Eq '^  pull_request:|^  merge_group:' .github/workflows/ci.yml; then exit 1; fi
 

@@ -31,3 +31,7 @@ Manual testing remains appropriate where a result depends on a real graphical en
 ## Release criterion
 
 A release is acceptable when the exact source revision passes the required automated gates, the published package/source identity matches that revision, and no known failing contract is represented as supported.
+
+## Source publication
+
+The complete Common CI run qualifies one immutable source revision. Publication requires a successful push-to-`main` run and the exact current branch head. `VERSION` identifies an unpublished release; commit-subject wording is irrelevant. The publisher creates a deterministic Git source archive and checksums, verifies the complete remote asset set and bytes before publishing its draft, then verifies the public bytes and tag again. It does not repeat compilation or testing. A rerun of the original qualified source verifies public artifacts without rewriting them.

@@ -1,123 +1,89 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 name: publish-release
-
 on:
   workflow_run:
     workflows: ["Common CI"]
     types: [completed]
-
 permissions:
   contents: read
-
 concurrency:
   group: publish-release-${{ github.repository }}
   cancel-in-progress: false
-
 jobs:
   publish:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      startsWith(github.event.workflow_run.head_commit.message, 'Release ')
+      github.event.workflow_run.head_branch == 'main'
     permissions:
       contents: write
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    env:
-      EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+    timeout-minutes: 15
     steps:
       - name: Check out exact tested main commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
-
-      - name: Install release dependencies
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential clang cmake gh zip
-
-      - name: Validate and publish exact current main
+          persist-credentials: false
+      - name: Archive and publish the qualified source
         env:
           GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
-
           git fetch origin main --tags
           head_commit=$(git rev-parse HEAD)
-          main_commit=$(git rev-parse origin/main)
           test "$head_commit" = "$EXPECTED_SHA"
-          test "$main_commit" = "$EXPECTED_SHA"
-
+          if [[ "$(git rev-parse origin/main)" != "$EXPECTED_SHA" ]]; then
+            echo "A newer main superseded this candidate."
+            exit 0
+          fi
           version=$(tr -d '[:space:]' < VERSION)
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            printf 'Invalid source version: %s\n' "$version" >&2
-            exit 1
-          fi
-          subject=$(git log -1 --format=%s "$head_commit")
-          if [[ "$subject" != "Release ${version}" && "$subject" != "Release ${version}:"* ]]; then
-            printf 'Release commit subject must begin with Release %s.\n' "$version" >&2
-            exit 1
-          fi
-          tag="v${version}"
-
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           grep -qx "#define INFILTRATR_COMMON_VERSION \"$version\"" include/infiltratr/core.h
-          make clean
-          make check
-          make portable-check
-          make shared
-          test -f "build/libinfiltratr-common.so.$version"
-
-          cmake -S . -B cmake-build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DINFILTRATR_COMMON_BUILD_TESTS=ON \
-            -DINFILTRATR_COMMON_WARNINGS_AS_ERRORS=ON
-          cmake --build cmake-build --parallel
-          ctest --test-dir cmake-build --output-on-failure
-
-          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
-            printf 'Release tag %s already exists; published releases are immutable.\n' "$tag" >&2
-            exit 1
+          tag="v$version"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null &&
+             [[ "$(git rev-parse "refs/tags/$tag^{commit}")" != "$head_commit" ]]; then
+            echo "$tag already identifies an immutable earlier release."
+            exit 0
           fi
-
-          source="Infiltratr-Common-${version}-source.zip"
-          git archive --format=zip --prefix="Infiltratr-Common-${version}/" --output="$source" "$head_commit"
-          test -s "$source"
-          sha256sum "$source" > SHA256SUMS.txt
-
-          notes="${RUNNER_TEMP}/release-notes.md"
-          git log -1 --format='%B' "$head_commit" > "$notes"
-          test -s "$notes"
-
-          git fetch origin main --tags
-          test "$(git rev-parse origin/main)" = "$EXPECTED_SHA"
-
-          release_state=$(gh release view "$tag" \
-            --json isDraft,targetCommitish --jq '[.isDraft, .targetCommitish] | @tsv' \
-            2>/dev/null || true)
-          if [[ -n "$release_state" ]]; then
-            IFS=$'\t' read -r is_draft target_commitish <<<"$release_state"
-            if [[ "$is_draft" != "true" || "$target_commitish" != "$head_commit" ]]; then
-              printf 'Release %s already exists; published releases are immutable.\n' "$tag" >&2
-              exit 1
-            fi
+          source="Infiltratr-Common-$version-source.zip"
+          mkdir -p release
+          git archive --format=zip --prefix="Infiltratr-Common-$version/" \
+            --output="release/$source" "$head_commit"
+          (cd release && sha256sum "$source" > SHA256SUMS.txt)
+          notes="$RUNNER_TEMP/release-notes.md"
+          git log -1 --format=%B "$head_commit" > "$notes"
+          state=$(gh release view "$tag" --json isDraft,targetCommitish --jq '[.isDraft,.targetCommitish] | @tsv' 2>/dev/null || true)
+          if [[ -z "$state" ]]; then
+            gh release create "$tag" --target "$head_commit" --draft \
+              --title "Infiltratr Common $version" --notes-file "$notes"
+            draft=true
           else
-            gh release create "$tag" \
-              --target "$head_commit" \
-              --draft \
-              --title "Infiltratr Common $version" \
-              --notes-file "$notes"
+            IFS=$'\t' read -r draft target <<<"$state"
+            if [[ "$draft" == true ]]; then
+              test "$target" = "$head_commit"
+            else
+              test "$(git rev-parse "refs/tags/$tag^{commit}")" = "$head_commit"
+            fi
           fi
-          gh release upload "$tag" "$source" SHA256SUMS.txt --clobber
-
-          expected_assets=$(printf '%s\n%s\n' "$source" SHA256SUMS.txt | sort)
-          published_assets=$(gh release view "$tag" --json assets --jq '.assets[].name' | sort)
-          test "$published_assets" = "$expected_assets"
-          gh release edit "$tag" --draft=false --latest
+          # Only draft assets may change; published releases are immutable.
+          if [[ "$draft" == true ]]; then
+            gh release upload "$tag" release/* --clobber
+          fi
+          verify_remote() {
+            local destination
+            destination=$(mktemp -d)
+            gh release download "$tag" --dir "$destination"
+            diff -qr release "$destination"
+            rm -rf "$destination"
+          }
+          verify_remote
+          if [[ "$draft" == true ]]; then
+            gh release edit "$tag" --draft=false --latest
+          fi
+          verify_remote
           git fetch origin "refs/tags/$tag:refs/tags/$tag"
           test "$(git rev-parse "refs/tags/$tag^{commit}")" = "$head_commit"

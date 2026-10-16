@@ -33,7 +33,7 @@
 extern "C" {
 #endif
 
-#define INFILTRATR_COMMON_VERSION "1.19.42"
+#define INFILTRATR_COMMON_VERSION "1.19.43"
 #define INFILTRATR_PROJECT_INFO_ABI 1U
 #define INFILTRATR_SCALE_OPTIONS_ABI 1U
 #define INFILTRATR_ARRAY_LENGTH(array) (sizeof(array) / sizeof((array)[0]))

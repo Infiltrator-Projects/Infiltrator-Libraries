@@ -2,6 +2,13 @@
 
 This file records user-visible and contract-relevant changes to Common. Detailed commit history remains in Git; this document is for changes that matter to consumers.
 
+## 1.19.43 — 2026-10-16
+
+- Make `VERSION` the release-intent authority and retire the parallel commit-subject switch.
+- Archive the exact qualified source without repeating the complete CI build/test graph in the publisher.
+- Verify draft and public asset bytes and exact tag identity; retain immutable publication and repeatable recovery.
+- Keep current capability/ownership/build guidance in the README and release history in this changelog.
+
 ## 1.19.42 — 2026-10-14
 
 - Add Common-owned validators for the versioned theme palette, design metrics and typography records so native consumers no longer duplicate Common's ABI-prefix rules.
