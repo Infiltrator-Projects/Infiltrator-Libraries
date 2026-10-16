@@ -2,6 +2,10 @@
 
 This file records user-visible and contract-relevant changes to Common. Detailed commit history remains in Git; this document is for changes that matter to consumers.
 
+## 1.19.46 - 2026-10-17
+
+- Use the RunnerScope identity in Windows workflow process checks.
+
 ## 1.19.45 - 2026-10-17
 
 - Use the canonical System Settings provider identity and require canonical repository links.
