@@ -80,4 +80,26 @@ for role in brand_regular ui_bold ui_regular; do
   grep -Fq -- "\"$sha\"" "$assets"
 done
 
+grep -Fq 'INFILTRATR_MB_CORPO_NATIVE_FONT_DIR "/System/Resources/Fonts"' "$assets"
+grep -Fq '/etc/fonts/conf.d/90-infiltrator-native-fonts.conf' "$assets"
+grep -Fq 'InfiltratrEnsureNativeFonts.sh' "$assets"
+
+font_bootstrap="$root/cmake/InfiltratrEnsureNativeFonts.sh"
+test -f "$font_bootstrap"
+sh -n "$font_bootstrap"
+grep -Fq '/System/Resources/Fonts' "$font_bootstrap"
+grep -Fq '/etc/fonts/conf.d/90-infiltrator-native-fonts.conf' "$font_bootstrap"
+grep -Fq "$source_commit" "$font_bootstrap"
+grep -Fq "$archive_sha" "$font_bootstrap"
+for role in brand_regular ui_bold ui_regular; do
+  filename=$(jq -er ".typography.font_files.$role" "$json")
+  sha=$(jq -er ".typography.assets.file_sha256.$role" "$json")
+  grep -Fq "$filename" "$font_bootstrap"
+  grep -Fq "$sha" "$font_bootstrap"
+done
+if grep -Eq '(^|[^[:alnum:]_])(rm|rmdir)[[:space:]].*/System/Resources/Fonts' "$font_bootstrap"; then
+  echo "native font bootstrap must never remove the shared font directory" >&2
+  exit 1
+fi
+
 echo "PASS: JSON, C, CMake and web design adapters match the canonical design contract"
