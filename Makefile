@@ -74,7 +74,7 @@ $(BUILD_DIR)/clock-provider-fixture/fixture.so: tests/temporal_clock_fixture.c |
 	@mkdir -p "$(dir $@)"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
 $(BUILD_DIR)/temporal-clock-provider-smoke: tests/temporal_clock_provider_smoke.c $(ARCHIVE) $(BUILD_DIR)/clock-provider-fixture/fixture.so
-	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_CLOCK_FIXTURE_PATH=\\"$(abspath $(BUILD_DIR)/clock-provider-fixture/fixture.so)\\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_CLOCK_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/clock-provider-fixture/fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
 
 $(BUILD_DIR)/calendar-provider-fixture/fixture.so: tests/temporal_calendar_fixture.c | $(BUILD_DIR)
 	@mkdir -p "$(dir $@)"
