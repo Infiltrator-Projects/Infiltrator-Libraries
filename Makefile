@@ -70,6 +70,12 @@ $(BUILD_DIR)/runtime-metadata-fixture/fixture.so: tests/temporal_runtime_fixture
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
 $(BUILD_DIR)/temporal-runtime-smoke: tests/temporal_runtime_smoke.c $(ARCHIVE) $(BUILD_DIR)/runtime-metadata-fixture/fixture.so
 	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_RUNTIME_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/runtime-metadata-fixture/fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
+$(BUILD_DIR)/clock-provider-fixture/fixture.so: tests/temporal_clock_fixture.c | $(BUILD_DIR)
+	@mkdir -p "$(dir $@)"
+	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
+$(BUILD_DIR)/temporal-clock-provider-smoke: tests/temporal_clock_provider_smoke.c $(ARCHIVE) $(BUILD_DIR)/clock-provider-fixture/fixture.so
+	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_CLOCK_FIXTURE_PATH=\\"$(abspath $(BUILD_DIR)/clock-provider-fixture/fixture.so)\\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
+
 $(BUILD_DIR)/calendar-provider-fixture/fixture.so: tests/temporal_calendar_fixture.c | $(BUILD_DIR)
 	@mkdir -p "$(dir $@)"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
@@ -119,6 +125,7 @@ portable-check: version-check $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-
 check: portable-check $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
 	$(BUILD_DIR)/dynlib-smoke $(BUILD_DIR)/temporal-resource-smoke \
 	$(BUILD_DIR)/temporal-runtime-smoke $(BUILD_DIR)/temporal-calendar-smoke \
+	$(BUILD_DIR)/temporal-clock-provider-smoke \
 	$(BUILD_DIR)/posix-contract $(BUILD_DIR)/posix-path-smoke \
 	$(BUILD_DIR)/posix-io-contract $(BUILD_DIR)/posix-numeric-contract \
 	$(BUILD_DIR)/temporal-posix-smoke $(BUILD_DIR)/temporal-date-smoke
@@ -128,6 +135,7 @@ check: portable-check $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
 	./$(BUILD_DIR)/temporal-resource-smoke
 	./$(BUILD_DIR)/temporal-runtime-smoke
 	./$(BUILD_DIR)/temporal-calendar-smoke
+	./$(BUILD_DIR)/temporal-clock-provider-smoke
 	./$(BUILD_DIR)/posix-contract
 	./$(BUILD_DIR)/posix-path-smoke
 	./$(BUILD_DIR)/posix-io-contract
