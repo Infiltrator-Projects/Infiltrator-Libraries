@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file temporal_posix.h
- * @brief POSIX persistence and provider-discovery adapter for temporal policy.
+ * @brief POSIX persistence and temporal-resource adapter.
  *
  * Temporal schema/validation stays in temporal.h. This adapter owns the
  * canonical XDG persistence location and the installed-provider capability
- * marker used by POSIX desktop consumers.
+ * marker used by POSIX desktop consumers. Date presentation is resolved through
+ * Common's system Calendar Resources ABI rather than through an application.
  */
 #ifndef INFILTRATR_COMMON_TEMPORAL_POSIX_H
 #define INFILTRATR_COMMON_TEMPORAL_POSIX_H
@@ -67,32 +68,37 @@ int infiltratr_temporal_posix_policy_save(
 typedef struct InfiltratrTemporalDateProvider InfiltratrTemporalDateProvider;
 
 /**
- * Create a lazy, single-thread-owned bridge to the installed Calendar runtime.
- * Construction does no filesystem discovery. Default discovery admits only
- * system-owned, non-writable runtime files in explicit system library roots;
- * environment-controlled bare-soname search is not used. Missing/older
- * runtimes are retried at most once per minute, using monotonic time.
+ * Create a lazy, single-thread-owned Calendar Resources date provider.
+ *
+ * Construction performs no filesystem discovery. On first use, Common resolves
+ * the requested stable calendar ID only from the canonical native calendar
+ * resource catalogue. A missing resource is retried at most once per minute for
+ * the same ID so high-volume consumers do not turn absence into repeated I/O.
  */
 InfiltratrTemporalDateProvider *infiltratr_temporal_posix_date_provider_new(void);
 
 /**
- * Bind an explicit absolute runtime file for a staged/custom installation.
- * Returns NULL if the versioned date-renderer symbol cannot be bound.
- * The caller owns selection/trust of this explicit file.
+ * Bind one explicit absolute Calendar Resource module for staging/tests.
+ *
+ * Both Common resource metadata and the executable calendar ABI must validate.
+ * The resulting provider accepts only the module's own stable calendar ID. The
+ * caller owns selection/trust of this explicit path.
  */
 InfiltratrTemporalDateProvider *infiltratr_temporal_posix_date_provider_new_from(
     const char *library_path);
 
-/** Release the provider and library. NULL is a safe no-op. */
+/** Release the provider and any loaded resource module. NULL is a safe no-op. */
 void infiltratr_temporal_posix_date_provider_free(
     InfiltratrTemporalDateProvider *provider);
 
 /**
- * Render a Gregorian civil date in the selected calendar through Calendar's
- * existing chronology engine. No timezone or canonical timestamp is changed.
- * Parts are "short" and "full". Invalid, unavailable, oversized or malformed
- * output returns false without modifying buffer or length. Output is bounded
- * by INFILTRATR_TEMPORAL_DATE_CAPACITY, including its trailing NUL.
+ * Render a proleptic Gregorian civil date through the selected installed
+ * Calendar Resource. No timezone or canonical timestamp is changed.
+ *
+ * Parts are "short" and "full". Invalid civil dates, absent/mismatched
+ * resources, oversized output and malformed UTF-8 return false without
+ * modifying caller output or length. Calendar applications are not consulted
+ * and need not be installed.
  */
 bool infiltratr_temporal_posix_format_date(
     InfiltratrTemporalDateProvider *provider,
