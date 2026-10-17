@@ -76,14 +76,14 @@ int main(void)
            infiltratr_temporal_clock_mode_count());
 
     /*
-     * Resource-only calendars are deliberately absent when their modules are
-     * not installed in the system resource directory. The compiled catalogue
-     * must not manufacture a fallback for an externalized stable ID.
+     * Resource-only calendars are deliberately absent from Common's compiled
+     * base catalogue. The installed-runtime API may still find any of these
+     * IDs when the host genuinely has the corresponding module installed.
      */
-    assert(infiltratr_temporal_installed_calendar_find("hebrew") == NULL);
-    assert(infiltratr_temporal_installed_calendar_find("gregorian") == NULL);
-    assert(infiltratr_temporal_installed_calendar_find("persian") == NULL);
-    assert(infiltratr_temporal_installed_calendar_find("coptic") == NULL);
+    assert(infiltratr_temporal_calendar_find("hebrew") == NULL);
+    assert(infiltratr_temporal_calendar_find("gregorian") == NULL);
+    assert(infiltratr_temporal_calendar_find("persian") == NULL);
+    assert(infiltratr_temporal_calendar_find("coptic") == NULL);
     assert(infiltratr_temporal_installed_clock_mode_find("standard-24") != NULL);
 
     puts("Libraries temporal runtime smoke test passed.");
