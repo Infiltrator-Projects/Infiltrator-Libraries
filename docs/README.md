@@ -23,6 +23,7 @@ Specialist documents may go deeper into one subsystem, protocol, platform, resea
 
 ## Specialist documentation
 
+- [TEMPORAL_PROVIDERS.md](TEMPORAL_PROVIDERS.md) — runtime-discovered calendar/clock provider architecture, ABI/discovery ownership, trust model and migration contract.
 - USAGE.md — specialist or historical detail retained alongside the canonical baseline.
 - design/README.md — specialist or historical detail retained alongside the canonical baseline.
 - design/CONSUMERS.md — specialist or historical detail retained alongside the canonical baseline.
