@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 /**
  * @file temporal_runtime.c
- * @brief Validated executable temporal-resource discovery and merged metadata.
+ * @brief Validated executable temporal-resource discovery and catalogues.
  */
 #include "infiltratr/temporal_runtime.h"
 
@@ -14,6 +14,12 @@
 #include <windows.h>
 #endif
 
+struct InfiltratrTemporalCalendarModule {
+    InfiltratrDynlib library;
+    const InfiltratrTemporalResourceMetadata *metadata;
+    const InfiltratrTemporalCalendarProvider *provider;
+};
+
 typedef struct RuntimeScanContext {
     InfiltratrTemporalResourceKind kind;
     InfiltratrTemporalRuntimeVisitor visitor;
@@ -25,6 +31,8 @@ typedef struct RuntimeCalendarEntry {
     char *id;
     char *name;
     InfiltratrTemporalCalendarInfo info;
+    InfiltratrTemporalCalendarModule *module;
+    const InfiltratrTemporalCalendarProvider *provider;
 } RuntimeCalendarEntry;
 
 typedef struct RuntimeClockEntry {
@@ -98,11 +106,6 @@ static void catalogue_wait_until_ready(void)
 #ifdef _WIN32
         (void)SwitchToThread();
 #else
-        /*
-         * Initialisation is a bounded filesystem scan and normally completes
-         * before another caller observes this state. A compiler barrier keeps
-         * this dependency-free fallback from becoming an optimised-away loop.
-         */
         __asm__ __volatile__("" ::: "memory");
 #endif
     }
@@ -156,6 +159,85 @@ static bool metadata_valid(
     return strlen(metadata->name) <= 255U;
 }
 
+static bool calendar_provider_valid(
+    const InfiltratrTemporalCalendarProvider *provider,
+    const InfiltratrTemporalResourceMetadata *metadata)
+{
+    return provider != NULL && metadata != NULL &&
+        provider->struct_size >= sizeof(*provider) &&
+        provider->abi_version == INFILTRATR_TEMPORAL_CALENDAR_PROVIDER_ABI &&
+        resource_id_valid(provider->calendar_id) &&
+        strcmp(provider->calendar_id, metadata->id) == 0 &&
+        provider->fields_from_jdn != NULL &&
+        provider->format_jdn != NULL &&
+        provider->format_civil != NULL &&
+        provider->period_start != NULL &&
+        provider->add_periods != NULL &&
+        provider->add_years != NULL;
+}
+
+InfiltratrTemporalCalendarModule *
+infiltratr_temporal_calendar_module_open(const char *module_path)
+{
+    InfiltratrTemporalCalendarModule *module;
+    InfiltratrTemporalResourceMetadataEntry metadata_entry = NULL;
+    InfiltratrTemporalCalendarProviderEntry provider_entry = NULL;
+
+    if (module_path == NULL || module_path[0] == '\0') return NULL;
+    module = calloc(1U, sizeof(*module));
+    if (module == NULL) return NULL;
+    module->library = (InfiltratrDynlib)INFILTRATR_DYNLIB_INIT;
+
+    if (!infiltratr_dynlib_open(&module->library, module_path) ||
+        !infiltratr_dynlib_symbol(
+            &module->library,
+            INFILTRATR_TEMPORAL_RESOURCE_METADATA_SYMBOL,
+            &metadata_entry,
+            sizeof(metadata_entry)) ||
+        metadata_entry == NULL ||
+        !infiltratr_dynlib_symbol(
+            &module->library,
+            INFILTRATR_TEMPORAL_CALENDAR_PROVIDER_SYMBOL,
+            &provider_entry,
+            sizeof(provider_entry)) ||
+        provider_entry == NULL) {
+        infiltratr_temporal_calendar_module_close(module);
+        return NULL;
+    }
+
+    module->metadata = metadata_entry();
+    module->provider = provider_entry();
+    if (!metadata_valid(
+            module->metadata, INFILTRATR_TEMPORAL_RESOURCE_CALENDAR) ||
+        !calendar_provider_valid(module->provider, module->metadata)) {
+        infiltratr_temporal_calendar_module_close(module);
+        return NULL;
+    }
+    return module;
+}
+
+void infiltratr_temporal_calendar_module_close(
+    InfiltratrTemporalCalendarModule *module)
+{
+    if (module == NULL) return;
+    infiltratr_dynlib_close(&module->library);
+    free(module);
+}
+
+const InfiltratrTemporalResourceMetadata *
+infiltratr_temporal_calendar_module_metadata(
+    const InfiltratrTemporalCalendarModule *module)
+{
+    return module != NULL ? module->metadata : NULL;
+}
+
+const InfiltratrTemporalCalendarProvider *
+infiltratr_temporal_calendar_module_provider(
+    const InfiltratrTemporalCalendarModule *module)
+{
+    return module != NULL ? module->provider : NULL;
+}
+
 static bool inspect_candidate(
     const InfiltratrTemporalResourceInfo *resource,
     void *user_data)
@@ -170,9 +252,7 @@ static bool inspect_candidate(
         resource->form != INFILTRATR_TEMPORAL_RESOURCE_FILE) {
         return true;
     }
-    if (!infiltratr_dynlib_open(&library, resource->path)) {
-        return true;
-    }
+    if (!infiltratr_dynlib_open(&library, resource->path)) return true;
     if (!infiltratr_dynlib_symbol(
             &library,
             INFILTRATR_TEMPORAL_RESOURCE_METADATA_SYMBOL,
@@ -254,6 +334,16 @@ static bool calendar_duplicate(const char *id)
     return false;
 }
 
+static bool native_calendar_duplicate(const char *id)
+{
+    size_t index;
+
+    for (index = 0U; index < runtime_calendar_count; ++index) {
+        if (strcmp(runtime_calendars[index].info.id, id) == 0) return true;
+    }
+    return false;
+}
+
 static bool clock_duplicate(const char *id)
 {
     size_t index;
@@ -272,32 +362,46 @@ static bool append_calendar(
 {
     RuntimeCalendarEntry *grown;
     RuntimeCalendarEntry *entry;
+    InfiltratrTemporalCalendarModule *module;
+    const InfiltratrTemporalResourceMetadata *validated_metadata;
     size_t capacity;
     char *id;
     char *name;
 
-    (void)module_path;
+    (void)metadata;
     (void)user_data;
-    if (calendar_duplicate(metadata->id)) return true;
+    module = infiltratr_temporal_calendar_module_open(module_path);
+    if (module == NULL) return true;
+    validated_metadata = infiltratr_temporal_calendar_module_metadata(module);
+    if (validated_metadata == NULL ||
+        native_calendar_duplicate(validated_metadata->id)) {
+        infiltratr_temporal_calendar_module_close(module);
+        return true;
+    }
 
     if (runtime_calendar_count == runtime_calendar_capacity) {
         capacity = runtime_calendar_capacity == 0U
             ? 8U : runtime_calendar_capacity * 2U;
         if (capacity < runtime_calendar_capacity ||
             capacity > SIZE_MAX / sizeof(*grown)) {
+            infiltratr_temporal_calendar_module_close(module);
             return false;
         }
         grown = realloc(runtime_calendars, capacity * sizeof(*grown));
-        if (grown == NULL) return false;
+        if (grown == NULL) {
+            infiltratr_temporal_calendar_module_close(module);
+            return false;
+        }
         runtime_calendars = grown;
         runtime_calendar_capacity = capacity;
     }
 
-    id = copy_text(metadata->id);
-    name = copy_text(metadata->name);
+    id = copy_text(validated_metadata->id);
+    name = copy_text(validated_metadata->name);
     if (id == NULL || name == NULL) {
         free(id);
         free(name);
+        infiltratr_temporal_calendar_module_close(module);
         return false;
     }
     entry = &runtime_calendars[runtime_calendar_count++];
@@ -305,6 +409,8 @@ static bool append_calendar(
     entry->name = name;
     entry->info.id = entry->id;
     entry->info.name = entry->name;
+    entry->module = module;
+    entry->provider = infiltratr_temporal_calendar_module_provider(module);
     return true;
 }
 
@@ -360,6 +466,8 @@ static void clear_runtime_calendars(void)
     for (index = 0U; index < runtime_calendar_count; ++index) {
         free(runtime_calendars[index].id);
         free(runtime_calendars[index].name);
+        infiltratr_temporal_calendar_module_close(
+            runtime_calendars[index].module);
     }
     free(runtime_calendars);
     runtime_calendars = NULL;
@@ -401,6 +509,35 @@ static void catalogue_initialise(void)
         clear_runtime_clocks();
     }
     catalogue_mark_ready();
+}
+
+size_t infiltratr_temporal_installed_calendar_provider_count(void)
+{
+    catalogue_initialise();
+    return runtime_calendar_count;
+}
+
+const InfiltratrTemporalCalendarProvider *
+infiltratr_temporal_installed_calendar_provider_at(size_t index)
+{
+    catalogue_initialise();
+    return index < runtime_calendar_count
+        ? runtime_calendars[index].provider : NULL;
+}
+
+const InfiltratrTemporalCalendarProvider *
+infiltratr_temporal_installed_calendar_provider_find(const char *id)
+{
+    size_t index;
+
+    if (id == NULL) return NULL;
+    catalogue_initialise();
+    for (index = 0U; index < runtime_calendar_count; ++index) {
+        if (strcmp(runtime_calendars[index].info.id, id) == 0) {
+            return runtime_calendars[index].provider;
+        }
+    }
+    return NULL;
 }
 
 size_t infiltratr_temporal_installed_calendar_count(void)
