@@ -323,17 +323,6 @@ bool infiltratr_temporal_runtime_scan_native(
         directory, kind, visitor, user_data, visited);
 }
 
-static bool calendar_duplicate(const char *id)
-{
-    size_t index;
-
-    if (infiltratr_temporal_calendar_find(id) != NULL) return true;
-    for (index = 0U; index < runtime_calendar_count; ++index) {
-        if (strcmp(runtime_calendars[index].info.id, id) == 0) return true;
-    }
-    return false;
-}
-
 static bool native_calendar_duplicate(const char *id)
 {
     size_t index;
@@ -433,9 +422,7 @@ static bool append_clock(
         capacity = runtime_clock_capacity == 0U
             ? 8U : runtime_clock_capacity * 2U;
         if (capacity < runtime_clock_capacity ||
-            capacity > SIZE_MAX / sizeof(*grown)) {
-            return false;
-        }
+            capacity > SIZE_MAX / sizeof(*grown)) return false;
         grown = realloc(runtime_clocks, capacity * sizeof(*grown));
         if (grown == NULL) return false;
         runtime_clocks = grown;
@@ -511,6 +498,12 @@ static void catalogue_initialise(void)
     catalogue_mark_ready();
 }
 
+static bool runtime_calendar_metadata_visible(size_t index)
+{
+    return index < runtime_calendar_count &&
+        infiltratr_temporal_calendar_find(runtime_calendars[index].info.id) == NULL;
+}
+
 size_t infiltratr_temporal_installed_calendar_provider_count(void)
 {
     catalogue_initialise();
@@ -542,20 +535,33 @@ infiltratr_temporal_installed_calendar_provider_find(const char *id)
 
 size_t infiltratr_temporal_installed_calendar_count(void)
 {
+    size_t count;
+    size_t index;
+
     catalogue_initialise();
-    return infiltratr_temporal_calendar_count() + runtime_calendar_count;
+    count = infiltratr_temporal_calendar_count();
+    for (index = 0U; index < runtime_calendar_count; ++index) {
+        if (runtime_calendar_metadata_visible(index)) count++;
+    }
+    return count;
 }
 
 const InfiltratrTemporalCalendarInfo *
 infiltratr_temporal_installed_calendar_at(size_t index)
 {
     const size_t builtin_count = infiltratr_temporal_calendar_count();
+    size_t runtime_index;
 
     catalogue_initialise();
     if (index < builtin_count) return infiltratr_temporal_calendar_at(index);
     index -= builtin_count;
-    if (index >= runtime_calendar_count) return NULL;
-    return &runtime_calendars[index].info;
+    for (runtime_index = 0U; runtime_index < runtime_calendar_count;
+         ++runtime_index) {
+        if (!runtime_calendar_metadata_visible(runtime_index)) continue;
+        if (index == 0U) return &runtime_calendars[runtime_index].info;
+        index--;
+    }
+    return NULL;
 }
 
 const InfiltratrTemporalCalendarInfo *
