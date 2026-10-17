@@ -13,7 +13,7 @@ PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/arithmetic.o \
 	$(BUILD_DIR)/timing.o $(BUILD_DIR)/temporal.o $(BUILD_DIR)/temporal_clock.o $(BUILD_DIR)/format.o $(BUILD_DIR)/quantity.o $(BUILD_DIR)/graphics.o \
 	$(BUILD_DIR)/escape.o $(BUILD_DIR)/design.o
 OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/dynlib.o $(BUILD_DIR)/temporal_resource.o \
-	$(BUILD_DIR)/temporal_runtime.o $(BUILD_DIR)/posix.o \
+	$(BUILD_DIR)/temporal_runtime.o $(BUILD_DIR)/temporal_calendar.o $(BUILD_DIR)/posix.o \
 	$(BUILD_DIR)/posix_path.o $(BUILD_DIR)/posix_io.o $(BUILD_DIR)/posix_numeric.o \
 	$(BUILD_DIR)/temporal_posix.o $(BUILD_DIR)/temporal_calendar_posix.o
 PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
@@ -68,6 +68,10 @@ $(BUILD_DIR)/temporal-runtime-fixture.so: tests/temporal_runtime_fixture.c | $(B
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
 $(BUILD_DIR)/temporal-runtime-smoke: tests/temporal_runtime_smoke.c $(ARCHIVE) $(BUILD_DIR)/temporal-runtime-fixture.so
 	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_RUNTIME_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/temporal-runtime-fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
+$(BUILD_DIR)/temporal-calendar-fixture.so: tests/temporal_calendar_fixture.c | $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
+$(BUILD_DIR)/temporal-calendar-smoke: tests/temporal_calendar_smoke.c $(ARCHIVE) $(BUILD_DIR)/temporal-calendar-fixture.so
+	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_CALENDAR_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/temporal-calendar-fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
 $(BUILD_DIR)/portable-smoke: tests/portable_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
 $(BUILD_DIR)/portable-contract: tests/portable_contract.c $(PORTABLE_ARCHIVE)
@@ -110,14 +114,16 @@ portable-check: version-check $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-
 	./$(BUILD_DIR)/design-smoke
 check: portable-check $(BUILD_DIR)/core-smoke $(BUILD_DIR)/format-smoke \
 	$(BUILD_DIR)/dynlib-smoke $(BUILD_DIR)/temporal-resource-smoke \
-	$(BUILD_DIR)/temporal-runtime-smoke $(BUILD_DIR)/posix-contract \
-	$(BUILD_DIR)/posix-path-smoke $(BUILD_DIR)/posix-io-contract \
-	$(BUILD_DIR)/posix-numeric-contract $(BUILD_DIR)/temporal-posix-smoke $(BUILD_DIR)/temporal-date-smoke
+	$(BUILD_DIR)/temporal-runtime-smoke $(BUILD_DIR)/temporal-calendar-smoke \
+	$(BUILD_DIR)/posix-contract $(BUILD_DIR)/posix-path-smoke \
+	$(BUILD_DIR)/posix-io-contract $(BUILD_DIR)/posix-numeric-contract \
+	$(BUILD_DIR)/temporal-posix-smoke $(BUILD_DIR)/temporal-date-smoke
 	./$(BUILD_DIR)/core-smoke
 	./$(BUILD_DIR)/format-smoke
 	./$(BUILD_DIR)/dynlib-smoke
 	./$(BUILD_DIR)/temporal-resource-smoke
 	./$(BUILD_DIR)/temporal-runtime-smoke
+	./$(BUILD_DIR)/temporal-calendar-smoke
 	./$(BUILD_DIR)/posix-contract
 	./$(BUILD_DIR)/posix-path-smoke
 	./$(BUILD_DIR)/posix-io-contract

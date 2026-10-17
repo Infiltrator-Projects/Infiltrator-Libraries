@@ -49,7 +49,8 @@ set(INFILTRATR_COMMON_FULL_SOURCES
     ${INFILTRATR_COMMON_PORTABLE_SOURCES}
     src/dynlib.c
     src/temporal_resource.c
-    src/temporal_runtime.c)
+    src/temporal_runtime.c
+    src/temporal_calendar.c)
 if(UNIX)
     list(APPEND INFILTRATR_COMMON_FULL_SOURCES
         src/posix.c src/posix_path.c src/posix_io.c src/posix_numeric.c
@@ -124,6 +125,13 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
     target_compile_definitions(infiltratr-temporal-runtime-smoke PRIVATE
         TEMPORAL_RUNTIME_FIXTURE_PATH="$<TARGET_FILE:infiltratr-temporal-runtime-fixture>")
     add_dependencies(infiltratr-temporal-runtime-smoke infiltratr-temporal-runtime-fixture)
+    add_library(infiltratr-temporal-calendar-fixture MODULE tests/temporal_calendar_fixture.c)
+    target_include_directories(infiltratr-temporal-calendar-fixture PRIVATE include)
+    set_target_properties(infiltratr-temporal-calendar-fixture PROPERTIES PREFIX "")
+    infiltratr_common_add_test(infiltratr-temporal-calendar-smoke tests/temporal_calendar_smoke.c InfiltratrCommon::Common)
+    target_compile_definitions(infiltratr-temporal-calendar-smoke PRIVATE
+        TEMPORAL_CALENDAR_FIXTURE_PATH="$<TARGET_FILE:infiltratr-temporal-calendar-fixture>")
+    add_dependencies(infiltratr-temporal-calendar-smoke infiltratr-temporal-calendar-fixture)
     infiltratr_common_add_test(infiltratr-portable-smoke tests/portable_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-portable-contract tests/portable_contract.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-encoding-contract tests/encoding_contract.c InfiltratrCommon::Portable)
