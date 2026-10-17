@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+name: one-shot-calendar-resource-migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/calendar-resource-migration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Remove migrated calendars from the compiled base catalogue
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          temporal = Path('src/temporal.c')
+          text = temporal.read_text(encoding='utf-8')
+          for line in (
+              '    { "gregorian", "Gregorian" },\n',
+              '    { "persian", "Persian (Solar Hijri arithmetic)" },\n',
+              '    { "coptic", "Coptic (Alexandrian 13-month calendar)" },\n',
+          ):
+              if text.count(line) != 1:
+                  raise SystemExit(f'expected exactly one catalogue entry: {line.strip()}')
+              text = text.replace(line, '')
+          temporal.write_text(text, encoding='utf-8')
+
+          smoke = Path('tests/temporal_smoke.c')
+          text = smoke.read_text(encoding='utf-8')
+          old = '''    CHECK(infiltratr_temporal_calendar_count() == 29U);\n    CHECK(infiltratr_temporal_calendar_find("hebrew") == NULL);\n    CHECK(infiltratr_temporal_calendar_find("none") == NULL);\n'''
+          new = '''    CHECK(infiltratr_temporal_calendar_count() == 26U);\n    CHECK(infiltratr_temporal_calendar_find("hebrew") == NULL);\n    CHECK(infiltratr_temporal_calendar_find("gregorian") == NULL);\n    CHECK(infiltratr_temporal_calendar_find("persian") == NULL);\n    CHECK(infiltratr_temporal_calendar_find("coptic") == NULL);\n    CHECK(infiltratr_temporal_calendar_find("none") == NULL);\n'''
+          if text.count(old) != 1:
+              raise SystemExit('temporal smoke catalogue contract not found exactly once')
+          smoke.write_text(text.replace(old, new), encoding='utf-8')
+
+          Path('.github/workflows/calendar-resource-migration.yml').unlink()
+          PY
+          git diff --check
+          git config user.name 'Shannon Smith'
+          git config user.email 'infiltratr@yandex.com'
+          git add -A
+          git commit -m 'Externalize Gregorian Persian and Coptic catalogue entries'
+          git push origin HEAD:main
