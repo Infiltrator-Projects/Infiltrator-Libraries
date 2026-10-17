@@ -64,10 +64,11 @@ $(BUILD_DIR)/dynlib-smoke: tests/dynlib_smoke.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
 $(BUILD_DIR)/temporal-resource-smoke: tests/temporal_resource_smoke.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
-$(BUILD_DIR)/temporal-runtime-fixture.so: tests/temporal_runtime_fixture.c | $(BUILD_DIR)
+$(BUILD_DIR)/runtime-metadata-fixture/fixture.so: tests/temporal_runtime_fixture.c | $(BUILD_DIR)
+	@mkdir -p "$(dir $@)"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
-$(BUILD_DIR)/temporal-runtime-smoke: tests/temporal_runtime_smoke.c $(ARCHIVE) $(BUILD_DIR)/temporal-runtime-fixture.so
-	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_RUNTIME_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/temporal-runtime-fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
+$(BUILD_DIR)/temporal-runtime-smoke: tests/temporal_runtime_smoke.c $(ARCHIVE) $(BUILD_DIR)/runtime-metadata-fixture/fixture.so
+	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_RUNTIME_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/runtime-metadata-fixture/fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
 $(BUILD_DIR)/calendar-provider-fixture/fixture.so: tests/temporal_calendar_fixture.c | $(BUILD_DIR)
 	@mkdir -p "$(dir $@)"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
@@ -91,10 +92,11 @@ $(BUILD_DIR)/posix-numeric-contract: tests/posix_numeric_contract.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
 $(BUILD_DIR)/temporal-posix-smoke: tests/temporal_posix_smoke.c $(ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(ARCHIVE) -lm -o $@
-$(BUILD_DIR)/temporal-date-fixture.so: tests/temporal_date_fixture.c | $(BUILD_DIR)
+$(BUILD_DIR)/date-provider-fixture/fixture.so: tests/temporal_date_fixture.c | $(BUILD_DIR)
+	@mkdir -p "$(dir $@)"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
-$(BUILD_DIR)/temporal-date-smoke: tests/temporal_date_smoke.c $(ARCHIVE) $(BUILD_DIR)/temporal-date-fixture.so
-	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_DATE_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/temporal-date-fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
+$(BUILD_DIR)/temporal-date-smoke: tests/temporal_date_smoke.c $(ARCHIVE) $(BUILD_DIR)/date-provider-fixture/fixture.so
+	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_DATE_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/date-provider-fixture/fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
 portable-check: version-check $(BUILD_DIR)/portable-smoke $(BUILD_DIR)/portable-contract \
 	$(BUILD_DIR)/encoding-contract $(BUILD_DIR)/completion-contract \
 	$(BUILD_DIR)/arithmetic-smoke $(BUILD_DIR)/config-smoke $(BUILD_DIR)/i18n-smoke \
