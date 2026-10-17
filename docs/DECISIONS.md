@@ -50,10 +50,10 @@ This file records durable architectural decisions for Libraries.
 
 **Consequence.** Dependencies sit behind narrow boundaries and are replaceable without changing consumer meaning where practical.
 
-## ADR-007 — Temporal capabilities are runtime-discovered providers
+## ADR-007 — Temporal capabilities move toward filesystem-discovered resources
 
-**Decision.** Calendars and clock systems move toward a runtime-discovered provider model. Common owns the product-neutral provider ABI, manifest validation, discovery and runtime registry. Provider-specific chronology/timekeeping remains with the provider that implements it, while System Settings and other consumers enumerate the runtime registry rather than owning hard-coded capability lists.
+**Decision.** Calendars and clock systems should ultimately be discoverable from recognised resource directories rather than requiring a compiled master capability list.
 
-**Rationale.** Adding a new temporal system should be an extension operation, not a coordinated edit to central catalogues in multiple applications. A small stable provider contract gives each system an explicit owner, keeps its implementation/documentation/tests cohesive and permits installed capabilities to evolve independently of System Settings.
+**Rationale.** Adding a temporal system should become an installation operation rather than coordinated source edits across Common, Calendar and System Settings.
 
-**Consequence.** The compiled temporal catalogues that exist today are transitional migration debt, not the long-term extension mechanism. The public native boundary remains versioned C even when provider internals use C++. Discovery is distinct from trust: arbitrary untrusted native code is not automatically executed in a long-lived host process merely because a provider manifest is visible. The governing design is [TEMPORAL_PROVIDERS.md](TEMPORAL_PROVIDERS.md).
+**Consequence.** Existing compiled catalogues remain valid and unchanged during migration. Common owns the generic discovery mechanism, while each calendar/clock owns its specific rules. The physical resource representation is deliberately not fixed yet: compiled code, data and bundle approaches remain open until real providers prove what is required. The current additive scanner is described in [TEMPORAL_PROVIDERS.md](TEMPORAL_PROVIDERS.md).

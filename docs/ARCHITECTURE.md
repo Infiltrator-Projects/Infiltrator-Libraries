@@ -16,17 +16,17 @@ The repository is intentionally layered:
 
 Common owns product-neutral behaviour only. Filesystem semantics remain in InfiltratorFS/Defragmenter, automotive semantics remain in Link and its product faces, and application-specific presentation remains with each application.
 
-## Runtime temporal providers
+## Temporal resource discovery
 
-Calendars and clock systems are moving to a runtime-discovered provider architecture. Common owns the generic provider manifest contract, versioned C ABI, discovery/validation mechanics and runtime registry. Provider-specific chronology and historical timekeeping rules remain with the provider implementation that supplies them.
+Calendars and clock systems are moving toward a filesystem-discovered resource model. The governing idea is simple: recognised `calendars/` and `clocks/` directories describe what additional temporal resources are installed, instead of requiring every capability to be named in a compiled master list.
 
-Consumers do not own independent hard-coded lists of available temporal systems. System Settings enumerates the runtime registry for user selection; Calendar and other applications resolve the same stable provider identifiers when they need chronology or time presentation.
+Common owns the generic discovery mechanics. The existing built-in temporal catalogue remains unchanged while this capability is introduced incrementally.
 
-The current compiled calendar/clock catalogues are transitional implementation, not the intended extension boundary. The target design is that installing a conforming provider makes its capabilities discoverable without editing System Settings or extending a central compiled provider list.
+The current implementation can enumerate candidate file or directory resources deterministically through `infiltratr/temporal_resource.h`. It does not yet decide how a discovered resource expresses calendar or clock behaviour. The eventual payload may be native code, data or a bundle; that representation will be chosen after real providers prove the requirements.
 
-Discovery does not imply trust. Native provider code executes with its host's process authority, so manifest discovery, trust policy and executable loading are separate stages. Trusted packaged providers may be loaded in process; any user-installed/third-party native provider model must define an explicit isolation/trust policy before such code is enabled.
+System Settings and other consumers should eventually enumerate the resulting installed capabilities rather than maintain independent lists. Provider-specific chronology and historical timekeeping policy do not move into Common merely because discovery does.
 
-The complete design and migration contract is maintained in [TEMPORAL_PROVIDERS.md](TEMPORAL_PROVIDERS.md).
+The current design status is maintained in [TEMPORAL_PROVIDERS.md](TEMPORAL_PROVIDERS.md).
 
 ## Ownership and dependency rule
 

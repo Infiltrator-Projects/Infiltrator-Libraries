@@ -7,23 +7,25 @@ This roadmap describes direction rather than a promise of dates. The exact relea
 - maintain the published ABI and exact consumer contract;
 - keep shared primitives at least as strong as the best consumer implementation;
 - qualify Linux, Windows and Apple consumers through CI;
-- keep toolkit-neutral POSIX user paths and directory creation in Common rather than duplicating them in graphical consumers.
+- keep toolkit-neutral POSIX user paths and directory creation in Common rather than duplicating them in graphical consumers;
+- preserve the existing built-in temporal catalogue while new discovery capability is developed alongside it.
 
 ## Near-term direction
 
 - promote reusable behaviour only after it has proved useful in more than one consumer;
 - continue removing private duplicate helpers from consumers when the Common contract is stronger;
 - expand regression coverage whenever a shared primitive gains a new caller;
-- define and qualify the runtime temporal-provider manifest, versioned C ABI, discovery registry and failure/trust rules described in `TEMPORAL_PROVIDERS.md`;
-- prove that provider model with one real calendar and one real clock before freezing ABI v1;
-- migrate System Settings away from any compiled temporal capability list so its selectors enumerate the runtime registry.
+- qualify filesystem discovery of `calendars/` and `clocks/` resource directories on supported platforms;
+- prototype one real calendar and one real clock through that discovery path;
+- use those real providers to decide whether the eventual resource payload should be compiled, declarative or hybrid;
+- only then define the minimum compatibility/validation contract required to make discovered resources usable system-wide.
 
 ## Longer-term direction
 
 - add new shared capability families only where a stable product-neutral contract exists;
 - preserve backward compatibility or introduce explicit versioned ABI transitions when incompatibility is unavoidable;
-- migrate remaining built-in calendar and clock systems behind the temporal-provider boundary and remove central hard-coded catalogues once they are no longer authoritative;
-- support installable temporal extensions without conflating provider discovery with permission to execute untrusted native code in process.
+- migrate temporal systems incrementally only after the discovered-resource model proves stronger than the existing compiled catalogue;
+- let System Settings and other consumers enumerate installed temporal capabilities without maintaining their own master lists.
 
 ## Admission rule
 
