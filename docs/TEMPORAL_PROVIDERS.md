@@ -1,82 +1,164 @@
-# Temporal provider architecture
+# Filesystem-discovered temporal resources
 
 ## Status
 
 This document records the target architecture for extensible calendar and clock systems across the Infiltrator project family. It is a design goal and migration contract, not a claim that the current implementation already satisfies it.
 
-The current implementation still contains compiled-in calendar and clock catalogues and grouped implementation files. Those are transitional implementation details to be replaced deliberately rather than treated as the long-term extension model.
+The current implementation still contains compiled-in calendar and clock catalogues and grouped implementation files. Those are transitional implementation details. The long-term model is deliberately closer to an Amiga Workbench-style resource directory: the installed directory is the catalogue.
 
-## Goal
+## Core idea
 
-Calendars and clock systems are runtime-discovered providers.
-
-Adding a calendar or clock must not require editing System Settings, extending a central switch statement or rebuilding a master catalogue merely to make the new system visible. A provider should be installable into a defined provider location, discovered on the next provider scan/startup, validated, and then exposed through the shared temporal registry.
+A calendar or clock exists because an installed temporal resource exists in a known directory, not because its identifier was compiled into a master list.
 
 Conceptually:
 
 ```text
-provider bundle installed
-        ↓
-Common discovers manifest
-        ↓
-ABI / identity / trust validation
-        ↓
-provider loaded or connected
-        ↓
-calendar and/or clock descriptors registered
-        ↓
-System Settings and other consumers enumerate the registry
+Temporal/Calendars/
+    Gregorian.calendar/
+    Coptic.calendar/
+    Egyptian-Early-Lunar.calendar/
+
+Temporal/Clocks/
+    Standard-24.clock/
+    Roman-Temporal.clock/
+    Egyptian-Stellar-Solar.clock/
 ```
 
-The architecture deliberately separates discovery from implementation. A provider may be implemented in C or C++ internally, but the supported native binary boundary is a small versioned C ABI.
+Drop a valid resource into the appropriate directory and, after the next scan/reload, the whole system can discover it. Remove it and the capability is no longer available. No source change to System Settings, Calendar or a central registry is required merely to add the name to the system.
 
-## Provider as the unit of extension
+This is the governing design principle:
 
-A temporal provider is a self-contained extension unit that may supply:
+> The filesystem namespace is the installed capability catalogue.
 
-- one calendar;
-- one clock/time system; or
-- a historically coherent pair or family of related calendar and clock systems.
+## A resource is not necessarily compiled code
 
-A provider owns the domain-specific rules for the systems it supplies. Common owns the generic discovery, loading, ABI, metadata validation and registry mechanics. System Settings owns user selection and policy persistence. Calendar and other applications consume the registered capabilities rather than maintaining independent catalogues.
+A temporal resource is a self-describing installed object. It is not synonymous with a C/C++ plugin.
 
-A typical source/provider bundle should keep implementation, tests and documentation together conceptually:
+Where a calendar or clock can be expressed faithfully as data, the resource should be data-driven and require no provider binary at all. Examples may include fixed epochs, fixed month structures, names, arithmetic leap rules, display patterns or other behaviour supported by the shared temporal engine.
+
+Where a system genuinely requires specialised computation that the generic engine cannot express cleanly, the resource may carry an executable provider module compiled separately and dropped into the same resource bundle. On Linux this may be a `.so`; on Windows a `.dll`. Its public binary boundary is a small versioned C ABI even if its internals are C++.
+
+The architecture therefore supports both:
 
 ```text
-providers/
-  egyptian-early/
-    provider.json
-    README.md
-    egyptian-early.c
-    egyptian-early.h
-    test-egyptian-early.c
+pure resource
+    descriptor + model data + documentation
+
+executable resource
+    descriptor + documentation + optional model data + provider.so/provider.dll
 ```
 
-Installed native artifacts may use platform packaging conventions, for example a manifest plus `.so` on Linux or manifest plus `.dll` on Windows. Source layout and installed layout do not have to be byte-for-byte identical, but the provider identity must remain stable.
+Compiled code is an escape hatch for genuine algorithmic requirements, not the definition of the extension system.
 
-## One provider, one authority
+## Resource bundle
 
-Provider-specific chronology or timekeeping rules must not be duplicated in System Settings, Common registry tables or unrelated application code.
+Each installed calendar or clock is independently identifiable. A directory-style bundle is preferred because it can carry the complete definition and its documentation together.
 
-The provider is the authority for:
+Illustrative layout:
 
-- its stable system identifiers;
-- conversion/calculation rules;
-- domain-specific formatting rules;
-- supported range and failure states;
-- required geographic/astronomical inputs;
-- historical assumptions and evidence decisions;
-- validation vectors and boundary cases.
+```text
+Temporal/Calendars/Egyptian-Early-Lunar.calendar/
+    resource.json
+    model.json
+    README.md
 
-Common may provide shared mathematical and astronomical primitives, but those primitives must not silently become a second copy of a provider's historical policy.
+Temporal/Clocks/Egyptian-Stellar-Solar.clock/
+    resource.json
+    README.md
+    provider.so          # only if required
+```
+
+The exact filenames and schema are not frozen yet. The important contract is that each directory entry is self-describing and can be admitted without editing a central capability list.
+
+A package may install several independent resource bundles, but calendar and clock identities remain independent. A historical Egyptian package could therefore install one `.calendar` resource and one `.clock` resource without turning them into one inseparable setting.
+
+## Discovery
+
+Common owns the generic scanner/parser and exposes the resulting temporal resource registry.
+
+Discovery is conceptually:
+
+```text
+scan known calendar and clock directories
+        ↓
+inspect each child resource
+        ↓
+validate descriptor and stable identity
+        ↓
+load declarative model OR bind optional executable implementation
+        ↓
+add valid capability to runtime registry
+        ↓
+consumers enumerate what is actually installed
+```
+
+There is no compiled master enumeration of calendar IDs or clock IDs.
+
+The scanner must provide deterministic handling for duplicate IDs, malformed resources, incompatible resource/ABI versions and unavailable executable components. One bad resource must not prevent unrelated resources from loading.
+
+The exact physical roots are platform-specific packaging details. System-wide and, if safely supported, per-user roots may both exist. Their precedence and duplicate rules must be explicit.
+
+## Descriptor
+
+Every resource has bounded metadata that can be read before any optional executable code is loaded.
+
+At minimum it identifies:
+
+- stable resource ID;
+- resource kind: calendar or clock;
+- human-readable name or localisation key;
+- resource format version;
+- implementation kind: declarative or executable;
+- capabilities and required inputs;
+- optional executable artifact and ABI version when one is required.
+
+Illustrative only:
+
+```json
+{
+  "id": "egyptian-early-lunar",
+  "kind": "calendar",
+  "name": "Early Egyptian Lunar Calendar",
+  "format": 1,
+  "implementation": "declarative",
+  "model": "model.json"
+}
+```
+
+or, when custom code is genuinely necessary:
+
+```json
+{
+  "id": "egyptian-stellar-solar",
+  "kind": "clock",
+  "name": "Early Egyptian Stellar–Solar Time",
+  "format": 1,
+  "implementation": "native",
+  "abi": 1,
+  "library": "provider.so"
+}
+```
+
+The descriptor describes the resource. It does not recreate a second central catalogue.
+
+## Generic engine versus specialised implementation
+
+Common should provide a strong generic temporal engine capable of expressing the common building blocks used by many systems: epochs, cycles, arithmetic month/year structures, names, boundaries, fixed subdivisions and shared astronomical primitives where appropriate.
+
+A resource chooses the simplest faithful representation:
+
+1. declarative model when the generic engine is sufficient;
+2. native provider only when the system's rules genuinely require code.
+
+Do not force a historically complex system into an unreadable mini-language merely to avoid a small native module. Equally, do not compile trivial tables and arithmetic rules into bespoke binaries when data is clearer and safer.
 
 ## Per-system documentation
 
-Every non-trivial calendar or clock supplied by a provider requires maintained technical documentation. Where a provider supplies multiple systems, each system must still have an individually identifiable specification, even if the provider uses one bundle README plus linked system documents.
+Each calendar and clock resource carries or is directly associated with its own maintained technical document. Documentation is part of the resource's engineering identity, not an unrelated global appendix.
 
-The documentation must record, as applicable:
+The document records, as applicable:
 
-- system name and stable identifier;
+- stable ID and display name;
 - historical/technical basis and sources;
 - epoch, anchor or observational basis;
 - year/month/day or day/hour structure;
@@ -84,174 +166,117 @@ The documentation must record, as applicable:
 - geographic assumptions;
 - algorithms and continuation rules;
 - known uncertainty or disputed evidence;
-- deliberate project decisions where evidence is incomplete;
+- project decisions where evidence is incomplete;
 - supported range;
 - unavailable/failure states;
 - representative examples;
 - validation evidence;
 - conditions under which the model should be revised.
 
-Historical models are the project's current best supported model. They do not need to be labelled `reconstruction` in their user-facing names merely because scholarship may later improve. If stronger evidence changes the best model, the implementation and its documentation change together.
-
-## Discovery
-
-Common owns one runtime registry built from discovered providers. Consumers enumerate that registry.
-
-The design must support at least:
-
-- trusted system-wide provider locations;
-- deterministic duplicate-ID handling;
-- explicit ABI-version compatibility checks;
-- manifest validation before executable code is entered;
-- failure isolation so one broken optional provider does not disable unrelated providers;
-- diagnostics explaining why a discovered provider was rejected;
-- stable persisted IDs so a user selection survives provider upgrades;
-- a defined outcome when a previously selected provider is absent.
-
-Provider discovery must not depend on array order in a compiled table.
-
-The exact installation paths are platform packaging details and may differ between Linux and Windows. Their semantics are stable even if the concrete directories evolve.
-
-## Manifest
-
-A provider has bounded static metadata that can be inspected before loading executable code. The final schema may evolve before ABI v1 is frozen, but it must cover at least:
-
-- provider identity;
-- provider version;
-- required temporal-provider ABI version;
-- supplied calendar IDs;
-- supplied clock IDs;
-- human-readable names/descriptions or localisation keys;
-- capability flags;
-- executable/library entry artifact;
-- trust/source information where required by the host.
-
-Illustrative only:
-
-```json
-{
-  "id": "egyptian-early",
-  "version": "1.0",
-  "abi": 1,
-  "provides": {
-    "calendars": ["egyptian-early-lunar"],
-    "clocks": ["egyptian-stellar-solar"]
-  },
-  "library": "libinfiltrator-temporal-egyptian-early.so"
-}
-```
-
-The manifest is discovery metadata, not a place to reimplement the calendar or clock in declarative fragments.
-
-## ABI
-
-The public native provider boundary is C even when provider internals use C++.
-
-The ABI should expose an entry point conceptually equivalent to:
-
-```c
-const InfiltratrTemporalProvider *
-infiltratr_temporal_provider_get(void);
-```
-
-The returned descriptor is versioned and size-tagged. It describes the provider and exposes operation tables for the capabilities it supplies.
-
-Calendar operations may include conversion between canonical instants/day coordinates and provider fields, formatting, navigation and validation. Clock operations may include formatting, state/boundary calculation and next-change scheduling. Exact operation sets are frozen only after the first real providers prove the interface.
-
-No C++ standard-library object, exception, compiler-specific class layout, GTK object or Windows UI object crosses this ABI.
+Historical models represent the project's current best supported model. Their user-facing names do not need to say `reconstruction`. If stronger evidence changes the best model, the resource definition, tests and documentation change together.
 
 ## Runtime registry
 
-The runtime registry is the authority for what temporal capabilities are available in the current installation.
+The registry is built from the directory contents. It is not itself the source of installed capability.
 
-System Settings should therefore behave conceptually as:
+System Settings therefore behaves conceptually as:
 
 ```text
-for each discovered calendar:
-    show calendar in selector
-
-for each discovered clock:
-    show clock in selector
+read discovered calendars → populate Calendar selector
+read discovered clocks    → populate Clock selector
 ```
 
-System Settings must not maintain a second hand-written list of calendars or clocks.
+Other applications resolve the same stable IDs through Common. They do not keep private copies of the installed list.
 
-Applications that need temporal presentation consume the same provider identities/policy through the shared temporal contract. They must not infer availability from a list compiled into their own binaries.
+A cache/index may be used for performance, but it is derived state and can always be rebuilt from the resource directories. It must never become a shadow authority.
 
-## Trust and isolation
+## Change detection
 
-Discovery and trust are separate concerns.
+The minimum contract is scan at process/session startup. The design should also permit an explicit rescan and, where practical, filesystem change notification so installing/removing a resource can become visible without rebooting the machine.
 
-A native shared library executes code with the authority of its host process. Therefore the existence of a discoverable provider file is not, by itself, sufficient reason to `dlopen`/`LoadLibrary` arbitrary untrusted user code into System Settings or another long-lived privileged-adjacent process.
+Live hot-plug behaviour is desirable but is not required to define the architecture. Correct discovery from the resource directory is the invariant.
 
-The architecture must support the Amiga-like operational goal — install a provider and have the system discover it — without pretending that an in-process dynamic-library boundary is a sandbox.
+## Missing resources
 
-The initial implementation may admit trusted, packaged providers from system-owned locations in process. If user-installed or third-party native providers are supported, their execution trust/isolation model must be defined explicitly before they are enabled. A dedicated provider host process is one acceptable direction; the exact mechanism is deliberately not frozen here.
+Persisted user policy stores stable resource IDs.
 
-Trust policy must not reintroduce a hard-coded capability catalogue. A provider may be discovered and reported as unavailable/untrusted without being executed.
+If a selected resource is removed, the system reports that selection as unavailable. It must not silently reinterpret the setting as some other calendar or clock merely because another resource is present.
 
-## Failure model
+The canonical timestamp/data remains unchanged. Reinstalling the same stable resource ID can make the selection usable again.
 
-A provider failure must remain local to that provider wherever practical.
+## Trust and executable resources
 
-At minimum:
+Declarative resources are parsed as untrusted data and must be bounded/validated accordingly.
 
-- malformed manifests are rejected without executing the provider;
-- unsupported ABI versions are rejected explicitly;
-- duplicate stable IDs are not silently overwritten;
-- initialization failure does not remove unrelated providers;
-- provider output is validated at the ABI boundary;
-- absence of an optional provider does not corrupt stored canonical timestamps;
-- when a selected provider disappears, policy preserves its stable ID or records an explicit unavailable state rather than silently selecting a different historical system.
+Native executable resources are different: a `.so` or `.dll` executes with the host's authority. Merely appearing in a directory must not accidentally turn arbitrary untrusted code into in-process System Settings code.
+
+Discovery and execution permission are therefore separate. The system can see that a native resource exists, validate its descriptor and then either admit it under the configured trust policy or report it unavailable/untrusted.
+
+The trust model must preserve the drop-in resource concept without reintroducing a hard-coded list. Trusted/system-installed native modules may be loaded in process; a future arbitrary-user/third-party native model may require an isolated provider host. The exact isolation mechanism is not frozen here.
+
+## Optional native ABI
+
+When a resource cannot be expressed by the generic engine, its optional native implementation exposes a versioned C ABI. A provider may use C or C++ internally.
+
+Conceptually:
+
+```c
+const InfiltratrTemporalResourceImplementation *
+infiltratr_temporal_resource_get(void);
+```
+
+The returned descriptor is versioned and size-tagged and supplies only the operations that the resource type requires. No C++ STL object, exception, GTK object or Windows UI object crosses the ABI.
+
+The ABI is subordinate to the filesystem resource model: native code is one possible implementation carried by a resource, not the mechanism by which the system learns that the resource exists.
 
 ## Relationship to canonical data
 
-Temporal providers are presentation/chronology capabilities, not storage-time mutators.
+Temporal resources provide chronology and human presentation. They do not rewrite canonical machine data.
 
-Canonical timestamps and durations remain in their authoritative machine representations. Selecting an Egyptian, Roman, decimal or other historical system changes how appropriate human-visible temporal values are interpreted or rendered; it does not rewrite filesystem timestamps, event instants, protocol values or monotonic durations.
+Selecting Egyptian, Roman, Coptic, decimal or another system changes how appropriate human-visible dates/times are calculated or displayed. Filesystem timestamps, event instants, protocol timestamps, sort keys and monotonic durations remain in their canonical forms.
 
 ## Migration from the current implementation
 
-The current compiled catalogues in Common and Calendar remain valid implementation until replaced. Migration should be incremental and behaviour-preserving:
+Migration should preserve current behaviour while changing the source of capability discovery:
 
-1. define and test the provider descriptor/ABI with real first-party providers;
-2. move one existing calendar and one existing clock behind the provider contract;
-3. make the runtime registry enumerate discovered providers;
-4. change System Settings to consume only that registry;
-5. migrate remaining built-in systems provider by provider;
-6. remove central hard-coded capability catalogues once no longer authoritative;
-7. add qualification ensuring a newly installed provider appears without editing System Settings or a central provider list.
+1. define the resource directory layout and descriptor format;
+2. implement bounded directory scanning and a runtime registry in Common;
+3. implement the generic declarative calendar/clock engine strongly enough for simple existing systems;
+4. prove optional native loading with one system that genuinely needs it, rather than making every resource executable;
+5. make System Settings populate selectors solely from discovered resources;
+6. package existing systems as individual resources, migrating them incrementally;
+7. remove central compiled capability catalogues when no longer authoritative;
+8. qualify the defining behaviour: dropping a valid new resource into the directory makes it available without editing System Settings or a master registry.
 
-The first Egyptian pair is an appropriate proving case because it is new work rather than compatibility-sensitive legacy behaviour:
+The first Egyptian pair is an appropriate proving case:
 
 - `egyptian-early-lunar` — Early Egyptian Lunar Calendar;
 - `egyptian-stellar-solar` — Early Egyptian Stellar–Solar Time.
 
-Their implementation should establish the per-provider source, documentation, test and discovery pattern that later temporal systems follow.
+They should establish the resource, documentation, test and discovery pattern used by later systems.
 
 ## Non-goals
 
 This design does not require:
 
+- compiling every calendar or clock into Common;
+- editing a master list whenever a resource is added;
 - a general-purpose application plugin framework;
-- arbitrary scripting engines;
-- loading every provider at shell startup before it is needed;
-- duplicating provider-specific rules in Common;
-- combining calendar and clock choice into one inseparable profile;
-- allowing untrusted native code to execute in process merely because it was discovered.
-
-Calendar and clock remain independently selectable capabilities even when one provider package happens to supply both.
+- a programming language embedded into every descriptor;
+- making calendar and clock one inseparable profile;
+- loading every native implementation before it is needed;
+- granting arbitrary untrusted binaries execution merely because they were copied into a folder.
 
 ## Completion criteria
 
-The runtime-provider design is complete only when:
+The design is complete when:
 
-- providers are discovered from defined installation locations;
-- provider ABI/version validation is enforced;
-- at least one calendar and one clock are supplied without central catalogue edits;
-- System Settings populates selectors from the runtime registry;
-- applications consume the same stable IDs;
-- provider removal/unavailability is handled explicitly;
-- tests prove duplicate, malformed, incompatible and failing-provider behaviour;
-- each shipped non-trivial temporal system has maintained implementation documentation and validation evidence;
-- adding a conforming provider does not require a source change to System Settings or the central registry implementation.
+- defined temporal directories are the installed capability authority;
+- the runtime registry is rebuilt from those directories;
+- at least one declarative resource works without bespoke compiled code;
+- optional native resources can be loaded through a versioned ABI where genuinely necessary;
+- System Settings selectors enumerate discovered resources;
+- adding a valid resource requires no source edit to System Settings or a central capability list;
+- removal/unavailability is explicit and reversible by reinstalling the resource;
+- malformed or failing resources do not break unrelated capabilities;
+- each shipped non-trivial calendar or clock has its own maintained technical documentation and validation evidence.
