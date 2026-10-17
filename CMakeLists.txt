@@ -48,7 +48,8 @@ infiltratr_common_configure_target(infiltratr-common-portable Portable)
 set(INFILTRATR_COMMON_FULL_SOURCES
     ${INFILTRATR_COMMON_PORTABLE_SOURCES}
     src/dynlib.c
-    src/temporal_resource.c)
+    src/temporal_resource.c
+    src/temporal_runtime.c)
 if(UNIX)
     list(APPEND INFILTRATR_COMMON_FULL_SOURCES
         src/posix.c src/posix_path.c src/posix_io.c src/posix_numeric.c
@@ -116,6 +117,13 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
     infiltratr_common_add_test(infiltratr-format-smoke tests/format_smoke.c InfiltratrCommon::Common)
     infiltratr_common_add_test(infiltratr-dynlib-smoke tests/dynlib_smoke.c InfiltratrCommon::Common)
     infiltratr_common_add_test(infiltratr-temporal-resource-smoke tests/temporal_resource_smoke.c InfiltratrCommon::Common)
+    add_library(infiltratr-temporal-runtime-fixture MODULE tests/temporal_runtime_fixture.c)
+    target_include_directories(infiltratr-temporal-runtime-fixture PRIVATE include)
+    set_target_properties(infiltratr-temporal-runtime-fixture PROPERTIES PREFIX "")
+    infiltratr_common_add_test(infiltratr-temporal-runtime-smoke tests/temporal_runtime_smoke.c InfiltratrCommon::Common)
+    target_compile_definitions(infiltratr-temporal-runtime-smoke PRIVATE
+        TEMPORAL_RUNTIME_FIXTURE_PATH="$<TARGET_FILE:infiltratr-temporal-runtime-fixture>")
+    add_dependencies(infiltratr-temporal-runtime-smoke infiltratr-temporal-runtime-fixture)
     infiltratr_common_add_test(infiltratr-portable-smoke tests/portable_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-portable-contract tests/portable_contract.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-encoding-contract tests/encoding_contract.c InfiltratrCommon::Portable)
