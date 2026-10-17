@@ -7,9 +7,12 @@
 
 #include "infiltratr/dynlib.h"
 
-#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 typedef struct RuntimeScanContext {
     InfiltratrTemporalResourceKind kind;
@@ -36,8 +39,74 @@ static size_t runtime_calendar_capacity;
 static RuntimeClockEntry *runtime_clocks;
 static size_t runtime_clock_count;
 static size_t runtime_clock_capacity;
-static atomic_bool catalogue_ready = ATOMIC_VAR_INIT(false);
-static atomic_flag catalogue_lock = ATOMIC_FLAG_INIT;
+
+#ifdef _WIN32
+static volatile LONG catalogue_state;
+#else
+static int catalogue_state;
+#endif
+
+enum {
+    CATALOGUE_UNINITIALISED = 0,
+    CATALOGUE_INITIALISING = 1,
+    CATALOGUE_READY = 2
+};
+
+static bool catalogue_is_ready(void)
+{
+#ifdef _WIN32
+    return InterlockedCompareExchange(
+        &catalogue_state, CATALOGUE_READY, CATALOGUE_READY) ==
+        CATALOGUE_READY;
+#else
+    return __atomic_load_n(&catalogue_state, __ATOMIC_ACQUIRE) ==
+        CATALOGUE_READY;
+#endif
+}
+
+static bool catalogue_try_begin_initialisation(void)
+{
+#ifdef _WIN32
+    return InterlockedCompareExchange(
+        &catalogue_state,
+        CATALOGUE_INITIALISING,
+        CATALOGUE_UNINITIALISED) == CATALOGUE_UNINITIALISED;
+#else
+    int expected = CATALOGUE_UNINITIALISED;
+    return __atomic_compare_exchange_n(
+        &catalogue_state,
+        &expected,
+        CATALOGUE_INITIALISING,
+        false,
+        __ATOMIC_ACQ_REL,
+        __ATOMIC_ACQUIRE);
+#endif
+}
+
+static void catalogue_mark_ready(void)
+{
+#ifdef _WIN32
+    (void)InterlockedExchange(&catalogue_state, CATALOGUE_READY);
+#else
+    __atomic_store_n(&catalogue_state, CATALOGUE_READY, __ATOMIC_RELEASE);
+#endif
+}
+
+static void catalogue_wait_until_ready(void)
+{
+    while (!catalogue_is_ready()) {
+#ifdef _WIN32
+        (void)SwitchToThread();
+#else
+        /*
+         * Initialisation is a bounded filesystem scan and normally completes
+         * before another caller observes this state. A compiler barrier keeps
+         * this dependency-free fallback from becoming an optimised-away loop.
+         */
+        __asm__ __volatile__("" ::: "memory");
+#endif
+    }
+}
 
 static char *copy_text(const char *text)
 {
@@ -315,24 +384,23 @@ static void catalogue_initialise(void)
 {
     size_t ignored = 0U;
 
-    if (atomic_load_explicit(&catalogue_ready, memory_order_acquire)) return;
-    while (atomic_flag_test_and_set_explicit(
-               &catalogue_lock, memory_order_acquire)) {
+    if (catalogue_is_ready()) return;
+    if (!catalogue_try_begin_initialisation()) {
+        catalogue_wait_until_ready();
+        return;
     }
-    if (!atomic_load_explicit(&catalogue_ready, memory_order_relaxed)) {
-        if (!infiltratr_temporal_runtime_scan_native(
-                INFILTRATR_TEMPORAL_RESOURCE_CALENDAR,
-                append_calendar, NULL, &ignored)) {
-            clear_runtime_calendars();
-        }
-        if (!infiltratr_temporal_runtime_scan_native(
-                INFILTRATR_TEMPORAL_RESOURCE_CLOCK,
-                append_clock, NULL, &ignored)) {
-            clear_runtime_clocks();
-        }
-        atomic_store_explicit(&catalogue_ready, true, memory_order_release);
+
+    if (!infiltratr_temporal_runtime_scan_native(
+            INFILTRATR_TEMPORAL_RESOURCE_CALENDAR,
+            append_calendar, NULL, &ignored)) {
+        clear_runtime_calendars();
     }
-    atomic_flag_clear_explicit(&catalogue_lock, memory_order_release);
+    if (!infiltratr_temporal_runtime_scan_native(
+            INFILTRATR_TEMPORAL_RESOURCE_CLOCK,
+            append_clock, NULL, &ignored)) {
+        clear_runtime_clocks();
+    }
+    catalogue_mark_ready();
 }
 
 size_t infiltratr_temporal_installed_calendar_count(void)
