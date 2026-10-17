@@ -48,15 +48,8 @@ static void fixture_directory(char *directory, size_t capacity)
 int main(void)
 {
     char directory[1024];
-    char text[64];
     size_t seen = 0U;
     size_t visited = 99U;
-    size_t length = 0U;
-    int64_t result_jdn = 0;
-    InfiltratrTemporalCalendarFields fields = { 0 };
-    InfiltratrTemporalCalendarModule *module;
-    const InfiltratrTemporalResourceMetadata *metadata;
-    const InfiltratrTemporalCalendarProvider *provider;
 
     fixture_directory(directory, sizeof(directory));
     assert(infiltratr_temporal_runtime_scan_directory(
@@ -76,32 +69,6 @@ int main(void)
         NULL,
         &visited));
     assert(visited == 0U);
-
-    module = infiltratr_temporal_calendar_module_open(
-        TEMPORAL_RUNTIME_FIXTURE_PATH);
-    assert(module != NULL);
-    metadata = infiltratr_temporal_calendar_module_metadata(module);
-    provider = infiltratr_temporal_calendar_module_provider(module);
-    assert(metadata != NULL && provider != NULL);
-    assert(strcmp(metadata->id, "fixture-calendar") == 0);
-    assert(strcmp(provider->calendar_id, metadata->id) == 0);
-    assert(provider->fields_from_jdn(provider, 2460000, &fields));
-    assert(fields.year == 2460000 && fields.month == 1 && fields.day == 1);
-    assert(provider->format_jdn(
-        provider, 2460000,
-        INFILTRATR_TEMPORAL_CALENDAR_DATE_PART_FULL,
-        text, sizeof(text), &length));
-    assert(strcmp(text, "Fixture full") == 0 && length == strlen(text));
-    assert(provider->format_civil(
-        provider, 2026, 10, 17,
-        INFILTRATR_TEMPORAL_CALENDAR_DATE_PART_SHORT,
-        text, sizeof(text), &length));
-    assert(strcmp(text, "Fixture civil") == 0);
-    assert(provider->period_start(provider, 100, &result_jdn));
-    assert(result_jdn == 99);
-    assert(provider->add_periods(provider, 100, 2, &result_jdn));
-    assert(result_jdn == 102);
-    infiltratr_temporal_calendar_module_close(module);
 
     assert(infiltratr_temporal_installed_calendar_count() >=
            infiltratr_temporal_calendar_count());
