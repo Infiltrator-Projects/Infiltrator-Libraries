@@ -120,7 +120,10 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
     infiltratr_common_add_test(infiltratr-temporal-resource-smoke tests/temporal_resource_smoke.c InfiltratrCommon::Common)
     add_library(infiltratr-temporal-runtime-fixture MODULE tests/temporal_runtime_fixture.c)
     target_include_directories(infiltratr-temporal-runtime-fixture PRIVATE include)
-    set_target_properties(infiltratr-temporal-runtime-fixture PROPERTIES PREFIX "")
+    set_target_properties(infiltratr-temporal-runtime-fixture PROPERTIES
+        PREFIX ""
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/runtime-metadata-fixture"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/runtime-metadata-fixture")
     infiltratr_common_add_test(infiltratr-temporal-runtime-smoke tests/temporal_runtime_smoke.c InfiltratrCommon::Common)
     target_compile_definitions(infiltratr-temporal-runtime-smoke PRIVATE
         TEMPORAL_RUNTIME_FIXTURE_PATH="$<TARGET_FILE:infiltratr-temporal-runtime-fixture>")
@@ -151,6 +154,10 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
         infiltratr_common_add_test(infiltratr-temporal-posix-smoke tests/temporal_posix_smoke.c InfiltratrCommon::Common)
         add_library(infiltratr-temporal-date-fixture MODULE tests/temporal_date_fixture.c)
         target_include_directories(infiltratr-temporal-date-fixture PRIVATE include)
+        set_target_properties(infiltratr-temporal-date-fixture PROPERTIES
+            PREFIX ""
+            LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/date-provider-fixture"
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/date-provider-fixture")
         infiltratr_common_add_test(infiltratr-temporal-date-smoke tests/temporal_date_smoke.c InfiltratrCommon::Common)
         target_compile_definitions(infiltratr-temporal-date-smoke PRIVATE
             TEMPORAL_DATE_FIXTURE_PATH="$<TARGET_FILE:infiltratr-temporal-date-fixture>")
