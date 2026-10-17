@@ -13,7 +13,8 @@ PORTABLE_OBJECTS := $(BUILD_DIR)/core.o $(BUILD_DIR)/arithmetic.o \
 	$(BUILD_DIR)/timing.o $(BUILD_DIR)/temporal.o $(BUILD_DIR)/temporal_clock.o $(BUILD_DIR)/format.o $(BUILD_DIR)/quantity.o $(BUILD_DIR)/graphics.o \
 	$(BUILD_DIR)/escape.o $(BUILD_DIR)/design.o
 OBJECTS := $(PORTABLE_OBJECTS) $(BUILD_DIR)/dynlib.o $(BUILD_DIR)/temporal_resource.o \
-	$(BUILD_DIR)/temporal_runtime.o $(BUILD_DIR)/temporal_calendar.o $(BUILD_DIR)/posix.o \
+	$(BUILD_DIR)/temporal_runtime.o $(BUILD_DIR)/temporal_calendar.o \
+	$(BUILD_DIR)/temporal_clock_resource.o $(BUILD_DIR)/posix.o \
 	$(BUILD_DIR)/posix_path.o $(BUILD_DIR)/posix_io.o $(BUILD_DIR)/posix_numeric.o \
 	$(BUILD_DIR)/temporal_posix.o $(BUILD_DIR)/temporal_calendar_posix.o
 PORTABLE_ARCHIVE := $(BUILD_DIR)/libinfiltratr-portable.a
