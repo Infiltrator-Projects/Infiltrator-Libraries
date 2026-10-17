@@ -66,7 +66,6 @@ static const InfiltratrTemporalClockModeInfo temporal_clock_modes[] = {
  * from this array and are merged by temporal_runtime.c at runtime.
  */
 static const InfiltratrTemporalCalendarInfo temporal_calendars[] = {
-    { "gregorian", "Gregorian" },
     { "iso-week", "ISO week calendar" },
     { "julian", "Julian" },
     { "revised-julian", "Revised Julian" },
@@ -74,10 +73,8 @@ static const InfiltratrTemporalCalendarInfo temporal_calendars[] = {
     { "islamic-civil", "Islamic (civil/tabular)" },
     { "islamic-tbla", "Islamic (tabular, astronomical epoch)" },
     { "islamic", "Islamic (computational/astronomical; not local sighting)" },
-    { "persian", "Persian (Solar Hijri arithmetic)" },
     { "bahai", "Bahá’í (Badíʿ; modern Naw-Rúz from Tehran equinox)" },
     { "buddhist", "Buddhist Era (Gregorian-derived; +543 years)" },
-    { "coptic", "Coptic (Alexandrian 13-month calendar)" },
     { "ethiopian", "Ethiopian Amete Mihret (13-month calendar)" },
     { "ethiopic-amete-alem", "Ethiopic Amete Alem (Amete Mihret + 5500 years)" },
     { "chinese", "Chinese traditional (computational lunisolar)" },
