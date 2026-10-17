@@ -170,3 +170,106 @@ bool infiltratr_temporal_clock_next_tick(
     *milliseconds = value;
     return true;
 }
+
+/*
+ * Stable presentation object shared by Files, System Settings and other
+ * consumers. Module discovery is performed once per selection, never once per
+ * timestamp or UI repaint. Clock arithmetic stays in the loaded resource.
+ */
+struct InfiltratrTemporalClockPresentation {
+    InfiltratrTemporalClockModule *module;
+    char *mode;
+};
+
+static bool clock_requires_native_resource(const char *mode)
+{
+    static const char *const migrated[] = {
+        "decimal", "internet", "unix", "hexadecimal", "binary"
+    };
+    size_t i;
+    if (mode == NULL) return false;
+    for (i = 0U; i < sizeof(migrated) / sizeof(migrated[0]); ++i) {
+        if (strcmp(mode, migrated[i]) == 0) return true;
+    }
+    return false;
+}
+
+InfiltratrTemporalClockPresentation *
+infiltratr_temporal_clock_presentation_new(const char *clock_id)
+{
+    InfiltratrTemporalClockPresentation *presentation;
+    const InfiltratrTemporalClockModeInfo *builtin;
+    const bool resource_required = clock_requires_native_resource(clock_id);
+    const size_t length = clock_id != NULL ? strlen(clock_id) : 0U;
+
+    if (!infiltratr_temporal_id_valid(clock_id) ||
+        strcmp(clock_id, "standard") == 0) return NULL;
+
+    builtin = infiltratr_temporal_clock_mode_find(clock_id);
+    presentation = calloc(1U, sizeof(*presentation));
+    if (presentation == NULL) return NULL;
+    if (length == SIZE_MAX) {
+        free(presentation);
+        return NULL;
+    }
+    presentation->mode = malloc(length + 1U);
+    if (presentation->mode == NULL) {
+        free(presentation);
+        return NULL;
+    }
+    memcpy(presentation->mode, clock_id, length + 1U);
+
+    if (resource_required || builtin == NULL) {
+        presentation->module = infiltratr_temporal_clock_module_open_id(clock_id);
+        if (presentation->module == NULL) {
+            infiltratr_temporal_clock_presentation_free(presentation);
+            return NULL;
+        }
+    }
+    return presentation;
+}
+
+void infiltratr_temporal_clock_presentation_free(
+    InfiltratrTemporalClockPresentation *presentation)
+{
+    if (presentation == NULL) return;
+    infiltratr_temporal_clock_module_free(presentation->module);
+    free(presentation->mode);
+    free(presentation);
+}
+
+bool infiltratr_temporal_clock_presentation_format(
+    const InfiltratrTemporalClockPresentation *presentation,
+    const char *locale, int64_t instant, int32_t offset,
+    bool seconds, bool vertical, bool location_configured,
+    double latitude, double longitude,
+    char *buffer, size_t capacity, size_t *length)
+{
+    if (presentation == NULL || buffer == NULL || capacity == 0U) {
+        return false;
+    }
+    if (presentation->module != NULL) {
+        const InfiltratrTemporalResourceMetadata *metadata =
+            infiltratr_temporal_clock_module_metadata(presentation->module);
+        if (metadata == NULL ||
+            ((metadata->requires_latitude || metadata->requires_longitude) &&
+             !location_configured)) return false;
+        return infiltratr_temporal_clock_format(
+            presentation->module, locale, instant, offset, seconds,
+            vertical, latitude, longitude, buffer, capacity, length);
+    }
+    return infiltratr_temporal_format_clock_mode_localized(
+        locale, presentation->mode, instant, offset, seconds, vertical,
+        location_configured, latitude, longitude, buffer, capacity, length);
+}
+
+bool infiltratr_temporal_clock_presentation_next_tick(
+    const InfiltratrTemporalClockPresentation *presentation,
+    int64_t instant, int32_t offset, bool seconds,
+    double latitude, double longitude, uint32_t *milliseconds)
+{
+    return presentation != NULL && presentation->module != NULL &&
+        infiltratr_temporal_clock_next_tick(
+            presentation->module, instant, offset, seconds,
+            latitude, longitude, milliseconds);
+}

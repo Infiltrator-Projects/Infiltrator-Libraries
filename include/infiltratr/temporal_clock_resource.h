@@ -81,6 +81,37 @@ bool infiltratr_temporal_clock_next_tick(
     bool show_seconds, double latitude, double longitude,
     uint32_t *milliseconds);
 
+/**
+ * Long-lived system presentation handle. The five migrated clocks are loaded
+ * only from executable system resources; they have no legacy format fallback.
+ * Other compiled clock modes retain the portable formatter during migration.
+ * Callers may retain this handle across repeated UI refreshes.
+ */
+typedef struct InfiltratrTemporalClockPresentation InfiltratrTemporalClockPresentation;
+
+InfiltratrTemporalClockPresentation *
+infiltratr_temporal_clock_presentation_new(const char *clock_id);
+void infiltratr_temporal_clock_presentation_free(
+    InfiltratrTemporalClockPresentation *presentation);
+
+/** Output is unchanged on failure, including an absent required resource. */
+bool infiltratr_temporal_clock_presentation_format(
+    const InfiltratrTemporalClockPresentation *presentation,
+    const char *locale, int64_t unix_microseconds,
+    int32_t utc_offset_seconds, bool show_seconds, bool vertical,
+    bool location_configured, double latitude, double longitude,
+    char *buffer, size_t capacity, size_t *length);
+
+/**
+ * Exact resource tick boundary; returns false for legacy built-in modes.
+ * Does not change milliseconds on failure.
+ */
+bool infiltratr_temporal_clock_presentation_next_tick(
+    const InfiltratrTemporalClockPresentation *presentation,
+    int64_t unix_microseconds, int32_t utc_offset_seconds,
+    bool show_seconds, double latitude, double longitude,
+    uint32_t *milliseconds);
+
 #ifdef __cplusplus
 }
 #endif

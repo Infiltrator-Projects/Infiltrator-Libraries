@@ -11,6 +11,61 @@
     fprintf(stderr, "clock resource ABI test failed at line %d\n", __LINE__); \
     return 1; } } while (0)
 
+
+/* Common's system presenter must never use the portable duplicate for any
+ * of the five migrated clocks, but conventional modes remain compatible. */
+static int test_system_presentation(void)
+{
+    static const char *const migrated[] = {
+        "decimal", "internet", "unix", "hexadecimal", "binary"
+    };
+    InfiltratrTemporalClockPresentation *presentation;
+    char buffer[64] = "unchanged";
+    size_t length = 777U;
+    uint32_t delay = 999U;
+    size_t i;
+
+    CHECK(infiltratr_temporal_clock_presentation_new(NULL) == NULL);
+    CHECK(infiltratr_temporal_clock_presentation_new("Bad ID") == NULL);
+    CHECK(infiltratr_temporal_clock_presentation_new("standard") == NULL);
+    CHECK(infiltratr_temporal_clock_presentation_new("absent-clock") == NULL);
+
+    presentation = infiltratr_temporal_clock_presentation_new("standard-24");
+    CHECK(presentation != NULL);
+    CHECK(infiltratr_temporal_clock_presentation_format(
+        presentation, "en", INT64_C(43200000000), 0,
+        false, false, false, 0.0, 0.0, buffer, sizeof(buffer), &length));
+    CHECK(strcmp(buffer, "12:00") == 0 && length == 5U);
+    CHECK(!infiltratr_temporal_clock_presentation_next_tick(
+        presentation, 0, 0, true, 0.0, 0.0, &delay));
+    CHECK(delay == 999U);
+    infiltratr_temporal_clock_presentation_free(presentation);
+
+    for (i = 0U; i < sizeof(migrated) / sizeof(migrated[0]); ++i) {
+        InfiltratrTemporalClockModule *installed =
+            infiltratr_temporal_clock_module_open_id(migrated[i]);
+        presentation = infiltratr_temporal_clock_presentation_new(migrated[i]);
+        CHECK((installed == NULL) == (presentation == NULL));
+        if (installed != NULL) {
+            char expected[64] = {0};
+            size_t expected_length = 0U;
+            CHECK(infiltratr_temporal_clock_format(
+                installed, "en", INT64_C(43200000000), 0,
+                true, false, 0.0, 0.0, expected, sizeof(expected),
+                &expected_length));
+            CHECK(infiltratr_temporal_clock_presentation_format(
+                presentation, "en", INT64_C(43200000000), 0,
+                true, false, false, 0.0, 0.0, buffer, sizeof(buffer),
+                &length));
+            CHECK(length == expected_length && strcmp(buffer, expected) == 0);
+        }
+        infiltratr_temporal_clock_presentation_free(presentation);
+        infiltratr_temporal_clock_module_free(installed);
+    }
+    infiltratr_temporal_clock_presentation_free(NULL);
+    return 0;
+}
+
 int main(void)
 {
     InfiltratrTemporalClockModule *module;
@@ -43,5 +98,6 @@ int main(void)
     CHECK(delay == 42U);
     infiltratr_temporal_clock_module_free(module);
     infiltratr_temporal_clock_module_free(NULL);
+    CHECK(test_system_presentation() == 0);
     return 0;
 }
