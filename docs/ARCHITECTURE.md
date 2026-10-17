@@ -16,6 +16,18 @@ The repository is intentionally layered:
 
 Common owns product-neutral behaviour only. Filesystem semantics remain in InfiltratorFS/Defragmenter, automotive semantics remain in Link and its product faces, and application-specific presentation remains with each application.
 
+## Runtime temporal providers
+
+Calendars and clock systems are moving to a runtime-discovered provider architecture. Common owns the generic provider manifest contract, versioned C ABI, discovery/validation mechanics and runtime registry. Provider-specific chronology and historical timekeeping rules remain with the provider implementation that supplies them.
+
+Consumers do not own independent hard-coded lists of available temporal systems. System Settings enumerates the runtime registry for user selection; Calendar and other applications resolve the same stable provider identifiers when they need chronology or time presentation.
+
+The current compiled calendar/clock catalogues are transitional implementation, not the intended extension boundary. The target design is that installing a conforming provider makes its capabilities discoverable without editing System Settings or extending a central compiled provider list.
+
+Discovery does not imply trust. Native provider code executes with its host's process authority, so manifest discovery, trust policy and executable loading are separate stages. Trusted packaged providers may be loaded in process; any user-installed/third-party native provider model must define an explicit isolation/trust policy before such code is enabled.
+
+The complete design and migration contract is maintained in [TEMPORAL_PROVIDERS.md](TEMPORAL_PROVIDERS.md).
+
 ## Ownership and dependency rule
 
 The portable core is intentionally dependency-light. Consumers pin an exact reviewed Common revision; external libraries or platform APIs sit behind narrow adapters rather than defining Common semantics.
@@ -36,3 +48,4 @@ Shared code has a larger blast radius than product-local code. Changes therefore
 - design/README.md
 - design/CONSUMERS.md
 - docs/I18N.md
+- docs/TEMPORAL_PROVIDERS.md
