@@ -3,6 +3,7 @@
 #define _POSIX_C_SOURCE 200809L
 
 #include "infiltratr/temporal_posix.h"
+#include "infiltratr/temporal_runtime.h"
 #include "infiltratr/dynlib.h"
 #include "infiltratr/utf8.h"
 
@@ -144,7 +145,7 @@ bool infiltratr_temporal_posix_format_date(
 
     if (buffer == NULL || capacity == 0U || part == NULL ||
         (strcmp(part, "short") != 0 && strcmp(part, "full") != 0) ||
-        infiltratr_temporal_calendar_find(calendar_id) == NULL ||
+        infiltratr_temporal_installed_calendar_find(calendar_id) == NULL ||
         !ensure_runtime(provider) ||
         !provider->render(calendar_id, gregorian_year, gregorian_month,
                           gregorian_day, part, text, sizeof(text), &size) ||
