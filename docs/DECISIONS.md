@@ -49,3 +49,11 @@ This file records durable architectural decisions for Libraries.
 **Rationale.** Avoiding every dependency is not the goal; owning observable semantics is.
 
 **Consequence.** Dependencies sit behind narrow boundaries and are replaceable without changing consumer meaning where practical.
+
+## ADR-007 — Temporal capabilities are runtime-discovered providers
+
+**Decision.** Calendars and clock systems move toward a runtime-discovered provider model. Common owns the product-neutral provider ABI, manifest validation, discovery and runtime registry. Provider-specific chronology/timekeeping remains with the provider that implements it, while System Settings and other consumers enumerate the runtime registry rather than owning hard-coded capability lists.
+
+**Rationale.** Adding a new temporal system should be an extension operation, not a coordinated edit to central catalogues in multiple applications. A small stable provider contract gives each system an explicit owner, keeps its implementation/documentation/tests cohesive and permits installed capabilities to evolve independently of System Settings.
+
+**Consequence.** The compiled temporal catalogues that exist today are transitional migration debt, not the long-term extension mechanism. The public native boundary remains versioned C even when provider internals use C++. Discovery is distinct from trust: arbitrary untrusted native code is not automatically executed in a long-lived host process merely because a provider manifest is visible. The governing design is [TEMPORAL_PROVIDERS.md](TEMPORAL_PROVIDERS.md).
