@@ -68,10 +68,11 @@ $(BUILD_DIR)/temporal-runtime-fixture.so: tests/temporal_runtime_fixture.c | $(B
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
 $(BUILD_DIR)/temporal-runtime-smoke: tests/temporal_runtime_smoke.c $(ARCHIVE) $(BUILD_DIR)/temporal-runtime-fixture.so
 	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_RUNTIME_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/temporal-runtime-fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
-$(BUILD_DIR)/temporal-calendar-fixture.so: tests/temporal_calendar_fixture.c | $(BUILD_DIR)
+$(BUILD_DIR)/calendar-provider-fixture/fixture.so: tests/temporal_calendar_fixture.c | $(BUILD_DIR)
+	@mkdir -p "$(dir $@)"
 	$(CC) $(CPPFLAGS) $(CFLAGS) -shared $< -o $@
-$(BUILD_DIR)/temporal-calendar-smoke: tests/temporal_calendar_smoke.c $(ARCHIVE) $(BUILD_DIR)/temporal-calendar-fixture.so
-	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_CALENDAR_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/temporal-calendar-fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
+$(BUILD_DIR)/temporal-calendar-smoke: tests/temporal_calendar_smoke.c $(ARCHIVE) $(BUILD_DIR)/calendar-provider-fixture/fixture.so
+	$(CC) $(CPPFLAGS) $(CFLAGS) -DTEMPORAL_CALENDAR_FIXTURE_PATH=\"$(abspath $(BUILD_DIR)/calendar-provider-fixture/fixture.so)\" $< $(ARCHIVE) -lm $(DYNLIB_LIBS) -o $@
 $(BUILD_DIR)/portable-smoke: tests/portable_smoke.c $(PORTABLE_ARCHIVE)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< $(PORTABLE_ARCHIVE) -lm -o $@
 $(BUILD_DIR)/portable-contract: tests/portable_contract.c $(PORTABLE_ARCHIVE)

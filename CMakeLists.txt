@@ -127,7 +127,10 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
     add_dependencies(infiltratr-temporal-runtime-smoke infiltratr-temporal-runtime-fixture)
     add_library(infiltratr-temporal-calendar-fixture MODULE tests/temporal_calendar_fixture.c)
     target_include_directories(infiltratr-temporal-calendar-fixture PRIVATE include)
-    set_target_properties(infiltratr-temporal-calendar-fixture PROPERTIES PREFIX "")
+    set_target_properties(infiltratr-temporal-calendar-fixture PROPERTIES
+        PREFIX ""
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/calendar-provider-fixture"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/calendar-provider-fixture")
     infiltratr_common_add_test(infiltratr-temporal-calendar-smoke tests/temporal_calendar_smoke.c InfiltratrCommon::Common)
     target_compile_definitions(infiltratr-temporal-calendar-smoke PRIVATE
         TEMPORAL_CALENDAR_FIXTURE_PATH="$<TARGET_FILE:infiltratr-temporal-calendar-fixture>")
