@@ -6,155 +6,72 @@ This document records the target architecture for extensible calendar and clock 
 
 The current implementation still contains compiled-in calendar and clock catalogues and grouped implementation files. Those are transitional implementation details. The long-term model is deliberately closer to an Amiga Workbench-style resource directory: the installed directory is the catalogue.
 
-## Core idea
+## Governing concept
 
-A calendar or clock exists because an installed temporal resource exists in a known directory, not because its identifier was compiled into a master list.
+A calendar or clock exists because a self-contained temporal resource has been installed in a recognised directory, not because its identifier was compiled into a master list.
 
 Conceptually:
 
 ```text
 Temporal/Calendars/
-    Gregorian.calendar/
-    Coptic.calendar/
-    Egyptian-Early-Lunar.calendar/
+    Gregorian
+    Coptic
+    Egyptian-Early-Lunar
 
 Temporal/Clocks/
-    Standard-24.clock/
-    Roman-Temporal.clock/
-    Egyptian-Stellar-Solar.clock/
+    Standard-24
+    Roman-Temporal
+    Egyptian-Stellar-Solar
 ```
 
-Drop a valid resource into the appropriate directory and, after the next scan/reload, the whole system can discover it. Remove it and the capability is no longer available. No source change to System Settings, Calendar or a central registry is required merely to add the name to the system.
+Drop a valid calendar resource into the calendar directory and, after discovery/reload, the system knows that calendar exists. Drop a valid clock resource into the clock directory and the system knows that clock exists. Remove the resource and that capability is no longer available.
 
-This is the governing design principle:
+No source edit to System Settings, Calendar or a central registry is required merely to add the capability.
 
-> The filesystem namespace is the installed capability catalogue.
+This is the invariant:
 
-## A resource is not necessarily compiled code
+> The filesystem namespace is the installed temporal capability catalogue.
 
-A temporal resource is a self-describing installed object. It is not synonymous with a C/C++ plugin.
+## Resource representation is deliberately not frozen
 
-Where a calendar or clock can be expressed faithfully as data, the resource should be data-driven and require no provider binary at all. Examples may include fixed epochs, fixed month structures, names, arithmetic leap rules, display patterns or other behaviour supported by the shared temporal engine.
+This design does **not** yet decide what the physical resource must be.
 
-Where a system genuinely requires specialised computation that the generic engine cannot express cleanly, the resource may carry an executable provider module compiled separately and dropped into the same resource bundle. On Linux this may be a `.so`; on Windows a `.dll`. Its public binary boundary is a small versioned C ABI even if its internals are C++.
+A resource might ultimately be:
 
-The architecture therefore supports both:
+- compiled object/module code produced elsewhere and copied into the directory;
+- a shared library such as `.so` or `.dll`;
+- a declarative data file interpreted by a common engine;
+- a directory/bundle containing metadata, documentation and implementation;
+- another compact native format that proves cleaner during implementation.
 
-```text
-pure resource
-    descriptor + model data + documentation
+The representation is an engineering detail to be decided after prototyping real calendars and clocks. The architecture must not accidentally turn today's preferred file format into the governing idea.
 
-executable resource
-    descriptor + documentation + optional model data + provider.so/provider.dll
-```
+What is fixed is the behaviour: the resource is self-identifying enough for the system to discover it, determine what capability it supplies, validate whether it can be used, and expose it through the common temporal registry without a compiled master list.
 
-Compiled code is an escape hatch for genuine algorithmic requirements, not the definition of the extension system.
+If executable native code is used, it needs an explicit compatibility contract. If data is used, it needs an explicit bounded schema. Those details are subordinate to the drop-in resource model.
 
-## Resource bundle
+## One resource, one system authority
 
-Each installed calendar or clock is independently identifiable. A directory-style bundle is preferred because it can carry the complete definition and its documentation together.
+Each installed calendar or clock is independently identifiable and owns the rules specific to that system.
 
-Illustrative layout:
+The resource is the authority for, as applicable:
 
-```text
-Temporal/Calendars/Egyptian-Early-Lunar.calendar/
-    resource.json
-    model.json
-    README.md
+- stable system identifier;
+- display identity;
+- conversion/calculation rules;
+- domain-specific formatting rules;
+- supported range and unavailable states;
+- required geographic/astronomical inputs;
+- historical assumptions and evidence decisions;
+- validation vectors and boundary cases.
 
-Temporal/Clocks/Egyptian-Stellar-Solar.clock/
-    resource.json
-    README.md
-    provider.so          # only if required
-```
+Shared arithmetic, astronomy, localisation and loading primitives may be provided by Common, but provider-specific historical policy must not be duplicated into System Settings or a central catalogue.
 
-The exact filenames and schema are not frozen yet. The important contract is that each directory entry is self-describing and can be admitted without editing a central capability list.
-
-A package may install several independent resource bundles, but calendar and clock identities remain independent. A historical Egyptian package could therefore install one `.calendar` resource and one `.clock` resource without turning them into one inseparable setting.
-
-## Discovery
-
-Common owns the generic scanner/parser and exposes the resulting temporal resource registry.
-
-Discovery is conceptually:
-
-```text
-scan known calendar and clock directories
-        ↓
-inspect each child resource
-        ↓
-validate descriptor and stable identity
-        ↓
-load declarative model OR bind optional executable implementation
-        ↓
-add valid capability to runtime registry
-        ↓
-consumers enumerate what is actually installed
-```
-
-There is no compiled master enumeration of calendar IDs or clock IDs.
-
-The scanner must provide deterministic handling for duplicate IDs, malformed resources, incompatible resource/ABI versions and unavailable executable components. One bad resource must not prevent unrelated resources from loading.
-
-The exact physical roots are platform-specific packaging details. System-wide and, if safely supported, per-user roots may both exist. Their precedence and duplicate rules must be explicit.
-
-## Descriptor
-
-Every resource has bounded metadata that can be read before any optional executable code is loaded.
-
-At minimum it identifies:
-
-- stable resource ID;
-- resource kind: calendar or clock;
-- human-readable name or localisation key;
-- resource format version;
-- implementation kind: declarative or executable;
-- capabilities and required inputs;
-- optional executable artifact and ABI version when one is required.
-
-Illustrative only:
-
-```json
-{
-  "id": "egyptian-early-lunar",
-  "kind": "calendar",
-  "name": "Early Egyptian Lunar Calendar",
-  "format": 1,
-  "implementation": "declarative",
-  "model": "model.json"
-}
-```
-
-or, when custom code is genuinely necessary:
-
-```json
-{
-  "id": "egyptian-stellar-solar",
-  "kind": "clock",
-  "name": "Early Egyptian Stellar–Solar Time",
-  "format": 1,
-  "implementation": "native",
-  "abi": 1,
-  "library": "provider.so"
-}
-```
-
-The descriptor describes the resource. It does not recreate a second central catalogue.
-
-## Generic engine versus specialised implementation
-
-Common should provide a strong generic temporal engine capable of expressing the common building blocks used by many systems: epochs, cycles, arithmetic month/year structures, names, boundaries, fixed subdivisions and shared astronomical primitives where appropriate.
-
-A resource chooses the simplest faithful representation:
-
-1. declarative model when the generic engine is sufficient;
-2. native provider only when the system's rules genuinely require code.
-
-Do not force a historically complex system into an unreadable mini-language merely to avoid a small native module. Equally, do not compile trivial tables and arithmetic rules into bespoke binaries when data is clearer and safer.
+A distribution package may install several resources together, but calendar and clock identities remain independent. For example, an Egyptian package can install one calendar resource and one clock resource without making them one inseparable setting.
 
 ## Per-system documentation
 
-Each calendar and clock resource carries or is directly associated with its own maintained technical document. Documentation is part of the resource's engineering identity, not an unrelated global appendix.
+Every non-trivial calendar and clock has its own maintained technical document associated directly with that resource.
 
 The document records, as applicable:
 
@@ -175,9 +92,33 @@ The document records, as applicable:
 
 Historical models represent the project's current best supported model. Their user-facing names do not need to say `reconstruction`. If stronger evidence changes the best model, the resource definition, tests and documentation change together.
 
+## Discovery
+
+Common owns the generic discovery mechanism and exposes the resulting temporal registry to the rest of the system.
+
+Conceptually:
+
+```text
+scan known calendar/clock directories
+        ↓
+inspect each child resource
+        ↓
+identify and validate it
+        ↓
+make valid capabilities available
+        ↓
+System Settings and applications enumerate what is installed
+```
+
+There is no compiled master enumeration of calendar IDs or clock IDs.
+
+The scanner must provide deterministic handling for duplicate IDs, malformed resources, incompatible resource versions and failed implementations. One bad resource must not prevent unrelated resources from being discovered.
+
+The exact physical roots are platform packaging details. System-wide and, if safely supported, per-user roots may both exist. Their precedence and duplicate rules must be explicit.
+
 ## Runtime registry
 
-The registry is built from the directory contents. It is not itself the source of installed capability.
+The runtime registry is derived from directory contents. It is not the authority itself.
 
 System Settings therefore behaves conceptually as:
 
@@ -186,48 +127,31 @@ read discovered calendars → populate Calendar selector
 read discovered clocks    → populate Clock selector
 ```
 
-Other applications resolve the same stable IDs through Common. They do not keep private copies of the installed list.
+Other applications resolve the same stable IDs through the shared temporal layer. They do not maintain private copies of the installed list.
 
-A cache/index may be used for performance, but it is derived state and can always be rebuilt from the resource directories. It must never become a shadow authority.
+A cache/index may be used for performance, but it is derived state and must be rebuildable from the resource directories.
 
 ## Change detection
 
-The minimum contract is scan at process/session startup. The design should also permit an explicit rescan and, where practical, filesystem change notification so installing/removing a resource can become visible without rebooting the machine.
+The minimum contract is discovery at process/session startup. The design should also permit explicit rescan and, where practical, filesystem change notification so newly installed or removed resources can become visible without rebooting the machine.
 
-Live hot-plug behaviour is desirable but is not required to define the architecture. Correct discovery from the resource directory is the invariant.
+Live hot-plug behaviour is desirable but not required to define the architecture. Correct discovery from the directory is the invariant.
 
 ## Missing resources
 
 Persisted user policy stores stable resource IDs.
 
-If a selected resource is removed, the system reports that selection as unavailable. It must not silently reinterpret the setting as some other calendar or clock merely because another resource is present.
+If a selected resource is removed, the system reports that selection as unavailable. It must not silently reinterpret the setting as another calendar or clock. Reinstalling the same stable resource ID can make the original selection usable again.
 
-The canonical timestamp/data remains unchanged. Reinstalling the same stable resource ID can make the selection usable again.
+Canonical timestamps and durations remain unchanged throughout.
 
 ## Trust and executable resources
 
-Declarative resources are parsed as untrusted data and must be bounded/validated accordingly.
+If the chosen resource representation is purely data, it is parsed as bounded external input.
 
-Native executable resources are different: a `.so` or `.dll` executes with the host's authority. Merely appearing in a directory must not accidentally turn arbitrary untrusted code into in-process System Settings code.
+If a resource contains executable native code, that code executes with the authority of its host and therefore needs an explicit trust and compatibility model. Merely appearing in a directory does not automatically make arbitrary untrusted code safe to execute in-process.
 
-Discovery and execution permission are therefore separate. The system can see that a native resource exists, validate its descriptor and then either admit it under the configured trust policy or report it unavailable/untrusted.
-
-The trust model must preserve the drop-in resource concept without reintroducing a hard-coded list. Trusted/system-installed native modules may be loaded in process; a future arbitrary-user/third-party native model may require an isolated provider host. The exact isolation mechanism is not frozen here.
-
-## Optional native ABI
-
-When a resource cannot be expressed by the generic engine, its optional native implementation exposes a versioned C ABI. A provider may use C or C++ internally.
-
-Conceptually:
-
-```c
-const InfiltratrTemporalResourceImplementation *
-infiltratr_temporal_resource_get(void);
-```
-
-The returned descriptor is versioned and size-tagged and supplies only the operations that the resource type requires. No C++ STL object, exception, GTK object or Windows UI object crosses the ABI.
-
-The ABI is subordinate to the filesystem resource model: native code is one possible implementation carried by a resource, not the mechanism by which the system learns that the resource exists.
+The trust solution must preserve the drop-in resource concept without reintroducing a hard-coded capability list. The exact mechanism is intentionally left open until the implementation format is chosen.
 
 ## Relationship to canonical data
 
@@ -239,44 +163,42 @@ Selecting Egyptian, Roman, Coptic, decimal or another system changes how appropr
 
 Migration should preserve current behaviour while changing the source of capability discovery:
 
-1. define the resource directory layout and descriptor format;
-2. implement bounded directory scanning and a runtime registry in Common;
-3. implement the generic declarative calendar/clock engine strongly enough for simple existing systems;
-4. prove optional native loading with one system that genuinely needs it, rather than making every resource executable;
-5. make System Settings populate selectors solely from discovered resources;
-6. package existing systems as individual resources, migrating them incrementally;
-7. remove central compiled capability catalogues when no longer authoritative;
-8. qualify the defining behaviour: dropping a valid new resource into the directory makes it available without editing System Settings or a master registry.
+1. define the resource-directory contract and stable resource identity;
+2. prototype at least one real calendar and one real clock as drop-in resources;
+3. use those prototypes to decide the cleanest physical representation and compatibility contract;
+4. implement directory discovery and a derived runtime registry in Common;
+5. make System Settings populate selectors only from discovered resources;
+6. migrate existing systems incrementally into independent resources;
+7. remove central compiled capability catalogues when they are no longer authoritative;
+8. qualify the defining behaviour: adding a valid resource to the directory makes it available without editing System Settings or a master registry.
 
 The first Egyptian pair is an appropriate proving case:
 
 - `egyptian-early-lunar` — Early Egyptian Lunar Calendar;
 - `egyptian-stellar-solar` — Early Egyptian Stellar–Solar Time.
 
-They should establish the resource, documentation, test and discovery pattern used by later systems.
+They should establish the resource/documentation/test/discovery pattern while also helping us determine whether the eventual resource representation should be compiled, declarative or hybrid.
 
 ## Non-goals
 
 This design does not require:
 
+- choosing the final on-disk format before prototyping;
 - compiling every calendar or clock into Common;
 - editing a master list whenever a resource is added;
 - a general-purpose application plugin framework;
-- a programming language embedded into every descriptor;
 - making calendar and clock one inseparable profile;
-- loading every native implementation before it is needed;
-- granting arbitrary untrusted binaries execution merely because they were copied into a folder.
+- treating a cache or registry file as the real source of installed capability.
 
 ## Completion criteria
 
 The design is complete when:
 
 - defined temporal directories are the installed capability authority;
-- the runtime registry is rebuilt from those directories;
-- at least one declarative resource works without bespoke compiled code;
-- optional native resources can be loaded through a versioned ABI where genuinely necessary;
+- the runtime registry is derived from those directories;
+- at least one calendar and one clock can be added without central source edits;
 - System Settings selectors enumerate discovered resources;
-- adding a valid resource requires no source edit to System Settings or a central capability list;
 - removal/unavailability is explicit and reversible by reinstalling the resource;
 - malformed or failing resources do not break unrelated capabilities;
-- each shipped non-trivial calendar or clock has its own maintained technical documentation and validation evidence.
+- each shipped non-trivial calendar or clock has its own maintained technical documentation and validation evidence;
+- the chosen representation has been selected from evidence gathered by real provider prototypes rather than assumed in advance.
