@@ -73,8 +73,9 @@ typedef struct InfiltratrTemporalCalendarInfo {
 
 /*
  * Version 3 is the current system-wide authority. It deliberately has one
- * calendar only. The retired secondary-calendar concept is not part of the
- * public API.
+ * calendar only. The calendar member is a stable capability ID, not proof that
+ * the capability is installed on this machine; runtime consumers resolve that
+ * separately. The retired secondary-calendar concept is not part of the API.
  */
 typedef struct InfiltratrTemporalPolicyV3 {
     uint32_t struct_size;
@@ -252,7 +253,13 @@ infiltratr_temporal_clock_mode_at(size_t index);
 const InfiltratrTemporalClockModeInfo *
 infiltratr_temporal_clock_mode_find(const char *id);
 
-/** Complete selectable system-calendar catalogue. */
+/**
+ * Compiled base calendar catalogue.
+ *
+ * This is intentionally not the complete set installed on an InfiltratorOS
+ * machine. Full/Common consumers must use temporal_runtime.h's installed
+ * catalogue, which merges validated filesystem resources with this base.
+ */
 size_t infiltratr_temporal_calendar_count(void);
 const InfiltratrTemporalCalendarInfo *
 infiltratr_temporal_calendar_at(size_t index);
@@ -270,7 +277,8 @@ bool infiltratr_temporal_policy_v3_default(InfiltratrTemporalPolicyV3 *policy);
 
 /**
  * Parse current temporal policy. Older on-disk documents may be migrated
- * internally, but no older temporal-policy ABI is exposed publicly.
+ * internally, but no older temporal-policy ABI is exposed publicly. Calendar
+ * IDs are validated structurally here; installation is a runtime concern.
  */
 bool infiltratr_temporal_policy_v3_parse(const char *text,
                                          InfiltratrTemporalPolicyV3 *policy);

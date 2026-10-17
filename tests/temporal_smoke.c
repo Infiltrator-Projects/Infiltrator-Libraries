@@ -167,17 +167,27 @@ static void test_policy_v3(void)
     CHECK(parsed.latitude == -36.39);
     CHECK(parsed.longitude == 145.36);
 
+    /* Persisted identity is independent of current installation. Hebrew is a
+     * filesystem resource from 1.19.49 onward, so the portable policy layer
+     * must preserve its valid stable ID without pretending it is built in. */
+    CHECK(infiltratr_temporal_policy_v3_default(&policy));
+    strcpy(policy.calendar, "hebrew");
+    CHECK(infiltratr_temporal_policy_v3_serialize(
+        &policy, text, sizeof(text), &length));
+    CHECK(infiltratr_temporal_policy_v3_parse(text, &parsed));
+    CHECK(strcmp(parsed.calendar, "hebrew") == 0);
+
     policy.latitude = 90.000001;
     CHECK(!infiltratr_temporal_policy_v3_serialize(
         &policy, text, sizeof(text), &length));
-    policy.latitude = -36.39;
+    policy.latitude = 0.0;
     policy.longitude = 180.000001;
     CHECK(!infiltratr_temporal_policy_v3_serialize(
         &policy, text, sizeof(text), &length));
     policy.longitude = NAN;
     CHECK(!infiltratr_temporal_policy_v3_serialize(
         &policy, text, sizeof(text), &length));
-    policy.longitude = 145.36;
+    policy.longitude = 0.0;
 
     CHECK(infiltratr_temporal_policy_v3_parse(
         "version=2\n"
@@ -223,7 +233,8 @@ static void test_policy_v3(void)
     CHECK(!infiltratr_temporal_policy_v3_serialize(
         &policy, text, sizeof(text), &length));
 
-    CHECK(infiltratr_temporal_calendar_count() == 30U);
+    CHECK(infiltratr_temporal_calendar_count() == 29U);
+    CHECK(infiltratr_temporal_calendar_find("hebrew") == NULL);
     CHECK(infiltratr_temporal_calendar_find("none") == NULL);
 }
 

@@ -9,6 +9,7 @@
 #include "infiltratr/config.h"
 #include "infiltratr/core.h"
 #include "infiltratr/format.h"
+#include "infiltratr/temporal_id.h"
 #include "infiltratr/timing.h"
 
 #include <math.h>
@@ -60,12 +61,15 @@ static const InfiltratrTemporalClockModeInfo temporal_clock_modes[] = {
     { "nuremberg-solar", "Nuremberg-style seasonal reconstruction (location-based, not the fixed civic schedule)", true, true, true }
 };
 
+/*
+ * Compiled base capabilities only. Filesystem resources are deliberately absent
+ * from this array and are merged by temporal_runtime.c at runtime.
+ */
 static const InfiltratrTemporalCalendarInfo temporal_calendars[] = {
     { "gregorian", "Gregorian" },
     { "iso-week", "ISO week calendar" },
     { "julian", "Julian" },
     { "revised-julian", "Revised Julian" },
-    { "hebrew", "Hebrew (fixed arithmetic calendar)" },
     { "islamic-umalqura", "Islamic (Umm al-Qura table; AH 1300–1600)" },
     { "islamic-civil", "Islamic (civil/tabular)" },
     { "islamic-tbla", "Islamic (tabular, astronomical epoch)" },
@@ -584,7 +588,7 @@ static bool migrate_v2_document(const char *text,
                     return false;
                 }
             } else if (strcmp(key, "primary-calendar") == 0) {
-                if (infiltratr_temporal_calendar_find(value) == NULL ||
+                if (!infiltratr_temporal_id_valid(value) ||
                     !copy_temporal_id(parsed.calendar, value)) {
                     return false;
                 }
@@ -618,7 +622,7 @@ static bool migrate_v2_document(const char *text,
     }
 
     if (infiltratr_temporal_clock_mode_find(parsed.clock_mode) == NULL ||
-        infiltratr_temporal_calendar_find(parsed.calendar) == NULL) {
+        !infiltratr_temporal_id_valid(parsed.calendar)) {
         return false;
     }
 
@@ -697,7 +701,7 @@ bool infiltratr_temporal_policy_v3_parse(const char *text,
                 seen |= V3_SEEN_CLOCK_MODE;
             } else if (strcmp(key, "calendar") == 0) {
                 if ((seen & V3_SEEN_CALENDAR) != 0U ||
-                    infiltratr_temporal_calendar_find(value) == NULL ||
+                    !infiltratr_temporal_id_valid(value) ||
                     !copy_temporal_id(parsed.calendar, value)) {
                     return false;
                 }
@@ -741,7 +745,7 @@ bool infiltratr_temporal_policy_v3_parse(const char *text,
 
     if (seen != V3_REQUIRED_FIELDS ||
         infiltratr_temporal_clock_mode_find(parsed.clock_mode) == NULL ||
-        infiltratr_temporal_calendar_find(parsed.calendar) == NULL) {
+        !infiltratr_temporal_id_valid(parsed.calendar)) {
         return false;
     }
 
@@ -766,7 +770,7 @@ bool infiltratr_temporal_policy_v3_serialize(
         memchr(policy->clock_mode, '\0', sizeof(policy->clock_mode)) == NULL ||
         memchr(policy->calendar, '\0', sizeof(policy->calendar)) == NULL ||
         infiltratr_temporal_clock_mode_find(policy->clock_mode) == NULL ||
-        infiltratr_temporal_calendar_find(policy->calendar) == NULL ||
+        !infiltratr_temporal_id_valid(policy->calendar) ||
         !isfinite(policy->latitude) ||
         policy->latitude < -90.0 || policy->latitude > 90.0 ||
         !isfinite(policy->longitude) ||
