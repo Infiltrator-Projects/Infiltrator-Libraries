@@ -15,7 +15,7 @@
  * implementations require the caller's structure to cover every field defined
  * by that ABI version, but do not require trailing padding or future appended
  * fields. This permits compatible structure extension within the same shared
- * library major version while still rejecting incomplete records.
+ * library major version while still rejecting incomplete structures.
  *
  * @author Shannon Smith
  * @copyright Copyright (c) 1993-2026 Shannon Smith
@@ -33,7 +33,7 @@
 extern "C" {
 #endif
 
-#define INFILTRATR_COMMON_VERSION "1.19.49"
+#define INFILTRATR_COMMON_VERSION "1.19.50"
 #define INFILTRATR_PROJECT_INFO_ABI 1U
 #define INFILTRATR_SCALE_OPTIONS_ABI 1U
 #define INFILTRATR_ARRAY_LENGTH(array) (sizeof(array) / sizeof((array)[0]))
