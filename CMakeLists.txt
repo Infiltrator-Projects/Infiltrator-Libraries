@@ -50,7 +50,8 @@ set(INFILTRATR_COMMON_FULL_SOURCES
     src/dynlib.c
     src/temporal_resource.c
     src/temporal_runtime.c
-    src/temporal_calendar.c)
+    src/temporal_calendar.c
+    src/temporal_clock_resource.c)
 if(UNIX)
     list(APPEND INFILTRATR_COMMON_FULL_SOURCES
         src/posix.c src/posix_path.c src/posix_io.c src/posix_numeric.c
@@ -138,6 +139,18 @@ if(INFILTRATR_COMMON_BUILD_TESTS)
     target_compile_definitions(infiltratr-temporal-calendar-smoke PRIVATE
         TEMPORAL_CALENDAR_FIXTURE_PATH="$<TARGET_FILE:infiltratr-temporal-calendar-fixture>")
     add_dependencies(infiltratr-temporal-calendar-smoke infiltratr-temporal-calendar-fixture)
+    # The CMake consumers (Files and System Settings) need the same executable
+    # clock-provider ABI and qualification as the Makefile-built Calendar.
+    add_library(infiltratr-temporal-clock-fixture MODULE tests/temporal_clock_fixture.c)
+    target_include_directories(infiltratr-temporal-clock-fixture PRIVATE include)
+    set_target_properties(infiltratr-temporal-clock-fixture PROPERTIES
+        PREFIX ""
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/clock-provider-fixture"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/clock-provider-fixture")
+    infiltratr_common_add_test(infiltratr-temporal-clock-provider-smoke tests/temporal_clock_provider_smoke.c InfiltratrCommon::Common)
+    target_compile_definitions(infiltratr-temporal-clock-provider-smoke PRIVATE
+        TEMPORAL_CLOCK_FIXTURE_PATH="$<TARGET_FILE:infiltratr-temporal-clock-fixture>")
+    add_dependencies(infiltratr-temporal-clock-provider-smoke infiltratr-temporal-clock-fixture)
     infiltratr_common_add_test(infiltratr-portable-smoke tests/portable_smoke.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-portable-contract tests/portable_contract.c InfiltratrCommon::Portable)
     infiltratr_common_add_test(infiltratr-encoding-contract tests/encoding_contract.c InfiltratrCommon::Portable)
